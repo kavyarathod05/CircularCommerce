@@ -34,8 +34,8 @@ Before deploying CDK stacks, the AWS account and target region must be bootstrap
 
 ---
 
-### Step 2: Deploy Core Infrastructure (S3, DynamoDB, Cognito)
-Deploy the state and authentication layers first, as the backend microservices depend on their outputs (ARNs, table names).
+### Step 2: Deploy Core Infrastructure (S3, DynamoDB)
+Deploy the state layer first, as the backend monolith depends on its outputs (ARNs, table names).
 
 * **CDK Command**:
   ```powershell
@@ -43,14 +43,13 @@ Deploy the state and authentication layers first, as the backend microservices d
   ```
 * **Deployed Resources**:
   - DynamoDB Single-Table (`SecondLifeTable`)
-  - Cognito User Pool (`SecondLifeUserPool`)
   - S3 Storage Buckets (`secondlife-inspections`, `secondlife-certificates`)
-  - IAM Roles for Bedrock and Location Service
+  - IAM Roles for Bedrock and S3 access
 
 ---
 
-### Step 3: Compile Go Lambda Microservices
-Go Lambdas must be compiled into Linux-compatible binaries before CDK packages them.
+### Step 3: Compile Go Lambda Backend Monolith
+Go Lambda must be compiled into a Linux-compatible binary before CDK packages it.
 
 * **Compilation Commands** (Run inside `/backend`):
   ```powershell
@@ -59,28 +58,22 @@ Go Lambdas must be compiled into Linux-compatible binaries before CDK packages t
   $env:GOARCH="amd64"
   $env:CGO_ENABLED="0"
   
-  go build -o bin/user-service services/user/main.go
-  go build -o bin/inspection-service services/inspection/main.go
-  go build -o bin/routing-service services/routing/main.go
-  go build -o bin/match-service services/match/main.go
-  go build -o bin/carbon-service services/carbon/main.go
+  go build -o bin/backend-monolith cmd/backend/main.go
   ```
 * **Execution Boundary**: Run every time you make changes to the Go backend source code.
 
 ---
 
-### Step 4: Deploy API Gateway & Go Lambda Stack
-Deploys the compiled Lambda functions, API Gateway mappings, and EventBridge integrations.
+### Step 4: Deploy Go Lambda Stack with Function URL
+Deploys the compiled Lambda function and configures its public HTTPS Function URL.
 
 * **CDK Command**:
   ```powershell
   cdk deploy SecondLifeBackendStack
   ```
 * **Deployed Resources**:
-  - 6 Go Lambda functions
-  - API Gateway REST API endpoints
-  - EventBridge Event Bus & Routing Rules
-  - Step Functions State Machines (Saga workflows)
+  - 1 Go Lambda function (Monolith)
+  - Lambda Function URL (Direct public HTTPS endpoint)
 
 ---
 

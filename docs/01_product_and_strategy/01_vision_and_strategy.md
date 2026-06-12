@@ -8,9 +8,15 @@ To give every returned product its best possible second life — intelligently, 
 ### Vision
 SecondLife Commerce is the operating system for circular commerce. A world where no returned product is needlessly destroyed, every buyer can trust a secondhand product, and reverse logistics flows as efficiently as forward logistics — powered by AI, driven by hyperlocal intelligence, and verified by transparency.
 
-### Core Philosophy: "Bypass the Warehouse"
+### Core Philosophy: "Prevent Before Sale" & "Bypass the Warehouse"
 Most teams build a standard reverse-logistics app: *User returns item → Item goes to Amazon Warehouse → Item gets recycled or resold.* This is too standard.
-Our out-of-the-box approach is the **"Direct-to-Next-Owner" Intercept Engine**. We build a system that attempts to match a returned item directly with a new buyer in the same geographic zone *before* it ever goes back to a central warehouse. Amazon simply acts as the AI grader and financial broker. This drastically cuts carbon emissions (shipping) and operational costs (warehousing)—the exact ROI Amazon judges look for.
+We operate on a multi-pillar foundation:
+- **Pillar 01: Interception** - Match returned items directly with new buyers locally before warehouse routing.
+- **Pillar 02: AI Inspection** - Instant, automated condition grading using generative AI.
+- **Pillar 03: Transparency** - Tamper-evident condition certificates.
+- **Pillar 04: Prevention** - A pre-purchase intercept step. We analyze user sizing data and behavioral anomalies to flag warnings *before* checkout completes, stopping high-risk returns before they happen.
+
+Our out-of-the-box approach is the **"Direct-to-Next-Owner" Intercept Engine**, drastically cutting carbon emissions (shipping) and operational costs (warehousing)—the exact ROI Amazon judges look for.
 
 ### Long-Term Ecosystem Impact
 - Eliminate landfill routing for consumer returns globally.
@@ -32,6 +38,7 @@ Our out-of-the-box approach is the **"Direct-to-Next-Owner" Intercept Engine**. 
 
 ### Marketplace Value Proposition
 - Convert returns from pure cost centers into revenue-generating assets.
+- **Margin Triage Gate**: Split processing into Track A (Premium Assets) and Track B (Commodity Assets) right after return initiation to minimize compute costs on low-value items.
 - Reduce warehouse intake volume by up to 40% through hyperlocal direct matching.
 - AI-graded condition certificates reduce buyer disputes and fraud.
 - Unified reverse logistics dashboard across all seller categories.

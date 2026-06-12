@@ -1,6 +1,16 @@
 # Core Functional Modules
 
-## 1. AI Product Inspection Module
+## 1. Pre-Checkout Prevention Module (Pillar 04)
+**Technology**: Go Lambda + DynamoDB User History
+
+### Capabilities
+- **Sizing Anomaly Intercept**: Cross-references the user's historical purchases and returns against the current cart's sizing. If the item historically runs small and the user is ordering a size that often results in a return, the system flags a warning modal *before* checkout.
+- **Behavioral Velocity Checks**: If the user has returned >3 items in the past 7 days, or frequently returns items in the current category, a friction warning is applied.
+- **Goal**: Stop high-risk returns before the transaction is even completed, dramatically reducing baseline return volume.
+
+---
+
+## 2. AI Product Inspection Module
 **Technology**: Amazon Bedrock (Claude 3.5 Sonnet)
 
 ### Capabilities
@@ -16,10 +26,15 @@
 
 ---
 
-## 2. Smart Routing Engine
+## 3. Smart Routing Engine
 **Technology**: Go Lambda microservice
 
-### Logic Flow
+### Margin Triage Gate (Step 0)
+Immediately after a return is initiated, the routing engine executes a Margin Triage Gate:
+- **Track A (Premium Assets)**: High-margin electronics, luxury goods, and high-value apparel. These items proceed to full AI Bedrock inspection and Hyperlocal matching.
+- **Track B (Commodity Assets)**: Low-margin, low-value items (e.g., cheap plastics, basic t-shirts). These bypass the expensive Bedrock AI inspection and trigger an instant "Keep-and-Credit" or automated bulk liquidation to save compute and logistics costs.
+
+### Logic Flow (Track A)
 Evaluates the calculated item grade, category, seller preferences, local demand score, and repair cost estimate to decide the optimal resolution pathway.
 
 ### Decision Matrix
@@ -39,7 +54,7 @@ Sellers can specify threshold configurations (e.g., brand-owner overrides that r
 
 ---
 
-## 3. Hyperlocal Demand Matching Engine
+## 4. Hyperlocal Demand Matching Engine
 **Technology**: Amazon Location Service + Go Lambda
 
 ### Matching Logic
@@ -54,7 +69,7 @@ Sellers can specify threshold configurations (e.g., brand-owner overrides that r
 
 ---
 
-## 4. Carbon Optimization Engine
+## 5. Carbon Optimization Engine
 **Technology**: AWS Lambda + DynamoDB Metrics
 
 ### Carbon Calculation Per Transaction
@@ -69,7 +84,7 @@ The engine computes environmental savings dynamically based on the bypassed logi
 
 ---
 
-## 5. Trust & Transparency Engine
+## 6. Trust & Transparency Engine
 **Technology**: Go Lambda + S3 + AWS KMS
 
 ### Product Condition Certificate

@@ -19,19 +19,18 @@ To assemble this system within 48 hours, maximize implementation speed by reusin
 
 #### Hours 0–2: Setup & Architecture
 - [ ] Initialize Git monorepo with folders: `/frontend`, `/backend`, `/infra`
-- [ ] Deploy base AWS infrastructure (CDK or SAM): API Gateway, DynamoDB tables, S3 bucket, Cognito.
+- [ ] Deploy base AWS infrastructure (CDK or SAM): DynamoDB tables, S3 bucket, AWS Lambda Function URL.
 - [ ] Configure Amazon Bedrock access and verify basic model invocation.
-- [ ] Set up CloudWatch log groups.
 
 #### Hours 2–8: Backend Core (Go)
-- [ ] User Service: register, login (Cognito integration).
+- [ ] User Service: register, login (custom JWT/session generation, stored in NoSQL DynamoDB).
 - [ ] Return Service: POST /returns, GET /returns/{id}.
 - [ ] Inspection Service: photo upload → S3 presigned URL, Bedrock invoke, parse result, store to DynamoDB.
-- [ ] Routing Service: consume inspection result, apply decision matrix, emit routing event.
+- [ ] Routing Service: consume inspection result, apply decision matrix, save routing decision to DynamoDB.
 - [ ] Basic Carbon Service: calculate CO₂ delta per routing decision.
 
 #### Hours 8–14: Frontend Core (React + Tailwind)
-- [ ] Authentication screens (login/register).
+- [ ] Authentication screens (login/register via backend endpoint).
 - [ ] Return initiation flow (order select → reason → photo upload).
 - [ ] AI inspection progress screen with live status.
 - [ ] Inspection result card (grade, damages, certificate link).
@@ -39,15 +38,13 @@ To assemble this system within 48 hours, maximize implementation speed by reusin
 
 #### Hours 14–20: AI & Matching
 - [ ] Tune Bedrock inspection prompt, test with sample product photos.
-- [ ] Hyperlocal Match Service: location query, buyer scoring, offer dispatch.
-- [ ] Amazon Location Service integration for distance calculation.
-- [ ] SNS notification setup for buyer match alert.
+- [ ] Hyperlocal Match Service: location query, buyer scoring, direct database offer allocation.
+- [ ] Local distance calculation using Go math libraries (Haversine formula).
 
-#### Hours 20–24: Seller Dashboard & Events
+#### Hours 20–24: Seller Dashboard & Integration
 - [ ] Seller dashboard: active returns, routing decisions, recovery value.
-- [ ] EventBridge rules: `inspection.completed` → routing → matching → notification.
-- [ ] Step Functions workflow for end-to-end return orchestration.
-- [ ] Basic OpenSearch index for marketplace listings.
+- [ ] Monolith orchestration: sequential execution of inspection → routing → matching workflows within Go Lambda.
+- [ ] Marketplace listing queries directly from DynamoDB NoSQL indexes.
 
 ---
 

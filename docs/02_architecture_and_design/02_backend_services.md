@@ -8,7 +8,7 @@ The backend is written in Go and structured into independent serverless domains 
 - **Responsibilities**: Registration, authentication, profile management, buyer/seller role assignment, trust score computation.
 - **APIs**:
   - `POST /users/register` — create customer/seller account
-  - `POST /users/login` — authenticate (delegates to Cognito)
+  - `POST /users/login` — authenticate and return JWT
   - `GET /users/{id}/profile` — fetch profile + trust score
   - `PUT /users/{id}/preferences` — update notification and location preferences
 - **Events Emitted**:
@@ -29,7 +29,7 @@ The backend is written in Go and structured into independent serverless domains 
 - **Events Consumed**: None (triggered by return routing request)
 
 ### 1.3 Routing Service
-- **Responsibilities**: Evaluate inspection result + seller prefs + local demand score → emit routing decision.
+- **Responsibilities**: Execute Margin Triage Gate (Track A vs Track B), evaluate inspection result + seller prefs + local demand score → emit routing decision.
 - **APIs**:
   - `POST /routing/decide` — receive inspection ID, return routing decision
   - `GET /routing/{return_id}` — fetch routing decision for a return
@@ -79,7 +79,7 @@ The backend is written in Go and structured into independent serverless domains 
 ## 2. API Design & Payloads
 
 ### Authentication
-All endpoints require `Authorization: Bearer <Cognito JWT>` unless marked Public.
+All endpoints require `Authorization: Bearer <JWT>` unless marked Public.
 
 ### Standard Error Response
 ```json
@@ -92,7 +92,29 @@ All endpoints require `Authorization: Bearer <Cognito JWT>` unless marked Public
 }
 ```
 
-### 2.1 Initiate Return
+### 2.1 Pre-Checkout Intercept (Prevention)
+* **Path**: `POST /v1/checkout/intercept`
+* **Auth**: Required
+* **Request Body**:
+```json
+{
+  "userId": "USR-123",
+  "cartItems": [
+    { "productId": "PROD-456", "category": "apparel", "size": "M" }
+  ]
+}
+```
+* **Response 200**:
+```json
+{
+  "intercept": true,
+  "warningType": "sizing_anomaly",
+  "message": "You frequently return Mediums in this brand. Consider sizing up to Large.",
+  "riskScore": 0.85
+}
+```
+
+### 2.2 Initiate Return
 * **Path**: `POST /v1/returns`
 * **Auth**: Required (customer)
 * **Request Body**:
@@ -113,7 +135,7 @@ All endpoints require `Authorization: Bearer <Cognito JWT>` unless marked Public
 }
 ```
 
-### 2.2 Submit Inspection Photos
+### 2.3 Submit Inspection Photos
 * **Path**: `POST /v1/inspections`
 * **Auth**: Required (customer)
 * **Request Body**: `multipart/form-data`
@@ -128,7 +150,7 @@ All endpoints require `Authorization: Bearer <Cognito JWT>` unless marked Public
 }
 ```
 
-### 2.3 Get Inspection Result
+### 2.4 Get Inspection Result
 * **Path**: `GET /v1/inspections/{inspectionId}`
 * **Auth**: Required
 * **Response 200**:
@@ -146,7 +168,7 @@ All endpoints require `Authorization: Bearer <Cognito JWT>` unless marked Public
 }
 ```
 
-### 2.4 Get Routing Decision
+### 2.5 Get Routing Decision
 * **Path**: `GET /v1/routing/{returnId}`
 * **Auth**: Required
 * **Response 200**:
@@ -160,7 +182,7 @@ All endpoints require `Authorization: Bearer <Cognito JWT>` unless marked Public
 }
 ```
 
-### 2.5 Search Marketplace Listings
+### 2.6 Search Marketplace Listings
 * **Path**: `GET /v1/listings/search?category=electronics&grade=B&maxPrice=2000&lat=19.0&lng=72.8&radius=25`
 * **Auth**: Public
 * **Response 200**:
@@ -180,7 +202,7 @@ All endpoints require `Authorization: Bearer <Cognito JWT>` unless marked Public
 }
 ```
 
-### 2.6 Get Carbon Summary (User)
+### 2.7 Get Carbon Summary (User)
 * **Path**: `GET /v1/carbon/user/{userId}/summary`
 * **Auth**: Required
 * **Response 200**:
