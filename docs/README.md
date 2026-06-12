@@ -26,3 +26,4 @@ Welcome to the documentation space for **SecondLife Commerce**, the AI-powered c
 - **[48-Hour Execution Plan & Tasks](file:///g:/amazon/hackon_amazon/docs/04_hackathon_and_execution/02_execution_plan_and_tasks.md)**: Timeline roadmap, build-vs-buy analysis matrix, and development tasks checklist.
 - **[Demo Script & Pitch Flow](file:///g:/amazon/hackon_amazon/docs/04_hackathon_and_execution/03_demo_scripts.md)**: Narrative scripts for pitching and demonstrating the platform.
 - **[Open-Source Component Map & Integration Guide](file:///g:/amazon/hackon_amazon/docs/04_hackathon_and_execution/04_open_source_component_map.md)**: Reference guide mapping specific open-source libraries to the core architecture components.
+- **[AWS Infrastructure Deployment & Orchestration Guide](file:///g:/amazon/hackon_amazon/docs/04_hackathon_and_execution/05_orchestration_guide.md)**: Step-by-step commands and setup guide detailing when and how to deploy the core and backend stacks.

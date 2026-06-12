@@ -16,6 +16,7 @@ Please explore the comprehensive documentation here:
 - **[AI Design & Core Algorithms](file:///g:/amazon/hackon_amazon/docs/02_architecture_and_design/04_ai_and_algorithms.md)**
 - **[Algorithmic Triage Routing Engine](file:///g:/amazon/hackon_amazon/docs/03_features_and_modules/02_triage_routing_engine.md)**
 - **[Open-Source Component Map & Integration Guide](file:///g:/amazon/hackon_amazon/docs/04_hackathon_and_execution/04_open_source_component_map.md)**
+- **[AWS Infrastructure Deployment & Orchestration Guide](file:///g:/amazon/hackon_amazon/docs/04_hackathon_and_execution/05_orchestration_guide.md)**
 
 ---
 
