@@ -1,0 +1,23 @@
+{
+  "name": "hackon_amazon",
+  "version": "1.0.0",
+  "description": "This comprehensive strategy guide serves as your team’s playbook to bypass common hackathon traps, capitalize on the highest-scoring judging criteria, and implement out-of-the-box technical features that secure a spot in the finals.",
+  "main": "second.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kavyarathod05/hackon_amazon.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kavyarathod05/hackon_amazon/issues"
+  },
+  "homepage": "https://github.com/kavyarathod05/hackon_amazon#readme",
+  "dependencies": {
+    "docx": "^9.7.1"
+  }
+}
