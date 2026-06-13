@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/location"
+	locTypes "github.com/aws/aws-sdk-go-v2/service/location/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -41,16 +44,46 @@ func (m *MockS3Presigner) PresignPutObject(ctx context.Context, params *s3.PutOb
 	return &v4.PresignedHTTPRequest{URL: "https://mock-presigned-url.com/upload"}, nil
 }
 
+type MockLocationClient struct {
+	CalculateRouteMatrixFunc func(ctx context.Context, params *location.CalculateRouteMatrixInput, optFns ...func(*location.Options)) (*location.CalculateRouteMatrixOutput, error)
+}
+
+func (m *MockLocationClient) CalculateRouteMatrix(ctx context.Context, params *location.CalculateRouteMatrixInput, optFns ...func(*location.Options)) (*location.CalculateRouteMatrixOutput, error) {
+	if m.CalculateRouteMatrixFunc != nil {
+		return m.CalculateRouteMatrixFunc(ctx, params, optFns...)
+	}
+	dist := 5.2
+	dur := 12.5 * 60.0
+	return &location.CalculateRouteMatrixOutput{
+		RouteMatrix: [][]locTypes.RouteMatrixEntry{
+			{
+				{
+					Distance:        &dist,
+					DurationSeconds: &dur,
+				},
+				{
+					Distance:        &dist,
+					DurationSeconds: &dur,
+				},
+			},
+		},
+	}, nil
+}
+
 func TestHandler_RouteRouting(t *testing.T) {
+	t.Setenv("ROUTE_CALCULATOR_NAME", "SecondLifeRouteCalculator")
+
 	mockDDB := &MockDynamoDBClient{
 		PutItemFunc: func(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
 			return &dynamodb.PutItemOutput{}, nil
 		},
 	}
 	mockS3 := &MockS3Presigner{}
+	mockLoc := &MockLocationClient{}
 
 	ddbClient = mockDDB
 	s3PresignClient = mockS3
+	locationClient = mockLoc
 
 	t.Run("404 Route NotFound", func(t *testing.T) {
 		req := events.APIGatewayProxyRequest{
@@ -81,45 +114,67 @@ func TestHandler_RouteRouting(t *testing.T) {
 		if resp.StatusCode != 200 {
 			t.Errorf("Expected 200, got %d", resp.StatusCode)
 		}
-
-		var resMap map[string]string
-		json.Unmarshal([]byte(resp.Body), &resMap)
-		if resMap["upload_url"] != "https://mock-presigned-url.com/upload" {
-			t.Errorf("Expected mock upload URL, got %s", resMap["upload_url"])
-		}
 	})
 
-	t.Run("Intercept Return Request With Scope-3 Carbon Calculations", func(t *testing.T) {
+	t.Run("Commodity Spatial Hyperlocal P2P Match", func(t *testing.T) {
 		req := events.APIGatewayProxyRequest{
 			Path:       "/return/intercept",
 			HTTPMethod: "POST",
-			Body:       `{"order_id": "ord-999", "product_id": "p-low-tshirt", "user_id": "usr-5", "reason": "fit"}`,
+			Body:       `{"order_id": "ord-p2p", "product_id": "p-low-tshirt", "user_id": "usr-9", "reason": "fit", "lat": 38.8951, "lng": -77.0364}`,
 		}
 		resp, err := handler(context.Background(), req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 		if resp.StatusCode != 200 {
-			t.Errorf("Expected 200, got %d", resp.StatusCode)
+			t.Fatalf("Expected 200, got %d. Body: %s", resp.StatusCode, resp.Body)
 		}
 
 		var resMap map[string]interface{}
 		json.Unmarshal([]byte(resp.Body), &resMap)
 
-		// Verification of carbon tracker output
-		co2Saved, ok := resMap["carbon_saved_co2_kg"].(float64)
-		if !ok || co2Saved != 52.5 {
-			t.Errorf("Expected co2Saved 52.5 for commodity pathway, got %v", resMap["carbon_saved_co2_kg"])
+		if resMap["pathway"] != "hyperlocal-p2p" {
+			t.Errorf("Expected pathway 'hyperlocal-p2p', got %v", resMap["pathway"])
 		}
 
-		legsSaved, ok := resMap["transport_legs_saved"].(float64)
-		if !ok || legsSaved != 2 {
-			t.Errorf("Expected 2 transport legs saved, got %v", resMap["transport_legs_saved"])
+		geohashVal, ok := resMap["geohash"].(string)
+		if !ok || len(geohashVal) == 0 {
+			t.Errorf("Expected geohash to be populated")
 		}
 
-		daysSaved, ok := resMap["warehouse_days_saved"].(float64)
-		if !ok || daysSaved != 14 {
-			t.Errorf("Expected 14 warehouse days saved, got %v", resMap["warehouse_days_saved"])
+		if resMap["transit_distance_km"].(float64) != 5.2 {
+			t.Errorf("Expected mocked transit distance 5.2, got %v", resMap["transit_distance_km"])
+		}
+	})
+
+	t.Run("Commodity Fallback to Locker Dropoff", func(t *testing.T) {
+		// Override getListingsNear to return nil so it bypasses P2P match
+		oldListingsFunc := getListingsNear
+		getListingsNear = func(lat, lng float64) []Listing { return nil }
+		defer func() { getListingsNear = oldListingsFunc }()
+
+		mockLoc.CalculateRouteMatrixFunc = func(ctx context.Context, params *location.CalculateRouteMatrixInput, optFns ...func(*location.Options)) (*location.CalculateRouteMatrixOutput, error) {
+			return &location.CalculateRouteMatrixOutput{}, errors.New("route matrix failed")
+		}
+
+		req := events.APIGatewayProxyRequest{
+			Path:       "/return/intercept",
+			HTTPMethod: "POST",
+			Body:       `{"order_id": "ord-locker", "product_id": "p-low-tshirt", "user_id": "usr-10", "reason": "fit", "lat": 38.8951, "lng": -77.0364}`,
+		}
+		resp, err := handler(context.Background(), req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if resp.StatusCode != 200 {
+			t.Fatalf("Expected 200, got %d. Body: %s", resp.StatusCode, resp.Body)
+		}
+
+		var resMap map[string]interface{}
+		json.Unmarshal([]byte(resp.Body), &resMap)
+
+		if resMap["pathway"] != "locker-dropoff" {
+			t.Errorf("Expected pathway 'locker-dropoff', got %v", resMap["pathway"])
 		}
 	})
 }

@@ -8,7 +8,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.25
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.48
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.59.0
+	github.com/aws/aws-sdk-go-v2/service/location v1.52.8
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.103.3
+	github.com/mmcloughlin/geohash v0.10.0
 )
 
 require (

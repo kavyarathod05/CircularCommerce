@@ -6,7 +6,7 @@ Description: >
 
 Globals:
   Function:
-    Timeout: 15
+    Timeout: 20
     MemorySize: 256
     Runtime: provided.al2023
     Architectures:
@@ -93,6 +93,14 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
 
+  # Amazon Location Service Route Calculator
+  RouteCalculator:
+    Type: AWS::Location::RouteCalculator
+    Properties:
+      CalculatorName: SecondLifeRouteCalculator
+      DataSource: Esri
+      Description: Route calculator for P2P logistics routing
+
   # API Gateway
   ReturnInterceptApi:
     Type: AWS::Serverless::Api
@@ -127,6 +135,7 @@ Resources:
           ORDERS_TABLE: !Ref OrdersTable
           UPLOADS_BUCKET: !Ref UploadsBucket
           CARBON_TABLE: !Ref CarbonMetricsTable
+          ROUTE_CALCULATOR_NAME: !Ref RouteCalculator
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ReturnsTable
@@ -138,6 +147,12 @@ Resources:
             BucketName: !Ref UploadsBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref CarbonMetricsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - location:CalculateRouteMatrix
+              Resource: !GetAtt RouteCalculator.Arn
 
 Outputs:
   ReturnInterceptApiEndpoint:

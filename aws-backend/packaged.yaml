@@ -4,7 +4,7 @@ Description: "Hackon Amazon Return Intercept Engine SAM Template for deploying c
   \ backend infrastructure\n"
 Globals:
   Function:
-    Timeout: 15
+    Timeout: 20
     MemorySize: 256
     Runtime: provided.al2023
     Architectures:
@@ -82,6 +82,12 @@ Resources:
       - AttributeName: ReturnId
         KeyType: HASH
       BillingMode: PAY_PER_REQUEST
+  RouteCalculator:
+    Type: AWS::Location::RouteCalculator
+    Properties:
+      CalculatorName: SecondLifeRouteCalculator
+      DataSource: Esri
+      Description: Route calculator for P2P logistics routing
   ReturnInterceptApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -92,7 +98,7 @@ Resources:
       BuildMethod: makefile
     Properties:
       CodeUri: 
-        s3://secondlife-returns-hackon-1781325749675/c335a49eec03a92fdcbb26deeef3ea6e
+        s3://secondlife-returns-hackon-1781325749675/22d84a30a0202881c46c30a4db80ca94
       Handler: bootstrap
       Events:
         InterceptEndpoint:
@@ -121,6 +127,8 @@ Resources:
             Ref: UploadsBucket
           CARBON_TABLE:
             Ref: CarbonMetricsTable
+          ROUTE_CALCULATOR_NAME:
+            Ref: RouteCalculator
       Policies:
       - DynamoDBCrudPolicy:
           TableName:
@@ -137,6 +145,15 @@ Resources:
       - DynamoDBCrudPolicy:
           TableName:
             Ref: CarbonMetricsTable
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - location:CalculateRouteMatrix
+          Resource:
+            Fn::GetAtt:
+            - RouteCalculator
+            - Arn
 Outputs:
   ReturnInterceptApiEndpoint:
     Description: API Gateway endpoint URL for Prod stage
