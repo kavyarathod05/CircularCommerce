@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { colors, typography, layout } from '../theme';
+import RouteMatrixMap from '../components/RouteMatrixMap';
+import ClusterMap from '../components/ClusterMap';
 
 export default function AdminDashboardScreen() {
   return (
@@ -36,14 +38,10 @@ export default function AdminDashboardScreen() {
       </View>
 
       <Text style={styles.sectionHeader}>// SPATIAL ROUTING & CLUSTERS</Text>
-      <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapText}>[ RENDER LEAFLET CLUSTER MAP HERE ]</Text>
-      </View>
+      <ClusterMap />
       
       <Text style={styles.sectionHeader}>// P2P ETA OPTIMIZATION</Text>
-      <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapText}>[ RENDER MAPBOX ROUTE MATRIX HERE ]</Text>
-      </View>
+      <RouteMatrixMap eta="14 MINS" distance="2.4 KM" />
     </ScrollView>
   );
 }
@@ -95,32 +93,9 @@ const styles = StyleSheet.create({
     color: colors.accent,
     marginTop: 8,
   },
-  mapPlaceholder: {
-    height: 180,
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: layout.padding,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  mapGridLines: {
-    position: 'absolute',
-    width: '200%',
-    height: '200%',
-    borderWidth: 1,
-    borderColor: colors.border,
-    opacity: 0.3,
-  },
-  mapText: {
+  carbonSubValue: {
     ...typography.mono,
-    color: colors.text,
-    backgroundColor: colors.white,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: colors.text,
+    color: colors.white,
   },
   carbonBox: {
     borderWidth: layout.borderWidth,
@@ -154,9 +129,5 @@ const styles = StyleSheet.create({
   carbonSubText: {
     ...typography.mono,
     color: colors.subtext,
-  },
-  carbonSubValue: {
-    ...typography.mono,
-    color: colors.white,
   }
 });
