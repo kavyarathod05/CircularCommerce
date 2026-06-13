@@ -49,7 +49,7 @@ function App() {
   
   // Terminal Simulation Logs
   const [consoleLogs, setConsoleLogs] = useState<string[]>([
-    'SYSTEM: Ready for Return Ingestion...'
+    'Ready to process your return.'
   ])
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [lastResult, setLastResult] = useState<SimulatedResult | null>(null)
@@ -131,7 +131,7 @@ function App() {
 
   const runTriageSimulation = async () => {
     setIsEvaluating(true)
-    setConsoleLogs(['SYSTEM: Ingesting return order...'])
+    setConsoleLogs(['System: Initiating return request...'])
     
     let finalMediaUrl = mediaUrl
     if (selectedFile) {
@@ -187,49 +187,49 @@ function App() {
     
     // Simulate real-time progress events
     setTimeout(() => {
-      setConsoleLogs(prev => [...prev, `SYSTEM: Fetched Order ${orderId}. Evaluated MSRP = ₹${msrp}.`])
+      setConsoleLogs(prev => [...prev, `Order Verified: Order #${orderId} located. Original value = ₹${msrp}.`])
       if (msrp >= 5000) {
-        setConsoleLogs(prev => [...prev, 'ROUTE: Routing to Premium Track (AI Visual Inspection Gate)'])
+        setConsoleLogs(prev => [...prev, 'Return Track: Premium item policy applied. Inspection required.'])
       } else {
-        setConsoleLogs(prev => [...prev, 'ROUTE: Routing to Commodity Track (Spatial/Locker matching fallback)'])
+        setConsoleLogs(prev => [...prev, 'Return Track: Standard policy applied. Dropoff recommended.'])
       }
     }, 1000)
 
     setTimeout(() => {
       if (msrp >= 5000) {
-        setConsoleLogs(prev => [...prev, 'AI: Initialized Amazon Bedrock (Nova Pro) & Rekognition.'])
-        setConsoleLogs(prev => [...prev, 'AI: Scanning uploaded image for surface blemishes & pixel tampering...'])
+        setConsoleLogs(prev => [...prev, 'Inspection: Initializing condition verification...'])
+        setConsoleLogs(prev => [...prev, 'Inspection: Scanning image for condition accuracy...'])
       } else {
-        setConsoleLogs(prev => [...prev, 'LOGISTICS: Hashing geolocation coordinates using mmcloughlin/geohash...'])
+        setConsoleLogs(prev => [...prev, 'Logistics: Locating nearest drop-off locations...'])
       }
     }, 2500)
 
     setTimeout(() => {
       if (msrp >= 5000) {
         if (isLiveMLAvailable) {
-          setConsoleLogs(prev => [...prev, `AI: Image graded successfully via Bedrock: ${liveGrade}`])
-          setConsoleLogs(prev => [...prev, `AI Summary: "${liveSummary}"`])
+          setConsoleLogs(prev => [...prev, `Inspection: Verification successful. Condition: ${liveGrade}`])
+          setConsoleLogs(prev => [...prev, `Note: "${liveSummary}"`])
         } else {
           let detectedGrade = 'Grade A'
           let feedback = 'Excellent cosmetic condition. No functional defects. Original box present.'
           if (reason === 'damaged') {
             detectedGrade = 'Grade C'
-            feedback = 'Cosmetic crack detected on headband (severity 6/10). Wear on cups.'
+            feedback = 'Cosmetic crack detected on headband. Wear on cups.'
           } else if (reason === 'fit' || reason === 'defective') {
             detectedGrade = 'Grade B'
-            feedback = 'Minor scratch blemish on side casing. Original packaging intact.'
+            feedback = 'Minor blemish on side casing. Original packaging intact.'
           }
-          setConsoleLogs(prev => [...prev, `AI: Image graded successfully (Simulator): ${detectedGrade}`])
-          setConsoleLogs(prev => [...prev, `AI Summary: "${feedback}"`])
+          setConsoleLogs(prev => [...prev, `Inspection: Verification successful. Condition: ${detectedGrade}`])
+          setConsoleLogs(prev => [...prev, `Note: "${feedback}"`])
         }
       } else {
-        setConsoleLogs(prev => [...prev, 'LOGISTICS: Proximity scan complete. Finding nearest Locker node.'])
+        setConsoleLogs(prev => [...prev, 'Logistics: Proximity scan complete. Nearest Amazon Locker located.'])
       }
     }, 4000)
 
     setTimeout(async () => {
-      setConsoleLogs(prev => [...prev, 'SYSTEM: Persistence triggered. Writing to Listings and Return tables.'])
-      setConsoleLogs(prev => [...prev, 'SYSTEM: Triage complete. Click the "Triage Result" tab to inspect.'])
+      setConsoleLogs(prev => [...prev, 'System: Return records updated successfully.'])
+      setConsoleLogs(prev => [...prev, 'Status: Return approved. Please check the Return Status tab for details.'])
       setIsEvaluating(false)
 
       let pathway = 'hyperlocal-p2p'
@@ -373,10 +373,10 @@ function App() {
           <h1 className="logo-title">SecondLife<span>Commerce</span></h1>
         </div>
         <div className="nav-tabs">
-          <button className={`tab-btn ${activeTab === 'wizard' ? 'active' : ''}`} onClick={() => setActiveTab('wizard')}>Return Wizard</button>
-          <button className={`tab-btn ${activeTab === 'result' ? 'active' : ''}`} onClick={() => setActiveTab('result')}>Triage Result</button>
-          <button className={`tab-btn ${activeTab === 'admin' ? 'active' : ''}`} onClick={() => setActiveTab('admin')}>Seller Dashboard</button>
-          <button className={`tab-btn ${activeTab === 'prevention' ? 'active' : ''}`} onClick={() => setActiveTab('prevention')}>Pre-Checkout Prevention</button>
+          <button className={`tab-btn ${activeTab === 'wizard' ? 'active' : ''}`} onClick={() => setActiveTab('wizard')}>Your Returns</button>
+          <button className={`tab-btn ${activeTab === 'result' ? 'active' : ''}`} onClick={() => setActiveTab('result')}>Return Status</button>
+          <button className={`tab-btn ${activeTab === 'admin' ? 'active' : ''}`} onClick={() => setActiveTab('admin')}>Seller Central</button>
+          <button className={`tab-btn ${activeTab === 'prevention' ? 'active' : ''}`} onClick={() => setActiveTab('prevention')}>Fraud Prevention</button>
         </div>
       </header>
 
@@ -386,7 +386,7 @@ function App() {
           <section className="view-section">
             <div className="grid-split">
               <div className="panel">
-                <div className="panel-title">01 / Initiate Return Ingestion</div>
+                <div className="panel-title">Start a Return</div>
                 <div className="step-container">
                   <div className="field-group">
                     <label className="field-label">Order ID</label>
@@ -459,7 +459,7 @@ function App() {
               </div>
 
               <div className="panel">
-                <div className="panel-title">02 / Live AI Evaluation Log</div>
+                <div className="panel-title">Return Processing Timeline</div>
                 <div className="inspection-terminal">
                   {consoleLogs.map((log, index) => {
                     let logClass = ''
@@ -485,12 +485,12 @@ function App() {
           <section className="view-section">
             <div className="grid-split">
               <div className="panel">
-                <div className="panel-title">03 / AI Inspection Report Card</div>
+                <div className="panel-title">Return Approval Details</div>
                 {lastResult ? (
                   <>
                     <div className="health-card">
                       <div className="health-card-header">
-                        <span>PRODUCT HEALTH CARD | #INS-{lastResult.orderId.substring(0, 4)}</span>
+                        <span>RETURN STATUS | #RET-{lastResult.orderId.substring(0, 4)}</span>
                         <span className={`grade-badge ${
                           lastResult.grade.includes('B') ? 'b-grade' :
                           lastResult.grade.includes('C') ? 'c-grade' :
@@ -514,13 +514,13 @@ function App() {
                         <span style={{ color: 'white', fontSize: '0.8rem' }}>{lastResult.summary}</span>
                       </div>
                       <div className="health-card-row">
-                        <span>Fraud & Liveness Check</span>
-                        <span style={{ color: 'var(--success-green)' }}>✓ PASSED</span>
+                        <span>Account Standing</span>
+                        <span style={{ color: 'var(--success-green)' }}>✓ Excellent</span>
                       </div>
                       <div className="health-card-footer">
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          KMS Signed SHA-256 Hash:<br />
-                          <span style={{ color: 'var(--amazon-orange)', fontSize: '0.6rem' }}>8f3b2a1c9e99a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1</span>
+                          Return Authorization ID:<br />
+                          <span style={{ color: 'var(--amazon-orange)', fontSize: '0.6rem' }}>AUTH-8f3b2a1c9e99a8b7</span>
                         </div>
                         <div className="qr-placeholder">
                           <svg width="50" height="50" viewBox="0 0 100 100">
@@ -554,7 +554,7 @@ function App() {
               </div>
 
               <div className="panel">
-                <div className="panel-title">04 / Blemish Heatmap & Spatial Map</div>
+                <div className="panel-title">Condition Proof & Routing Options</div>
                 {lastResult ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {/* Blemish Image Overlays */}
@@ -591,7 +591,7 @@ function App() {
                             />
                           ))}
                         </svg>
-                        <div className="defect-bbox-label" style={{ top: '10%', left: '10%' }}>AI Visual Detections Active</div>
+                        <div className="defect-bbox-label" style={{ top: '10%', left: '10%' }}>Noted Condition Flaws</div>
                       </div>
                     )}
 
@@ -663,7 +663,7 @@ function App() {
                     <th>Product</th>
                     <th>MSRP Value</th>
                     <th>Current Owner</th>
-                    <th>AI Grade</th>
+                    <th>Item Condition</th>
                     <th>Escrow status</th>
                     <th>Listing status</th>
                     <th>Actions</th>
@@ -704,7 +704,7 @@ function App() {
           <section className="view-section">
             <div className="grid-split">
               <div className="panel">
-                <div className="panel-title">05 / Shopper Cart (Simulated Checkout)</div>
+                <div className="panel-title">Your Shopping Cart</div>
                 <div className="step-container">
                   {cartItems.map((item, idx) => (
                     <div key={idx} className="cart-scenario-card">
@@ -728,21 +728,21 @@ function App() {
               </div>
 
               <div className="panel">
-                <div className="panel-title">06 / Pre-Checkout Anomaly Intercept (Pillar 04)</div>
+                <div className="panel-title">Size & Fit Recommendations</div>
                 {showPreventionAlert && (
                   <div className="prevention-alert">
                     <div className="prevention-alert-header">
-                      <span>⚠️ High-Risk Return Anomaly Intercepted</span>
+                      <span>Information for your order</span>
                     </div>
                     <div style={{ fontSize: '0.85rem', fontFamily: 'var(--mono-font)', lineHeight: '1.4' }}>
                       {cartItems.some(i => i.name === 'Essentials Cotton Hoodie' && cartItems.filter(f => f.name === i.name).length > 1) && (
-                        <p style={{ marginBottom: '0.5rem', color: 'var(--safety-yellow)' }}>
-                          <b>[Sizing Anomaly]:</b> You have added multiple sizes (M and L) of the same garment. Sizing metrics indicate the "Essentials Cotton Hoodie" runs true-to-size. Recommend selecting one size to prevent unnecessary return transport legs.
+                        <p style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                          <b>Fit Note:</b> You have added multiple sizes (M and L) of the same garment. Sizing metrics indicate the "Essentials Cotton Hoodie" runs true-to-size. We recommend selecting your usual size.
                         </p>
                       )}
                       {returnVelocity > 3 && (
-                        <p style={{ color: 'var(--error-red)' }}>
-                          <b>[Velocity Limit Warn]:</b> Customer return velocity is high ({returnVelocity} returns in 7 days). Restricted Green Credit policy will apply to returns in this session.
+                        <p style={{ color: 'var(--text-primary)' }}>
+                          <b>Account Note:</b> We noticed a higher than usual return rate on your account. Please double-check sizing guides to ensure a perfect fit before ordering.
                         </p>
                       )}
                     </div>

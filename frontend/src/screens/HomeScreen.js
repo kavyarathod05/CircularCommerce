@@ -6,8 +6,8 @@ export default function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
-        <Text style={styles.headerText}>SYSTEM READY</Text>
-        <Text style={styles.subtext}>AWAITING INSTRUCTION</Text>
+        <Text style={styles.headerText}>Amazon Shopping</Text>
+        <Text style={styles.subtext}>Welcome back. What are you looking for today?</Text>
       </View>
 
       <View style={styles.actionGrid}>
@@ -15,42 +15,42 @@ export default function HomeScreen({ navigation }) {
           style={styles.actionButton}
           onPress={() => navigation.navigate('Product')}
         >
-          <Text style={styles.buttonText}>[ BROWSE CATALOG ]</Text>
+          <Text style={styles.buttonText}>Browse Products</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
           style={styles.actionButton}
           onPress={() => navigation.navigate('UserDashboard')}
         >
-          <Text style={styles.buttonText}>[ CUSTOMER DASHBOARD ]</Text>
+          <Text style={styles.buttonText}>Your Orders & Account</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={styles.actionButton}
+          style={styles.secondaryButton}
           onPress={() => navigation.navigate('ReturnRequest')}
         >
-          <Text style={styles.buttonText}>[ INITIATE RETURN ]</Text>
+          <Text style={styles.secondaryButtonText}>Returns & Replacements</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.actionButton}
+          style={styles.secondaryButton}
           onPress={() => navigation.navigate('AdminDashboard')}
         >
-          <Text style={styles.buttonText}>[ TELEMETRY DASHBOARD ]</Text>
+          <Text style={styles.secondaryButtonText}>Seller Central</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={styles.actionButton}
+          style={styles.secondaryButton}
           onPress={() => navigation.navigate('InspectionResult')}
         >
-          <Text style={styles.buttonText}>[ VIEW AI INSPECTION ]</Text>
+          <Text style={styles.secondaryButtonText}>View AI Inspection</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={styles.actionButton}
+          style={styles.secondaryButton}
           onPress={() => navigation.navigate('VTOEngine')}
         >
-          <Text style={styles.buttonText}>[ VTO ENGINE ]</Text>
+          <Text style={styles.secondaryButtonText}>Virtual Try-On Experience</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -64,45 +64,52 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerBox: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
     padding: layout.padding,
     marginBottom: layout.padding * 2,
-    backgroundColor: colors.border,
+    backgroundColor: colors.secondary,
+    borderRadius: layout.borderRadius,
   },
   headerText: {
     ...typography.header,
-    color: colors.text,
+    color: colors.white,
+    fontSize: 24,
   },
   subtext: {
-    ...typography.mono,
-    color: colors.text,
-    marginTop: 8,
+    ...typography.body,
+    color: colors.white,
+    marginTop: 4,
+    opacity: 0.9,
   },
   actionGrid: {
-    gap: 16,
+    gap: 12,
   },
   actionButton: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
-    padding: layout.padding,
-    backgroundColor: colors.accent,
+    borderWidth: 1,
+    borderColor: '#FCD200',
+    padding: 16,
+    backgroundColor: '#FFD814',
     alignItems: 'center',
-  },
-  actionButtonDisabled: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.border,
-    padding: layout.padding,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    borderStyle: 'dashed',
+    borderRadius: layout.borderRadius,
   },
   buttonText: {
     ...typography.button,
-    color: colors.white,
+    color: colors.text,
   },
-  buttonTextDisabled: {
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    borderRadius: layout.borderRadius,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  secondaryButtonText: {
     ...typography.button,
-    color: colors.border,
+    color: colors.text,
+    fontWeight: 'normal',
   }
 });

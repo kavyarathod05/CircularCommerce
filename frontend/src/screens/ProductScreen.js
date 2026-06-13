@@ -19,31 +19,36 @@ export default function ProductScreen({ navigation }) {
     // Inject dynamic UI friction if dwell time is low (simulating impulse bracketing)
     if (dwellTime < 10) {
       Alert.alert(
-        'AI SIZING ANOMALY DETECTED',
-        'Our models predict a 82% return probability for this size. Customers with your profile prefer size M. Switch?',
+        'Size Recommendation',
+        'Customers with your profile prefer size M based on millions of customer reviews. Switch to size M for a better fit?',
         [
-          { text: 'KEEP CURRENT', style: 'cancel' },
-          { text: 'SWITCH TO M (RECOMMENDED)', onPress: () => console.log('Switched size') }
+          { text: 'Keep Current', style: 'cancel' },
+          { text: 'Switch to M (Recommended)', onPress: () => console.log('Switched size') }
         ]
       );
     } else {
-      Alert.alert('CHECKOUT', `Proceeding to escrow payment.\nDevice Hash: ${deviceSecurityContext.deviceHash}`);
+      Alert.alert('Checkout', `Proceeding to secure checkout.\nDevice Hash: ${deviceSecurityContext.deviceHash}`);
     }
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.imagePlaceholder}>
-        <Text style={styles.imageText}>[ PRODUCT IMAGE CATALOG ]</Text>
+        <Text style={styles.imageText}>Product Image</Text>
       </View>
       
       <View style={styles.detailsBox}>
-        <Text style={styles.brandText}>AURA TECH</Text>
-        <Text style={styles.titleText}>WIRELESS OVER-EAR HEADPHONES V2</Text>
+        <Text style={styles.brandText}>Visit the Aura Tech Store</Text>
+        <Text style={styles.titleText}>Wireless Over-Ear Headphones V2</Text>
+        <View style={styles.ratingRow}>
+          <Text style={styles.ratingStars}>⭐⭐⭐⭐⭐ 4.8</Text>
+          <Text style={styles.ratingCount}>12,402 ratings</Text>
+        </View>
         <Text style={styles.priceText}>$299.00</Text>
+        <Text style={styles.primeText}>✓ prime <Text style={styles.deliveryText}>FREE delivery Tomorrow</Text></Text>
       </View>
 
-      <Text style={styles.sectionHeader}>// SIZING & FIT</Text>
+      <Text style={styles.sectionHeader}>Size</Text>
       <View style={styles.sizeGrid}>
         <TouchableOpacity style={styles.sizeBox}>
           <Text style={styles.sizeText}>S</Text>
@@ -60,22 +65,31 @@ export default function ProductScreen({ navigation }) {
         style={styles.vtoButton}
         onPress={() => navigation.navigate('VTOEngine')}
       >
-        <Text style={styles.vtoButtonText}>[ VIRTUAL TRY-ON (AI) ]</Text>
+        <Text style={styles.vtoButtonText}>Virtual Try-On</Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
         style={styles.purchaseButton}
         onPress={handlePurchaseAttempt}
       >
-        <Text style={styles.purchaseButtonText}>[ ADD TO CART / BUY ]</Text>
+        <Text style={styles.purchaseButtonText}>Add to Cart</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={styles.buyNowButton}
+        onPress={handlePurchaseAttempt}
+      >
+        <Text style={styles.buyNowButtonText}>Buy Now</Text>
       </TouchableOpacity>
       
-      <Text style={styles.sectionHeader}>// SECURE P2P RETURN</Text>
+      <View style={styles.divider} />
+      
+      <Text style={styles.sectionHeader}>Orders & Returns</Text>
       <TouchableOpacity 
         style={styles.returnButton}
         onPress={() => navigation.navigate('ReturnRequest')}
       >
-        <Text style={styles.returnButtonText}>[ INITIATE SMART RETURN ]</Text>
+        <Text style={styles.returnButtonText}>Return or Replace Items</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -88,100 +102,150 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   imagePlaceholder: {
-    height: 300,
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
-    backgroundColor: colors.white,
+    height: 350,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: layout.padding,
+    borderRadius: layout.borderRadius,
   },
   imageText: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.border,
   },
   detailsBox: {
-    marginBottom: layout.padding * 2,
+    marginBottom: layout.padding,
   },
   brandText: {
-    ...typography.mono,
-    color: colors.subtext,
+    ...typography.body,
+    color: colors.accent,
     marginBottom: 4,
   },
   titleText: {
     ...typography.header,
-    color: colors.text,
-    fontSize: 20,
+    fontSize: 18,
     marginBottom: 8,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ratingStars: {
+    fontSize: 14,
+    color: colors.warning,
+    marginRight: 8,
+  },
+  ratingCount: {
+    ...typography.body,
+    color: colors.accent,
   },
   priceText: {
     ...typography.header,
-    color: colors.accent,
+    fontSize: 28,
+    color: colors.error,
+    marginBottom: 4,
+  },
+  primeText: {
+    fontSize: 14,
+    color: colors.success,
+    fontWeight: 'bold',
+  },
+  deliveryText: {
+    fontWeight: 'normal',
+    color: colors.text,
   },
   sectionHeader: {
-    ...typography.mono,
-    color: colors.text,
+    ...typography.header,
+    fontSize: 16,
     marginBottom: 8,
   },
   sizeGrid: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: layout.padding * 2,
+    marginBottom: layout.padding * 1.5,
   },
   sizeBox: {
-    width: 50,
-    height: 50,
-    borderWidth: layout.borderWidth,
+    width: 44,
+    height: 44,
+    borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.white,
   },
   sizeBoxSelected: {
-    borderColor: colors.text,
-    backgroundColor: colors.text,
+    borderColor: colors.primary,
+    backgroundColor: '#FFF8F0',
+    borderWidth: 2,
   },
   sizeText: {
-    ...typography.button,
-    color: colors.border,
+    ...typography.body,
+    color: colors.text,
   },
   sizeTextSelected: {
-    color: colors.white,
+    color: colors.text,
+    fontWeight: 'bold',
   },
   vtoButton: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.accent,
-    padding: layout.padding,
-    backgroundColor: 'transparent',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: layout.padding,
+    justifyContent: 'center',
+    marginBottom: layout.padding * 1.5,
   },
   vtoButtonText: {
-    ...typography.button,
+    ...typography.body,
     color: colors.accent,
+    fontWeight: 'bold',
   },
   purchaseButton: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
-    padding: layout.padding,
-    backgroundColor: colors.text,
+    borderWidth: 1,
+    borderColor: '#FCD200',
+    borderRadius: 24,
+    padding: 14,
+    backgroundColor: '#FFD814',
     alignItems: 'center',
-    marginBottom: layout.padding * 2,
+    marginBottom: 12,
   },
   purchaseButtonText: {
     ...typography.button,
-    color: colors.white,
+    color: colors.text,
+  },
+  buyNowButton: {
+    borderWidth: 1,
+    borderColor: '#FF8F00',
+    borderRadius: 24,
+    padding: 14,
+    backgroundColor: '#FFA41C',
+    alignItems: 'center',
+    marginBottom: layout.padding * 1.5,
+  },
+  buyNowButtonText: {
+    ...typography.button,
+    color: colors.text,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: layout.padding,
   },
   returnButton: {
-    borderWidth: layout.borderWidth,
+    borderWidth: 1,
     borderColor: colors.border,
-    padding: layout.padding,
-    backgroundColor: 'transparent',
+    borderRadius: layout.borderRadius,
+    padding: 14,
+    backgroundColor: colors.white,
     alignItems: 'center',
-    borderStyle: 'dashed',
     marginBottom: layout.padding * 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   returnButtonText: {
     ...typography.button,
     color: colors.text,
+    fontWeight: 'normal',
   }
 });

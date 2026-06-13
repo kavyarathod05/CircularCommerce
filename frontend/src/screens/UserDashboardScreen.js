@@ -8,45 +8,45 @@ export default function UserDashboardScreen() {
       {/* Eco-Points Wallet */}
       <View style={styles.walletBox}>
         <View style={styles.walletHeader}>
-          <Text style={styles.walletTitle}>ECO-POINTS WALLET</Text>
-          <Text style={styles.walletTier}>TIER: ECO WARRIOR</Text>
+          <Text style={styles.walletTitle}>Your Account Balance</Text>
+          <Text style={styles.walletTier}>Prime Member</Text>
         </View>
-        <Text style={styles.walletBalance}>3,450 PTS</Text>
-        <Text style={styles.walletSub}>[ REDEEMABLE FOR OPEN-BOX CREDIT ]</Text>
+        <Text style={styles.walletBalance}>$34.50</Text>
+        <Text style={styles.walletSub}>Available to use on your next purchase</Text>
       </View>
 
-      <Text style={styles.sectionHeader}>// ACTIVE RETURNS TIMELINE</Text>
+      <Text style={styles.sectionHeader}>Your Orders & Returns</Text>
       <View style={styles.timelineBox}>
-        <Text style={styles.itemTitle}>WIRELESS OVER-EAR HEADPHONES V2</Text>
-        <Text style={styles.timelineStep}>[1] INITIATED: 10:42 AM</Text>
-        <Text style={styles.timelineStep}>[2] AI INSPECTION: GRADE B (PASSED)</Text>
-        <Text style={styles.timelineStepHighlight}>[3] ESCROW STATUS: FUNDS SECURED</Text>
-        <Text style={styles.timelineStepPending}>[4] AWAITING LOCAL HANDOFF</Text>
+        <Text style={styles.itemTitle}>Wireless Over-Ear Headphones V2</Text>
+        <Text style={styles.timelineStep}>✓ Return Initiated: Today, 10:42 AM</Text>
+        <Text style={styles.timelineStep}>✓ Item Received - Refund Processed</Text>
+        <Text style={styles.timelineStepHighlight}>Local Match Found - Transferring to Escrow</Text>
+        <Text style={styles.timelineStepPending}>Awaiting local handoff completion</Text>
       </View>
 
-      <Text style={styles.sectionHeader}>// DIGITAL PRODUCT PASSPORT (DPP)</Text>
+      <Text style={styles.sectionHeader}>Product Verification</Text>
       <View style={styles.dppBox}>
         <View style={styles.dppHeader}>
-          <Text style={styles.dppTitle}>AUTHENTICITY TRAIL</Text>
-          <Text style={styles.dppHash}>UUID: 9f8a-4b2c</Text>
+          <Text style={styles.dppTitle}>Authenticity Trail</Text>
+          <Text style={styles.dppHash}>ID: 9f8a-4b2c</Text>
         </View>
-        <Text style={styles.dppRow}>ORIGIN: FACTORY A, VIETNAM</Text>
-        <Text style={styles.dppRow}>PURCHASED: OCT 12, 2026 (USER B001)</Text>
-        <Text style={styles.dppRow}>TRANSFERRED: OCT 15, 2026 (USER B042)</Text>
+        <Text style={styles.dppRow}>Origin: Factory A, Vietnam</Text>
+        <Text style={styles.dppRow}>Purchased: Oct 12, 2026</Text>
+        <Text style={styles.dppRow}>Transferred: Oct 15, 2026</Text>
         <TouchableOpacity style={styles.dppButton}>
-          <Text style={styles.dppButtonText}>[ VIEW CRYPTOGRAPHIC LEDGER ]</Text>
+          <Text style={styles.dppButtonText}>View Digital Receipt</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionHeader}>// PERSONAL CARBON IMPACT</Text>
+      <Text style={styles.sectionHeader}>Climate Pledge Impact</Text>
       <View style={styles.carbonBox}>
         <View style={styles.carbonRow}>
-          <Text style={styles.carbonLabel}>CO2 AVOIDED:</Text>
-          <Text style={styles.carbonValue}>18.4 KG</Text>
+          <Text style={styles.carbonLabel}>CO2 Avoided by Local Return:</Text>
+          <Text style={styles.carbonValue}>18.4 kg</Text>
         </View>
         <View style={styles.carbonRow}>
-          <Text style={styles.carbonLabel}>TREE EQUIVALENT:</Text>
-          <Text style={styles.carbonValue}>0.87 TREES</Text>
+          <Text style={styles.carbonLabel}>Tree Equivalent:</Text>
+          <Text style={styles.carbonValue}>0.87 trees</Text>
         </View>
       </View>
     </ScrollView>
@@ -67,11 +67,16 @@ const styles = StyleSheet.create({
     marginBottom: layout.padding,
   },
   walletBox: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.accent,
-    backgroundColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
     padding: layout.padding,
     marginBottom: layout.padding,
+    borderRadius: layout.borderRadius,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   walletHeader: {
     flexDirection: 'row',
@@ -79,61 +84,68 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   walletTitle: {
-    ...typography.mono,
-    color: colors.white,
+    ...typography.body,
+    fontWeight: 'bold',
+    color: colors.text,
   },
   walletTier: {
-    ...typography.mono,
-    color: colors.accent,
+    ...typography.body,
+    color: colors.success,
+    fontWeight: 'bold',
   },
   walletBalance: {
     ...typography.header,
-    color: colors.accent,
-    fontSize: 32,
+    color: colors.error,
+    fontSize: 28,
   },
   walletSub: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.subtext,
-    marginTop: 8,
+    marginTop: 4,
+    fontSize: 12,
   },
   timelineBox: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: layout.padding,
     backgroundColor: colors.white,
     marginBottom: layout.padding,
+    borderRadius: layout.borderRadius,
   },
   itemTitle: {
     ...typography.header,
-    color: colors.text,
+    color: colors.accent,
     fontSize: 16,
     marginBottom: 12,
   },
   timelineStep: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.text,
     marginBottom: 6,
   },
   timelineStepHighlight: {
-    ...typography.mono,
-    color: colors.white,
-    backgroundColor: colors.accent,
-    padding: 4,
+    ...typography.body,
+    color: colors.secondary,
+    fontWeight: 'bold',
+    backgroundColor: '#FFF8F0',
+    borderColor: colors.primary,
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 8,
     marginBottom: 6,
-    alignSelf: 'flex-start',
   },
   timelineStepPending: {
-    ...typography.mono,
-    color: colors.border,
+    ...typography.body,
+    color: colors.subtext,
     marginTop: 4,
   },
   dppBox: {
-    borderWidth: layout.borderWidth,
+    borderWidth: 1,
     borderColor: colors.border,
     padding: layout.padding,
-    backgroundColor: colors.background,
-    borderStyle: 'dashed',
+    backgroundColor: colors.white,
     marginBottom: layout.padding,
+    borderRadius: layout.borderRadius,
   },
   dppHeader: {
     flexDirection: 'row',
@@ -146,34 +158,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   dppHash: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.subtext,
-    fontSize: 10,
+    fontSize: 12,
   },
   dppRow: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.text,
     marginBottom: 6,
   },
   dppButton: {
     borderWidth: 1,
-    borderColor: colors.text,
-    padding: 8,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 10,
     alignItems: 'center',
     marginTop: 12,
-    backgroundColor: colors.white,
+    backgroundColor: '#F3F3F3',
   },
   dppButtonText: {
     ...typography.button,
     color: colors.text,
-    fontSize: 12,
+    fontWeight: 'normal',
+    fontSize: 13,
   },
   carbonBox: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: layout.padding,
-    backgroundColor: colors.white,
+    backgroundColor: '#E8F5E9', // Soft green to signify climate
     marginBottom: layout.padding * 2,
+    borderRadius: layout.borderRadius,
   },
   carbonRow: {
     flexDirection: 'row',
@@ -181,12 +196,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   carbonLabel: {
-    ...typography.mono,
-    color: colors.subtext,
+    ...typography.body,
+    color: colors.secondary,
   },
   carbonValue: {
-    ...typography.mono,
-    color: colors.text,
+    ...typography.body,
+    color: colors.success,
     fontWeight: 'bold',
   }
 });

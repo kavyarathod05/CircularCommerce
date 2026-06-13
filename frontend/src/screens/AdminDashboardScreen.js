@@ -26,49 +26,50 @@ export default function AdminDashboardScreen() {
   if (loading || !metrics) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={{ ...typography.mono, color: colors.text, marginTop: 16 }}>LOADING METRICS...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ ...typography.body, color: colors.text, marginTop: 16 }}>Loading Dashboard Data...</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.sectionHeader}>// TELEMETRY METRICS</Text>
+      <Text style={styles.sectionHeader}>Seller Metrics</Text>
       
       <View style={styles.grid}>
         <View style={styles.metricCard}>
-          <Text style={styles.metricTitle}>CAPITAL RECAPTURED</Text>
+          <Text style={styles.metricTitle}>Capital Recaptured</Text>
           <Text style={styles.metricValue}>${metrics.capitalRecaptured.toLocaleString()}</Text>
         </View>
         <View style={styles.metricCard}>
-          <Text style={styles.metricTitle}>INTERCEPT RATE</Text>
+          <Text style={styles.metricTitle}>Return Intercept Rate</Text>
           <Text style={styles.metricValue}>{metrics.interceptRate}%</Text>
         </View>
       </View>
-      <Text style={styles.sectionHeader}>// CARBON OPTIMIZATION VISUALIZER</Text>
+      
+      <Text style={styles.sectionHeader}>Climate Pledge: Sustainability Impact</Text>
       <View style={styles.carbonBox}>
         <View style={styles.carbonRow}>
-          <Text style={styles.carbonLabel}>TOTAL CO2 SAVED:</Text>
-          <Text style={styles.carbonValue}>{metrics.co2Saved.toLocaleString()} KG</Text>
+          <Text style={styles.carbonLabel}>Total CO2 Avoided:</Text>
+          <Text style={styles.carbonValue}>{metrics.co2Saved.toLocaleString()} kg</Text>
         </View>
         <View style={styles.progressBarBg}>
           <View style={[styles.progressBarFill, { width: '75%' }]} />
         </View>
         <View style={styles.carbonRow}>
-          <Text style={styles.carbonSubText}>TREE EQUIVALENCE:</Text>
-          <Text style={styles.carbonSubValue}>[ {metrics.treeEquivalence} MATURE TREES ]</Text>
+          <Text style={styles.carbonSubText}>Tree Equivalence:</Text>
+          <Text style={styles.carbonSubValue}>{metrics.treeEquivalence} Mature Trees</Text>
         </View>
         <View style={styles.carbonRow}>
-          <Text style={styles.carbonSubText}>DISTANCE OFFSET:</Text>
-          <Text style={styles.carbonSubValue}>[ {metrics.distanceOffset.toLocaleString()} KM AVOIDED ]</Text>
+          <Text style={styles.carbonSubText}>Distance Offset:</Text>
+          <Text style={styles.carbonSubValue}>{metrics.distanceOffset.toLocaleString()} km avoided</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionHeader}>// SPATIAL ROUTING & CLUSTERS</Text>
+      <Text style={styles.sectionHeader}>Local Inventory Distribution</Text>
       <ClusterMap />
       
-      <Text style={styles.sectionHeader}>// P2P ETA OPTIMIZATION</Text>
+      <Text style={styles.sectionHeader}>Delivery Logistics</Text>
       <RouteMatrixMap eta="14 MINS" distance="2.4 KM" />
     </ScrollView>
   );
@@ -83,8 +84,8 @@ const styles = StyleSheet.create({
   sectionHeader: {
     ...typography.header,
     color: colors.text,
-    fontSize: 16,
-    marginTop: layout.padding * 2,
+    fontSize: 18,
+    marginTop: layout.padding * 1.5,
     marginBottom: layout.padding,
   },
   grid: {
@@ -95,42 +96,55 @@ const styles = StyleSheet.create({
   metricCard: {
     flex: 1,
     minWidth: '45%',
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: layout.padding,
     backgroundColor: colors.white,
+    borderRadius: layout.borderRadius,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   metricCardFull: {
     width: '100%',
-    borderWidth: layout.borderWidth,
-    borderColor: colors.accent,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: layout.padding,
-    backgroundColor: colors.text,
+    backgroundColor: colors.white,
+    borderRadius: layout.borderRadius,
   },
   metricTitle: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.subtext,
     marginBottom: 8,
   },
   metricValue: {
     ...typography.header,
     color: colors.text,
+    fontSize: 22,
   },
   metricSub: {
-    ...typography.mono,
-    color: colors.accent,
+    ...typography.body,
+    color: colors.primary,
     marginTop: 8,
   },
   carbonSubValue: {
-    ...typography.mono,
-    color: colors.white,
+    ...typography.body,
+    color: colors.success,
+    fontWeight: 'bold',
   },
   carbonBox: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.accent,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: layout.padding,
-    backgroundColor: colors.text,
+    backgroundColor: colors.white,
     marginBottom: layout.padding,
+    borderRadius: layout.borderRadius,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   carbonRow: {
     flexDirection: 'row',
@@ -138,24 +152,28 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   carbonLabel: {
-    ...typography.mono,
-    color: colors.white,
+    ...typography.body,
+    color: colors.text,
+    fontWeight: 'bold',
   },
   carbonValue: {
     ...typography.header,
-    color: colors.accent,
+    color: colors.success,
+    fontSize: 20,
   },
   progressBarBg: {
-    height: 12,
+    height: 8,
     backgroundColor: colors.border,
-    marginBottom: 12,
+    marginBottom: 16,
+    borderRadius: 4,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: colors.accent,
+    backgroundColor: colors.success,
+    borderRadius: 4,
   },
   carbonSubText: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.subtext,
   }
 });

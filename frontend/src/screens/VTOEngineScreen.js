@@ -41,19 +41,19 @@ export default function VTOEngineScreen({ navigation }) {
 
     if (!result.canceled) {
       setHasPhoto(true);
-      Alert.alert('PHOTO UPLOADED', 'Initializing Diffusion-GAN draping model...');
+      Alert.alert('Photo Uploaded', 'Generating your virtual try-on preview...');
     }
   };
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.sectionHeader}>// VTO DRAPING ENGINE</Text>
+      <Text style={styles.sectionHeader}>Virtual Try-On</Text>
       
       {!hasPhoto ? (
         <View style={styles.uploadState}>
-          <Text style={styles.uploadText}>UPLOAD REFERENCE PHOTO FOR VIRTUAL FIT</Text>
+          <Text style={styles.uploadText}>Upload a photo of yourself to see how this item looks on you.</Text>
           <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPhoto}>
-            <Text style={styles.uploadButtonText}>[ SELECT PHOTO ]</Text>
+            <Text style={styles.uploadButtonText}>Upload Photo</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -61,7 +61,7 @@ export default function VTOEngineScreen({ navigation }) {
           <View style={styles.editorialGrid}>
             <View style={styles.signatureElement}>
               <View style={styles.vtoFrame}>
-                <Text style={styles.vtoText}>[ GENERATING MESH ]</Text>
+                <Text style={styles.vtoText}>Generating Preview...</Text>
                 <Animated.View style={[styles.scanningLine, { top: scanLineTop }]} />
                 <View style={styles.targetCornerTL} />
                 <View style={styles.targetCornerTR} />
@@ -71,26 +71,26 @@ export default function VTOEngineScreen({ navigation }) {
             </View>
             
             <View style={styles.editorialSidePanel}>
-              <Text style={styles.editorialLabel}>SKU</Text>
+              <Text style={styles.editorialLabel}>Item</Text>
               <Text style={styles.editorialValue}>HDPN-V2</Text>
-              <Text style={styles.editorialLabel}>FIT</Text>
-              <Text style={styles.editorialValue}>TRUE</Text>
-              <Text style={styles.editorialLabel}>MODEL</Text>
-              <Text style={styles.editorialValue}>DIFFUSION-GAN</Text>
+              <Text style={styles.editorialLabel}>Fit</Text>
+              <Text style={styles.editorialValue}>True to Size</Text>
+              <Text style={styles.editorialLabel}>Style</Text>
+              <Text style={styles.editorialValue}>Modern</Text>
             </View>
           </View>
 
           <View style={styles.metricsBox}>
-            <Text style={styles.metricRow}>MODEL: <Text style={styles.highlight}>DIFFUSION-GAN</Text></Text>
-            <Text style={styles.metricRow}>USER DIMENSIONS: <Text style={styles.highlight}>MAPPED</Text></Text>
-            <Text style={styles.metricRow}>RETURN PROBABILITY: <Text style={styles.highlightGreen}>REDUCED TO 8%</Text></Text>
+            <Text style={styles.metricRow}>Style Match: <Text style={styles.highlight}>Excellent</Text></Text>
+            <Text style={styles.metricRow}>Fit Preference: <Text style={styles.highlight}>True to Size</Text></Text>
+            <Text style={styles.metricRow}>Recommendation: <Text style={styles.highlightGreen}>Highly Recommended</Text></Text>
           </View>
 
           <TouchableOpacity 
             style={styles.actionButton}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.buttonText}>[ CONFIRM SIZE MATCH ]</Text>
+            <Text style={styles.buttonText}>Confirm Size & Add to Cart</Text>
           </TouchableOpacity>
         </>
       )}
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     ...typography.header,
     color: colors.text,
-    fontSize: 16,
+    fontSize: 20,
     marginBottom: layout.padding,
   },
   editorialGrid: {
@@ -115,31 +115,40 @@ const styles = StyleSheet.create({
     marginBottom: layout.padding * 2,
   },
   uploadState: {
-    borderWidth: layout.borderWidth,
+    borderWidth: 1,
     borderColor: colors.border,
     padding: layout.padding * 2,
     alignItems: 'center',
     justifyContent: 'center',
     borderStyle: 'dashed',
     marginBottom: layout.padding * 2,
+    borderRadius: layout.borderRadius,
+    backgroundColor: '#FAFAFA',
   },
   uploadText: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.subtext,
     textAlign: 'center',
     marginBottom: layout.padding,
   },
   uploadButton: {
     borderWidth: 1,
-    borderColor: colors.accent,
-    padding: layout.padding,
+    borderColor: colors.border,
+    padding: 14,
+    backgroundColor: colors.white,
+    borderRadius: layout.borderRadius,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   uploadButtonText: {
     ...typography.button,
-    color: colors.accent,
+    color: colors.text,
+    fontWeight: 'normal',
   },
   editorialSidePanel: {
-    width: 80,
+    width: 100,
     marginLeft: layout.padding,
     justifyContent: 'center',
     borderLeftWidth: 1,
@@ -147,12 +156,12 @@ const styles = StyleSheet.create({
     paddingLeft: layout.padding,
   },
   editorialLabel: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.subtext,
-    fontSize: 10,
+    fontSize: 12,
   },
   editorialValue: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.text,
     marginBottom: layout.padding,
     fontWeight: 'bold',
@@ -160,21 +169,23 @@ const styles = StyleSheet.create({
   signatureElement: {
     flex: 1,
     height: 350,
-    borderWidth: 4,
-    borderColor: colors.accent,
+    borderWidth: 1,
+    borderColor: colors.border,
     backgroundColor: colors.white,
     position: 'relative',
     overflow: 'hidden',
+    borderRadius: layout.borderRadius,
   },
   vtoFrame: {
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
     height: '100%',
+    backgroundColor: '#F3F3F3',
   },
   vtoText: {
-    ...typography.header,
-    color: colors.border,
+    ...typography.body,
+    color: colors.text,
     fontSize: 16,
     textAlign: 'center',
   },
@@ -183,27 +194,32 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: colors.accent,
-    shadowColor: colors.accent,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.8,
     shadowRadius: 10,
     elevation: 5,
   },
-  targetCornerTL: { position: 'absolute', top: 10, left: 10, width: 20, height: 20, borderTopWidth: 2, borderLeftWidth: 2, borderColor: colors.text },
-  targetCornerTR: { position: 'absolute', top: 10, right: 10, width: 20, height: 20, borderTopWidth: 2, borderRightWidth: 2, borderColor: colors.text },
-  targetCornerBL: { position: 'absolute', bottom: 10, left: 10, width: 20, height: 20, borderBottomWidth: 2, borderLeftWidth: 2, borderColor: colors.text },
-  targetCornerBR: { position: 'absolute', bottom: 10, right: 10, width: 20, height: 20, borderBottomWidth: 2, borderRightWidth: 2, borderColor: colors.text },
+  targetCornerTL: { position: 'absolute', top: 10, left: 10, width: 20, height: 20, borderTopWidth: 2, borderLeftWidth: 2, borderColor: colors.primary },
+  targetCornerTR: { position: 'absolute', top: 10, right: 10, width: 20, height: 20, borderTopWidth: 2, borderRightWidth: 2, borderColor: colors.primary },
+  targetCornerBL: { position: 'absolute', bottom: 10, left: 10, width: 20, height: 20, borderBottomWidth: 2, borderLeftWidth: 2, borderColor: colors.primary },
+  targetCornerBR: { position: 'absolute', bottom: 10, right: 10, width: 20, height: 20, borderBottomWidth: 2, borderRightWidth: 2, borderColor: colors.primary },
   metricsBox: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: layout.padding,
     backgroundColor: colors.white,
     marginBottom: layout.padding * 2,
+    borderRadius: layout.borderRadius,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   metricRow: {
-    ...typography.mono,
-    color: colors.subtext,
+    ...typography.body,
+    color: colors.text,
     marginBottom: 8,
   },
   highlight: {
@@ -211,19 +227,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   highlightGreen: {
-    color: '#00C853',
+    color: colors.success,
     fontWeight: 'bold',
   },
   actionButton: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
-    padding: layout.padding,
-    backgroundColor: colors.text,
+    borderWidth: 1,
+    borderColor: '#FCD200',
+    padding: 14,
+    backgroundColor: '#FFD814',
     alignItems: 'center',
     marginBottom: layout.padding,
+    borderRadius: layout.borderRadius,
   },
   buttonText: {
     ...typography.button,
-    color: colors.white,
+    color: colors.text,
   }
 });

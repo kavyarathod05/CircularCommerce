@@ -1,41 +1,44 @@
 export const colors = {
-  background: '#F4F4F0', // Receipt Paper White
-  border: '#A0A5AA',     // Steel Gray
-  accent: '#FF5A00',     // Safety Orange
-  text: '#1E1E1E',       // Industrial Black
-  subtext: '#787C80',    // Concrete Gray
+  background: '#F7F8FA', // Light Gray
+  border: '#DDDDDD',     
+  accent: '#146EB4',     // Soft Blue
+  primary: '#FF9900',    // Amazon Orange
+  secondary: '#131A22',  // Dark Navy
+  text: '#0F1111',       // Standard Amazon text
+  subtext: '#565959',    // Light Amazon text
   white: '#FFFFFF',
-  error: '#FF3B30',
+  success: '#007185',    // Amazon green-blue link / success
+  warning: '#FFA41C',    // Amber
+  error: '#B12704',      // Amazon Red
 };
 
 export const typography = {
   header: {
-    fontFamily: 'Courier New', // Monospaced for Industrial feel
-    fontSize: 24,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    fontFamily: 'System', 
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0F1111',
   },
   body: {
-    fontFamily: 'Courier New',
+    fontFamily: 'System',
     fontSize: 14,
     lineHeight: 20,
+    color: '#0F1111',
   },
   mono: {
-    fontFamily: 'Courier New',
+    fontFamily: 'System',
     fontSize: 12,
+    color: '#565959',
   },
   button: {
-    fontFamily: 'Courier New',
-    fontSize: 16,
+    fontFamily: 'System',
+    fontSize: 14,
     fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   }
 };
 
 export const layout = {
   padding: 16,
-  borderWidth: 2,
-  borderRadius: 0, // Sharp corners for utilitarian feel
+  borderWidth: 1,
+  borderRadius: 8, // Soft rounded corners for modern e-commerce
 };
