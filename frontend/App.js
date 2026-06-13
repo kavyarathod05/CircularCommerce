@@ -6,6 +6,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import HomeScreen from './src/screens/HomeScreen';
 import ReturnRequestScreen from './src/screens/ReturnRequestScreen';
 import CameraScreen from './src/screens/CameraScreen';
+import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
+import InspectionResultScreen from './src/screens/InspectionResultScreen';
+import VTOEngineScreen from './src/screens/VTOEngineScreen';
 import { colors } from './src/theme';
 
 const Stack = createNativeStackNavigator();
@@ -44,6 +47,21 @@ export default function App() {
             name="Camera" 
             component={CameraScreen} 
             options={{ title: 'LIVENESS VERIFICATION', headerShown: false }}
+          />
+          <Stack.Screen 
+            name="AdminDashboard" 
+            component={AdminDashboardScreen} 
+            options={{ title: 'TELEMETRY DASHBOARD' }}
+          />
+          <Stack.Screen 
+            name="InspectionResult" 
+            component={InspectionResultScreen} 
+            options={{ title: 'AI INSPECTION' }}
+          />
+          <Stack.Screen 
+            name="VTOEngine" 
+            component={VTOEngineScreen} 
+            options={{ title: 'VIRTUAL TRY-ON' }}
           />
         </Stack.Navigator>
       </NavigationContainer>

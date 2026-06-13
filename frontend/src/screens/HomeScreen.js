@@ -19,17 +19,24 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.actionButtonDisabled}
-          disabled
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('AdminDashboard')}
         >
-          <Text style={styles.buttonTextDisabled}>[ SELLER DASHBOARD ]</Text>
+          <Text style={styles.buttonText}>[ TELEMETRY DASHBOARD ]</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={styles.actionButtonDisabled}
-          disabled
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('InspectionResult')}
         >
-          <Text style={styles.buttonTextDisabled}>[ VTO ENGINE ]</Text>
+          <Text style={styles.buttonText}>[ VIEW AI INSPECTION ]</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('VTOEngine')}
+        >
+          <Text style={styles.buttonText}>[ VTO ENGINE ]</Text>
         </TouchableOpacity>
       </View>
     </View>
