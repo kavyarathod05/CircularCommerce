@@ -1,16 +1,36 @@
+import boto3
+from boto3.dynamodb.conditions import Attr
+
 class DynamicPricingEngine:
     """
     GenAI Dynamic Pricing Engine
     Executes demand-aware discounts to optimize inventory liquidity and prevent obsolescence.
+    Uses DynamoDB ListingsTable to find competitor pricing dynamically.
     """
-    def __init__(self):
+    def __init__(self, region_name='us-east-1'):
+        self.dynamodb = boto3.resource('dynamodb', region_name=region_name)
+        self.listings_table = self.dynamodb.Table('ListingsTable')
         self.base_discount_rate = 0.10 # Starts at 10% off
         self.max_discount_rate = 0.50  # Cap at 50% off
         
-    def calculate_current_price(self, original_price, hours_on_market, local_demand_score, competitor_prices):
+    def calculate_current_price(self, product_id, original_price, hours_on_market, local_demand_score):
         """
         Dynamically adjusts the price based on time and demand.
+        Queries the ListingsTable for competitor prices.
         """
+        competitor_prices = []
+        try:
+            res = self.listings_table.scan(
+                FilterExpression=Attr('ProductId').eq(product_id) & Attr('Status').eq('available')
+            )
+            for item in res.get('Items', []):
+                # Try getting either 'Price', 'OriginalPrice', or 'msrp'
+                price_val = item.get('Price') or item.get('OriginalPrice') or item.get('msrp')
+                if price_val:
+                    competitor_prices.append(float(price_val))
+        except Exception as e:
+            print(f"Warning: Failed to fetch competitor prices from ListingsTable: {e}")
+            
         # 1. Time decay: increase discount by 2% every 24 hours
         days_on_market = hours_on_market / 24.0
         time_discount = days_on_market * 0.02
@@ -37,4 +57,4 @@ class DynamicPricingEngine:
 if __name__ == "__main__":
     engine = DynamicPricingEngine()
     print("Pricing evaluation after 48 hours, low demand:")
-    print(engine.calculate_current_price(1000, 48, 0.2, [950, 980]))
+    print(engine.calculate_current_price('p-smartphone', 1000, 48, 0.2))

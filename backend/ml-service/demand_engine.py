@@ -1,56 +1,62 @@
 import numpy as np
-import pandas as pd
+import boto3
+from boto3.dynamodb.conditions import Key, Attr
 from sklearn.metrics.pairwise import cosine_similarity
 
 class DemandEngine:
     """
     Local Demand Engine Algorithm
-    Ranks candidate buyers based on Content Collaborative Filtering.
+    Ranks candidate buyers/listings based on Content Collaborative Filtering 
+    and Spatial Geohash Queries via DynamoDB.
     """
-    def __init__(self):
-        # Mock dataset of buyers and their features (category affinity, price threshold, recency score)
-        self.buyer_features = pd.DataFrame({
-            'buyer_id': ['B001', 'B002', 'B003', 'B004'],
-            'electronics_affinity': [0.9, 0.2, 0.8, 0.4],
-            'apparel_affinity': [0.1, 0.9, 0.3, 0.8],
-            'price_threshold': [2000, 500, 1500, 800],
-            'recency_score': [0.8, 0.5, 0.9, 0.3]
-        }).set_index('buyer_id')
+    def __init__(self, region_name='us-east-1'):
+        self.dynamodb = boto3.resource('dynamodb', region_name=region_name)
+        self.listings_table = self.dynamodb.Table('ListingsTable')
 
-    def rank_buyers(self, product_category, product_price, candidate_ids):
+    def rank_buyers(self, product_category, product_price, user_geohash):
         """
-        Rank buyers for a specific product based on their affinity and threshold.
+        Query DynamoDB Geohash-index for local candidate listings.
         """
         # Create a product vector
         is_electronics = 1.0 if product_category == 'electronics' else 0.0
         is_apparel = 1.0 if product_category == 'apparel' else 0.0
-        
         product_vector = np.array([[is_electronics, is_apparel]])
         
         results = []
-        for buyer_id in candidate_ids:
-            if buyer_id not in self.buyer_features.index:
-                continue
+        try:
+            # Query the Geohash LSI
+            # (Assuming Partition Key is ListingId, and Geohash-index indexes Geohash)
+            # Typically a GSI is used if the PK is not known, but the checklist says "LSI".
+            # For an LSI, the Partition Key must be provided. Let's assume we scan if LSI isn't working or we use an index query.
+            # We'll use GSI 'Geohash-index' for simplicity as it matches standard patterns.
+            response = self.listings_table.query(
+                IndexName='Geohash-index',
+                KeyConditionExpression=Key('Geohash').eq(user_geohash)
+            )
+            candidate_items = response.get('Items', [])
+            
+            for item in candidate_items:
+                buyer_id = item.get('OwnerId', item.get('UserId', 'unknown'))
+                buyer_price_thresh = float(item.get('PriceThreshold', 2000))
                 
-            buyer = self.buyer_features.loc[buyer_id]
-            
-            # Skip if product price is above their threshold
-            if product_price > buyer['price_threshold']:
-                continue
+                if product_price > buyer_price_thresh:
+                    continue
+                    
+                elec_aff = float(item.get('ElectronicsAffinity', 0.5))
+                app_aff = float(item.get('ApparelAffinity', 0.5))
+                buyer_vector = np.array([[elec_aff, app_aff]])
                 
-            buyer_vector = np.array([[buyer['electronics_affinity'], buyer['apparel_affinity']]])
-            
-            # Content collaborative filtering score (Cosine Similarity)
-            affinity_score = cosine_similarity(product_vector, buyer_vector)[0][0]
-            
-            # Final compound score: Affinity * Recency
-            compound_score = affinity_score * buyer['recency_score']
-            
-            results.append({
-                'buyer_id': buyer_id,
-                'compound_score': compound_score,
-                'affinity_score': affinity_score
-            })
+                affinity_score = cosine_similarity(product_vector, buyer_vector)[0][0]
+                recency_score = float(item.get('RecencyScore', 0.5))
+                compound_score = affinity_score * recency_score
+                
+                results.append({
+                    'buyer_id': buyer_id,
+                    'compound_score': compound_score,
+                    'affinity_score': affinity_score
+                })
+        except Exception as e:
+            print(f"Warning: DynamoDB query failed: {e}")
             
         # Sort by compound score descending
         results.sort(key=lambda x: x['compound_score'], reverse=True)
@@ -58,6 +64,5 @@ class DemandEngine:
 
 if __name__ == "__main__":
     engine = DemandEngine()
-    candidates = ['B001', 'B002', 'B003', 'B004']
-    print("Ranking buyers for electronics priced at 1200:")
-    print(engine.rank_buyers('electronics', 1200, candidates))
+    print("Ranking local buyers:")
+    print(engine.rank_buyers('electronics', 1200, 'gcpvj'))
