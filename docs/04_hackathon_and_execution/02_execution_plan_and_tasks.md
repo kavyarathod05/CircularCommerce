@@ -15,6 +15,9 @@ To assemble this system within 48 hours, maximize implementation speed by reusin
 
 ## 2. 5-Phase Development Execution Checklist
 
+> [!CAUTION]
+> **STRICT FRONTEND MANDATE:** All phases involving UI development must strictly adhere to the [Frontend Design Manifesto](../03_features_and_modules/04_frontend_aesthetic_manifesto.md). Developers must reject templated designs, use highly characterful typography, employ deliberate orchestrated motion, and establish a unique, unforgettable visual identity for the platform.
+
 To ensure a functional MVP while incorporating advanced ML features strategically, follow this phased approach. Heavy ML and complex integrations are pushed to the final phases so the core P2P routing engine is guaranteed to work for the demo.
 
 ### Phase 1: Foundation & Core Workflows (The Backbone)

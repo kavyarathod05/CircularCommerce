@@ -1,5 +1,8 @@
 # Hackathon Team Execution Checklist
 
+> [!IMPORTANT]
+> **Frontend Aesthetic Mandate:** Naman (and Kavya where applicable) MUST strictly follow the principles outlined in `docs/03_features_and_modules/04_frontend_aesthetic_manifesto.md`. No generic templates, no overused fonts (Arial/Inter), and no AI-default color palettes. Every UI component must be bold, opinionated, and visually distinctive.
+
 This document breaks down the 5-Phase Execution Plan into parallel tracks for **Kavya** and **Naman**, strictly divided by domain expertise.
 
 *   **Kavya's Focus (AWS & Infrastructure):** All AWS services (Lambda, DynamoDB, API Gateway, Location Service), the core Go routing backend, data persistence, and foundational infrastructure.
@@ -17,7 +20,7 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 - [ ] **Basic Compliance:** Setup the AWS data pipelines for the Scope-3 Carbon Tracker logging.
 
 ### 🧠 Naman (Frontend & Pre-ML Setup)
-- [ ] **Frontend Initialization:** Initialize React Native App and the base eCommerce UI shell. (*Ref: `vercel/commerce`, `shadcn-ui/ui`*)
+- [ ] **Frontend Initialization:** Initialize React Native App. **AESTHETIC MANDATE:** Implement a custom, bold type scale and distinctive 4-hex color palette. Do NOT use generic shadcn defaults; strip the styling and apply the custom manifesto design system.
 - [ ] **Return Flow (UI):** Build the Return Request flow wizard on the frontend (Media upload screens).
 - [ ] **Device Security (Client):** Implement secure live-capture camera access on the mobile device for later Liveness verification.
 
@@ -73,7 +76,7 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 - [ ] **Final Polish:** Ensure all mobile responsiveness is perfect and the end-to-end demo flow runs seamlessly.
 
 ### 🧠 Naman (Advanced ML Models)
-- [ ] **VTO Engine (Full-Stack):** Implement the Virtual Try-On (VTO) module (diffusion models/GANs) and build the frontend upload component.
+- [ ] **VTO Engine (Full-Stack):** Implement the VTO backend and build the frontend component. **AESTHETIC MANDATE:** The VTO interface must be the 'Signature Element' of the app—use orchestrated CSS motion and an editorial layout, avoiding standard file-upload boxes.
 - [ ] **Size Recommendation (ML):** Deploy the AI Size Recommendation model (RF, KNN, CNN, XGBoost).
 - [ ] **Predictive Friction (ML):** Generate predictive return probability scores. Build the frontend listener to monitor session dwell time and inject the dynamic "Size Match" modal. (*Ref: `GiorgiModebadze/Customer-returns-prediction`*)
 - [ ] **Dynamic Pricing (ML):** Deploy the GenAI Dynamic Pricing engine to execute demand-aware discounts.
