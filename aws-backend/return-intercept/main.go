@@ -159,25 +159,53 @@ func init() {
 func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	log.Printf("Path: %s, Method: %s", request.Path, request.HTTPMethod)
 
-	switch request.Path {
-	case "/return/media-url":
-		return handleMediaURLGeneration(ctx, request)
-	case "/return/intercept":
-		return handleReturnIntercept(ctx, request)
-	case "/listing":
-		return handleListingOperations(ctx, request)
-	case "/escrow/lock":
-		return handleEscrowLock(ctx, request)
-	case "/escrow/release":
-		return handleEscrowRelease(ctx, request)
-	case "/dpp":
-		return handleDPPOperations(ctx, request)
-	default:
+	if request.HTTPMethod == "OPTIONS" {
 		return events.APIGatewayProxyResponse{
-			StatusCode: 404,
-			Body:       `{"error": "Not Found"}`,
+			StatusCode: 200,
+			Headers: map[string]string{
+				"Access-Control-Allow-Origin":  "*",
+				"Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+			},
+			Body: `{"status": "ok"}`,
 		}, nil
 	}
+
+	var resp events.APIGatewayProxyResponse
+	var err error
+
+	switch request.Path {
+	case "/return/media-url":
+		resp, err = handleMediaURLGeneration(ctx, request)
+	case "/return/intercept":
+		resp, err = handleReturnIntercept(ctx, request)
+	case "/listing":
+		resp, err = handleListingOperations(ctx, request)
+	case "/escrow/lock":
+		resp, err = handleEscrowLock(ctx, request)
+	case "/escrow/release":
+		resp, err = handleEscrowRelease(ctx, request)
+	case "/dpp":
+		resp, err = handleDPPOperations(ctx, request)
+	default:
+		resp = events.APIGatewayProxyResponse{
+			StatusCode: 404,
+			Body:       `{"error": "Not Found"}`,
+		}
+	}
+
+	if err != nil {
+		return resp, err
+	}
+
+	if resp.Headers == nil {
+		resp.Headers = make(map[string]string)
+	}
+	resp.Headers["Access-Control-Allow-Origin"] = "*"
+	resp.Headers["Access-Control-Allow-Headers"] = "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
+	resp.Headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
+
+	return resp, nil
 }
 
 func handleMediaURLGeneration(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -228,8 +256,8 @@ func handleMediaURLGeneration(ctx context.Context, request events.APIGatewayProx
 		Headers: map[string]string{
 			"Content-Type":                 "application/json",
 			"Access-Control-Allow-Origin":  "*",
-			"Access-Control-Allow-Headers": "Content-Type",
-			"Access-Control-Allow-Methods": "GET, OPTIONS",
+			"Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+			"Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
 		},
 		Body: string(responseBody),
 	}, nil
@@ -476,8 +504,8 @@ func handleReturnIntercept(ctx context.Context, request events.APIGatewayProxyRe
 		Headers: map[string]string{
 			"Content-Type":                 "application/json",
 			"Access-Control-Allow-Origin":  "*",
-			"Access-Control-Allow-Headers": "Content-Type",
-			"Access-Control-Allow-Methods": "POST, OPTIONS",
+			"Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+			"Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
 		},
 		Body: string(responseBody),
 	}, nil

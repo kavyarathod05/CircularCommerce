@@ -18,6 +18,7 @@ export default function AdminDashboardScreen() {
           <Text style={styles.metricTitle}>INTERCEPT RATE</Text>
           <Text style={styles.metricValue}>34%</Text>
         </View>
+      </View>
       <Text style={styles.sectionHeader}>// CARBON OPTIMIZATION VISUALIZER</Text>
       <View style={styles.carbonBox}>
         <View style={styles.carbonRow}>
