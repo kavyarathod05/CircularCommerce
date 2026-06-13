@@ -9,6 +9,7 @@ import CameraScreen from './src/screens/CameraScreen';
 import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
 import InspectionResultScreen from './src/screens/InspectionResultScreen';
 import VTOEngineScreen from './src/screens/VTOEngineScreen';
+import ProductScreen from './src/screens/ProductScreen';
 import { colors } from './src/theme';
 
 const Stack = createNativeStackNavigator();
@@ -37,6 +38,11 @@ export default function App() {
             name="Home" 
             component={HomeScreen} 
             options={{ title: 'SECONDLIFE PORTAL' }}
+          />
+          <Stack.Screen 
+            name="Product" 
+            component={ProductScreen} 
+            options={{ title: 'PRODUCT CATALOG' }}
           />
           <Stack.Screen 
             name="ReturnRequest" 

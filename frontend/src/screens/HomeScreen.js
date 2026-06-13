@@ -1,35 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, typography, layout } from '../theme';
 
 export default function HomeScreen({ navigation }) {
-  const [dwellTime, setDwellTime] = useState(0);
-
-  useEffect(() => {
-    // Predictive Friction Listener: monitor session dwell time
-    const timer = setInterval(() => {
-      setDwellTime((prev) => prev + 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const handlePurchaseAttempt = () => {
-    // Inject dynamic UI friction if dwell time is low (simulating impulse bracketing)
-    if (dwellTime < 10) {
-      Alert.alert(
-        'AI SIZING ANOMALY DETECTED',
-        'Our models predict a 82% return probability for this size. Customers with your profile prefer size M. Switch?',
-        [
-          { text: 'KEEP CURRENT', style: 'cancel' },
-          { text: 'SWITCH TO M (RECOMMENDED)', onPress: () => console.log('Switched size') }
-        ]
-      );
-    } else {
-      Alert.alert('CHECKOUT', 'Proceeding to escrow payment.');
-    }
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
@@ -40,9 +13,9 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.actionGrid}>
         <TouchableOpacity 
           style={styles.actionButton}
-          onPress={handlePurchaseAttempt}
+          onPress={() => navigation.navigate('Product')}
         >
-          <Text style={styles.buttonText}>[ SIMULATE PURCHASE ]</Text>
+          <Text style={styles.buttonText}>[ BROWSE CATALOG ]</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
