@@ -1,5 +1,8 @@
 import numpy as np
 import boto3
+import xgboost as xgb
+import os
+import pandas as pd
 from boto3.dynamodb.conditions import Key, Attr
 
 class PredictiveFrictionEngine:
@@ -13,21 +16,22 @@ class PredictiveFrictionEngine:
         self.returns_table = self.dynamodb.Table('ReturnsTable')
         self.orders_table = self.dynamodb.Table('OrdersTable')
         
-        self.weights = {
-            'size_mismatch': 0.45,
-            'high_return_category': 0.25,
-            'bracketing_behavior': 0.20,
-            'session_dwell_time_low': 0.10,
-            'high_value_item': 0.30,
-            'frequent_returner': 0.40
-        }
+        self.model_path = os.path.join(os.path.dirname(__file__), 'friction_model.json')
+        self.model = xgb.XGBClassifier()
+        try:
+            self.model.load_model(self.model_path)
+            self.model_loaded = True
+        except Exception as e:
+            print(f"Warning: Failed to load XGBoost model from {self.model_path}: {e}")
+            self.model_loaded = False
 
     def evaluate_checkout(self, user_id, product_id, session_data):
         """
         Calculates the probability of return [0, 1] using live DynamoDB data.
         """
-        score = 0.0
-        
+        return_count = 0
+        original_price = 0.0
+
         # 1. Frequent Returner (DynamoDB Query on ReturnsTable UserId-index)
         try:
             response = self.returns_table.query(
@@ -35,13 +39,10 @@ class PredictiveFrictionEngine:
                 KeyConditionExpression=Key('UserId').eq(user_id)
             )
             return_count = len(response.get('Items', []))
-            if return_count > 3:
-                score += self.weights['frequent_returner']
         except Exception as e:
             print(f"Warning: Failed to query ReturnsTable: {e}")
             
         # 2. High Value Item (DynamoDB Scan on OrdersTable for OriginalPrice)
-        # Assuming we need to find the product's price (could also be in ListingsTable)
         try:
             order_res = self.orders_table.scan(
                 FilterExpression=Attr('ProductId').eq(product_id)
@@ -49,22 +50,38 @@ class PredictiveFrictionEngine:
             items = order_res.get('Items', [])
             if items:
                 original_price = float(items[0].get('OriginalPrice', 0))
-                if original_price > 5000:
-                    score += self.weights['high_value_item']
         except Exception as e:
             print(f"Warning: Failed to query OrdersTable: {e}")
             
-        # 3. Bracketing Behavior (Adding multiple sizes of same item to cart)
-        if session_data.get('multiple_sizes_in_cart', False):
-            score += self.weights['bracketing_behavior']
+        # 3. Bracketing Behavior
+        multiple_sizes_in_cart = 1 if session_data.get('multiple_sizes_in_cart', False) else 0
             
-        # 4. Session Dwell Time (Impulse buy)
-        if session_data.get('dwell_time_seconds', 100) < 30:
-            score += self.weights['session_dwell_time_low']
+        # 4. Session Dwell Time
+        dwell_time_seconds = session_data.get('dwell_time_seconds', 100)
             
-        # Normalize and add some non-linearity (sigmoid)
-        probability = 1 / (1 + np.exp(-10 * (score - 0.5)))
-        prob = float(probability)
+        if self.model_loaded:
+            # Create input array matching training features: 
+            # ['historical_returns', 'dwell_time_seconds', 'multiple_sizes_in_cart', 'original_price']
+            features = pd.DataFrame([{
+                'historical_returns': return_count,
+                'dwell_time_seconds': dwell_time_seconds,
+                'multiple_sizes_in_cart': multiple_sizes_in_cart,
+                'original_price': original_price
+            }])
+            
+            # Predict probability of class 1 (returned)
+            probs = self.model.predict_proba(features)
+            prob = float(probs[0][1])
+        else:
+            # Fallback heuristic if model is missing
+            score = 0.0
+            if return_count > 3: score += 0.40
+            if original_price > 5000: score += 0.30
+            if multiple_sizes_in_cart: score += 0.20
+            if dwell_time_seconds < 30: score += 0.10
+            
+            probability = 1 / (1 + np.exp(-10 * (score - 0.5)))
+            prob = float(probability)
         
         result = {
             "returnProbability": round(prob, 2),
