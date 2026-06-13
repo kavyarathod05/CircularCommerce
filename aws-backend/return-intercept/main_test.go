@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/location"
 	locTypes "github.com/aws/aws-sdk-go-v2/service/location/types"
@@ -72,6 +73,10 @@ func (m *MockLocationClient) CalculateRouteMatrix(ctx context.Context, params *l
 
 func TestHandler_RouteRouting(t *testing.T) {
 	t.Setenv("ROUTE_CALCULATOR_NAME", "SecondLifeRouteCalculator")
+	t.Setenv("LISTINGS_TABLE", "Listings")
+	t.Setenv("MATCHES_TABLE", "Matches")
+	t.Setenv("RETURNS_TABLE", "Returns")
+	t.Setenv("CARBON_TABLE", "CarbonMetrics")
 
 	mockDDB := &MockDynamoDBClient{
 		PutItemFunc: func(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
@@ -175,6 +180,167 @@ func TestHandler_RouteRouting(t *testing.T) {
 
 		if resMap["pathway"] != "locker-dropoff" {
 			t.Errorf("Expected pathway 'locker-dropoff', got %v", resMap["pathway"])
+		}
+	})
+
+	t.Run("Premium Pathway with AI Inspection", func(t *testing.T) {
+		req := events.APIGatewayProxyRequest{
+			Path:       "/return/intercept",
+			HTTPMethod: "POST",
+			Body:       `{"order_id": "ord-premium-ai", "product_id": "p-high-headphones", "user_id": "usr-11", "reason": "damaged", "lat": 38.8951, "lng": -77.0364, "media_url": "https://s3.amazonaws.com/uploads/box.jpg"}`,
+		}
+		resp, err := handler(context.Background(), req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if resp.StatusCode != 200 {
+			t.Fatalf("Expected 200, got %d. Body: %s", resp.StatusCode, resp.Body)
+		}
+
+		var resMap map[string]interface{}
+		json.Unmarshal([]byte(resp.Body), &resMap)
+
+		if resMap["pathway"] != "premium" {
+			t.Errorf("Expected pathway 'premium', got %v", resMap["pathway"])
+		}
+		if resMap["inspection_grade"] != "Grade C" {
+			t.Errorf("Expected grade 'Grade C', got %v", resMap["inspection_grade"])
+		}
+		if resMap["ai_summary"] == "" {
+			t.Errorf("Expected ai_summary to be populated")
+		}
+	})
+
+	t.Run("Listing State Machine Transitions", func(t *testing.T) {
+		// Mock Listings Table Put/Get
+		var savedListing Listing
+		mockDDB.PutItemFunc = func(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
+			attributevalue.UnmarshalMap(params.Item, &savedListing)
+			return &dynamodb.PutItemOutput{}, nil
+		}
+		mockDDB.GetItemFunc = func(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+			itemMap, _ := attributevalue.MarshalMap(savedListing)
+			return &dynamodb.GetItemOutput{Item: itemMap}, nil
+		}
+
+		// 1. Create Listing
+		createReq := events.APIGatewayProxyRequest{
+			Path:       "/listing",
+			HTTPMethod: "POST",
+			Body:       `{"listing_id": "lst-101", "product_id": "p-shoes", "user_id": "usr-1", "asking_price": 4000.0}`,
+		}
+		resp, _ := handler(context.Background(), createReq)
+		if resp.StatusCode != 200 {
+			t.Fatalf("Failed to create listing: %s", resp.Body)
+		}
+		if savedListing.Status != "available" {
+			t.Errorf("Expected status available, got %s", savedListing.Status)
+		}
+
+		// 2. Reserve Listing
+		reserveReq := events.APIGatewayProxyRequest{
+			Path:       "/listing",
+			HTTPMethod: "PUT",
+			Body:       `{"listing_id": "lst-101", "new_status": "reserved"}`,
+		}
+		resp, _ = handler(context.Background(), reserveReq)
+		if resp.StatusCode != 200 {
+			t.Fatalf("Failed to reserve listing: %s", resp.Body)
+		}
+		if savedListing.Status != "reserved" {
+			t.Errorf("Expected status reserved, got %s", savedListing.Status)
+		}
+
+		// 3. Mark Sold
+		soldReq := events.APIGatewayProxyRequest{
+			Path:       "/listing",
+			HTTPMethod: "PUT",
+			Body:       `{"listing_id": "lst-101", "new_status": "sold", "buyer_id": "buyer-99"}`,
+		}
+		resp, _ = handler(context.Background(), soldReq)
+		if resp.StatusCode != 200 {
+			t.Fatalf("Failed to mark listing as sold: %s", resp.Body)
+		}
+		if savedListing.Status != "sold" {
+			t.Errorf("Expected status sold, got %s", savedListing.Status)
+		}
+	})
+
+	t.Run("Escrow Lock and Release", func(t *testing.T) {
+		var savedEscrow EscrowRecord
+		mockDDB.PutItemFunc = func(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
+			attributevalue.UnmarshalMap(params.Item, &savedEscrow)
+			return &dynamodb.PutItemOutput{}, nil
+		}
+		mockDDB.GetItemFunc = func(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+			itemMap, _ := attributevalue.MarshalMap(savedEscrow)
+			return &dynamodb.GetItemOutput{Item: itemMap}, nil
+		}
+
+		// 1. Lock funds
+		lockReq := events.APIGatewayProxyRequest{
+			Path:       "/escrow/lock",
+			HTTPMethod: "POST",
+			Body:       `{"match_id": "m-202", "listing_id": "lst-101", "buyer_id": "buyer-99", "amount": 3500.0}`,
+		}
+		resp, _ := handler(context.Background(), lockReq)
+		if resp.StatusCode != 200 {
+			t.Fatalf("Failed to lock escrow: %s", resp.Body)
+		}
+		if savedEscrow.Status != "locked" {
+			t.Errorf("Expected status locked, got %s", savedEscrow.Status)
+		}
+
+		// 2. Release funds
+		releaseReq := events.APIGatewayProxyRequest{
+			Path:       "/escrow/release",
+			HTTPMethod: "POST",
+			Body:       `{"match_id": "m-202"}`,
+		}
+		resp, _ = handler(context.Background(), releaseReq)
+		if resp.StatusCode != 200 {
+			t.Fatalf("Failed to release escrow: %s", resp.Body)
+		}
+		if savedEscrow.Status != "released" {
+			t.Errorf("Expected status released, got %s", savedEscrow.Status)
+		}
+	})
+
+	t.Run("DPP History Trail", func(t *testing.T) {
+		var savedListing Listing
+		savedListing.ListingID = "lst-dpp"
+		savedListing.ProductID = "p-watch"
+		savedListing.Status = "available"
+		savedListing.OwnerHistory = []string{"usr-init"}
+		savedListing.DPPHistory = []DPPBlock{
+			{Owner: "usr-init", Action: "purchased", Timestamp: "2026-06-10"},
+		}
+
+		mockDDB.GetItemFunc = func(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+			itemMap, _ := attributevalue.MarshalMap(savedListing)
+			return &dynamodb.GetItemOutput{Item: itemMap}, nil
+		}
+		mockDDB.PutItemFunc = func(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
+			attributevalue.UnmarshalMap(params.Item, &savedListing)
+			return &dynamodb.PutItemOutput{}, nil
+		}
+
+		// Append block
+		appendReq := events.APIGatewayProxyRequest{
+			Path:       "/dpp",
+			HTTPMethod: "POST",
+			Body:       `{"listing_id": "lst-dpp", "new_block": {"owner": "buyer-2", "action": "returned", "inspection_grade": "Grade A"}}`,
+		}
+		resp, _ := handler(context.Background(), appendReq)
+		if resp.StatusCode != 200 {
+			t.Fatalf("Failed to append DPP block: %s", resp.Body)
+		}
+
+		if len(savedListing.DPPHistory) != 2 {
+			t.Fatalf("Expected 2 blocks in history, got %d", len(savedListing.DPPHistory))
+		}
+		if savedListing.DPPHistory[1].Action != "returned" || savedListing.DPPHistory[1].InspectionGrade != "Grade A" {
+			t.Errorf("Mismatch in appended block values: %v", savedListing.DPPHistory[1])
 		}
 	})
 }

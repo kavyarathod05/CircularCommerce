@@ -18,6 +18,8 @@ github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.29 h1:RdwIf/CuUsvJX3RgJa
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.29/go.mod h1:71wt8W2EgswdZy9Mf9KNnzxZ3TiZlv4caKghPktDOkA=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.30 h1:VTGy885W5DKBxWRUJbym9hytNaYzsyaPkCHGRRMAOhU=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.30/go.mod h1:AS0HycUvJRFvTt613AYDOgO2jzw+00cVSMny8XB3yMY=
+github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.53.5 h1:gWz8Ax1W8BXOoWe3obsIF4ueAY39u9A+NzsY4jppoIw=
+github.com/aws/aws-sdk-go-v2/service/bedrockruntime v1.53.5/go.mod h1:8m0vIhh44Mmgb+x5o2WzTt0T5NKVtTBhO1j+t7AyvJI=
 github.com/aws/aws-sdk-go-v2/service/dynamodb v1.59.0 h1:S1qETDbdXKZMYVveuxACCKuRqnAt2NlnmYnlq5SeuMY=
 github.com/aws/aws-sdk-go-v2/service/dynamodb v1.59.0/go.mod h1:jLkDwIDBkCIpiENQhAOjAR2L9jwj56mZgVEvuro4gUE=
 github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.34.0 h1:O9JPx24Pr+CO7kkxo1EnHwug1UJKqgsMadILrJY72Hw=
@@ -34,6 +36,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.29 h1:hiME6pBzC7OTl
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.29/go.mod h1:G7RP+uhagpKtKhd1BM9N6JQqjCcGEU47K5lBVZQyRQw=
 github.com/aws/aws-sdk-go-v2/service/location v1.52.8 h1:5dYMarfdztMjghBkxjlBrZA7DuZkK/MaRkOejLeWPdA=
 github.com/aws/aws-sdk-go-v2/service/location v1.52.8/go.mod h1:X4pW7uiFJvaVEmfCpk1qDJv2HBfqX1ozJbM00oSWzN0=
+github.com/aws/aws-sdk-go-v2/service/rekognition v1.52.3 h1:SV1cXOW9qnXotyFJW8kw4qjZV2KaybIkVz99kKjOWck=
+github.com/aws/aws-sdk-go-v2/service/rekognition v1.52.3/go.mod h1:9i14Fo0M0qlOsf1wPvG7DDHRwQH1kamlNkmKoBEJ13w=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.103.3 h1:JRseEu/vIDMaWis4bSw0QbXL+cvIGc1XnX076H5ZXLE=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.103.3/go.mod h1:77ZAgynvx1txMvDG8gGWoWkO1augYDxkp9JElWFgjQU=
 github.com/aws/aws-sdk-go-v2/service/signin v1.2.0 h1:3nXpRcFwRCW8n7HgO2QGy0Dc20eQNfBuUemGQhpF8m8=

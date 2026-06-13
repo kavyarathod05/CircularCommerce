@@ -128,6 +128,30 @@ Resources:
             RestApiId: !Ref ReturnInterceptApi
             Path: /return/media-url
             Method: get
+        ListingEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ReturnInterceptApi
+            Path: /listing
+            Method: any
+        EscrowLockEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ReturnInterceptApi
+            Path: /escrow/lock
+            Method: post
+        EscrowReleaseEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ReturnInterceptApi
+            Path: /escrow/release
+            Method: post
+        DppEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ReturnInterceptApi
+            Path: /dpp
+            Method: any
       Environment:
         Variables:
           RETURNS_TABLE: !Ref ReturnsTable
@@ -136,6 +160,7 @@ Resources:
           UPLOADS_BUCKET: !Ref UploadsBucket
           CARBON_TABLE: !Ref CarbonMetricsTable
           ROUTE_CALCULATOR_NAME: !Ref RouteCalculator
+          MATCHES_TABLE: !Ref MatchesTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ReturnsTable
@@ -147,6 +172,8 @@ Resources:
             BucketName: !Ref UploadsBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref CarbonMetricsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MatchesTable
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
