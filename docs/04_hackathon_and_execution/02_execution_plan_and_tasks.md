@@ -26,6 +26,7 @@ To ensure a functional MVP while incorporating advanced ML features strategicall
 - [ ] **Core Backend (Go):** Deploy the Return Intercept Engine (AWS Lambda).
 - [ ] **Data Schema:** Setup Amazon DynamoDB tables for Listings, Orders, Returns, and Matches.
 - [ ] **Return Flow:** Build the basic Return Request flow (Device Hash + Media upload via API Gateway).
+- [ ] **Margin Triage Gateway:** Write the logic layer in the Lambda backend that evaluates the item's MSRP upon ingestion. Branch the workflow: route >= 5,000 items to the premium pipeline and < 5,000 items to the commodity optimization pipeline.
 - [ ] **Basic Compliance:** Build the baseline Scope-3 Carbon Tracker (calculating CO2 saved via basic distance math) and initial Analytics logging. (*Open-Source Suggestion: Import travel emission database factors from `thegreenwebfoundation/co2.js`.*)
 
 ### Phase 2: Spatial Logistics & Matching (The Intercept)
@@ -36,6 +37,7 @@ To ensure a functional MVP while incorporating advanced ML features strategicall
 - [ ] **Demand Engine:** Build the Local Demand Engine to execute radius queries ($geoWithin) and rank candidate buyers. (*Open-Source Suggestion: Extract content collaborative filtering logic from `microsoft/recommenders`.*)
 - [ ] **Transit Routing:** Integrate Amazon Location Service (Route Matrix API).
 - [ ] **ETA Optimization:** Calculate actual travel times and distances to finalize the optimal P2P route. (*Open-Source Suggestion: Use `mapbox/mapbox-gl-js` for interactive route mapping and `Leaflet/Leaflet` for location cluster maps.*)
+- [ ] **Commodity Fallback Routing:** Build the logic for when P2P matching fails on low-margin items. Implement the queries to locate the nearest Micro-Consolidation Amazon Locker (< 5km) or trigger the secure "Keep & Credit" refund protocol.
 
 ### Phase 3: Financials & Escrow (The Trust Mechanism)
 *Focus: Secure the transaction without advanced ML.*
@@ -44,6 +46,7 @@ To ensure a functional MVP while incorporating advanced ML features strategicall
 - [ ] **Release Rules:** Define the rules to release funds to the original retailer upon verified delivery.
 - [ ] **Digital Product Passport:** Setup the DPP schema to append ownership history and record the authenticity trail.
 - [ ] **Dashboard Integration:** Display escrow status and DPP history on the user dashboard. (*Open-Source Suggestion: Use high-density dashboard templates from `tremorlabs/tremor` and carbon visualizers from `climateiq/climateiq-frontend`.*)
+- [ ] **Admin Telemetry Dashboard:** Clone the Tremor/shadcn UI template. Wire it to DynamoDB to visualize live system metrics: Total Restocking Capital Recaptured, Carbon-Tons Avoided, and Active Intercept Efficiency Ratios.
 
 ### Phase 4: Core AI Defect & Fraud Detection (Heavy ML Integration)
 *Focus: Integrate the primary AI validations using Amazon Bedrock and Rekognition APIs.*
