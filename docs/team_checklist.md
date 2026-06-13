@@ -1,50 +1,52 @@
-# Hackathon Team Integration & Execution Checklist
+# Hackathon Team Database-Backed ML Integration Checklist
 
 > [!IMPORTANT]
-> **No More Client-Side Mocks:** All frontend tabs (Web and Mobile) must transition from simulated client states to live connections with our Go AWS API Gateway and local Python ML FastAPI server. Follow the divided tracks below to complete the integration.
+> **Database-Driven ML Architecture:** To eliminate client-side hardcoding, the Python ML microservice must fetch its input data (historical return counts, listing locations, pricing matrices, transaction networks) directly from the AWS DynamoDB database tables via Boto3. The React frontends must only send simple identifiers (e.g., `user_id`, `product_id`, `order_id`), leaving all data aggregation to the backend database layer.
 
 ---
 
-## ☁️ Kavya (AWS Infrastructure & Go REST API Integration)
+## ☁️ Kavya (AWS Infrastructure, Table Setup & IAM Provisioning)
 
-Your focus is wiring up the database actions, listings state changes, and transactional escrow flows between the React Web app and the Go Lambda API Gateway.
+Your focus is establishing the DynamoDB tables, seeding mock testing data representing e-commerce history, and ensuring the ML service has access permissions.
 
-### 1. Ingest Return & Media Gateway
-- [x] **Presigned S3 Upload:** Ensure the image uploader in the Return Wizard calls `GET /return/media-url` to retrieve the upload token, then performs a binary `PUT` directly to S3.
-- [x] **Returns Ingestion:** Ensure `runTriageSimulation` issues a `POST /return/intercept` request to register the return details and compute geohash matching/routing.
+### 1. DynamoDB Table Provisioning & Seeding
+- [ ] **Configure DynamoDB Tables:** Ensure the standard schemas are live:
+  * `OrdersTable` (Partition Key: `OrderId` S)
+  * `ReturnsTable` (Partition Key: `ReturnId` S, Global Secondary Index: `UserId-index`)
+  * `ListingsTable` (Partition Key: `ListingId` S, Local Secondary Index: `Geohash-index`)
+  * `MatchesTable` (Partition Key: `MatchId` S)
+- [ ] **Seed E-Commerce Test Data:** Provision mock records inside DynamoDB so Naman's ML service can run lookup queries:
+  * Seed 5+ orders in `OrdersTable` (mapping `ProductId` to `OriginalPrice` and `SellerId`).
+  * Seed return history in `ReturnsTable` (mapping `UserId` to prior returns for velocity scoring).
+  * Seed listings in `ListingsTable` (including competitor price arrays and location geohashes).
 
-### 2. Seller Dashboard Listings & State Machine
-- [ ] **Live Listings Fetch:** Replace the hardcoded React array `listings` in `App.tsx` with a live query using `GET /listing` to load available items directly from DynamoDB.
-- [ ] **Transition Listing State:** Wire the "Transition State" button to issue a `PUT /listing` payload:
-  * Transitions: `available` ➔ `reserved` ➔ `sold`
-  * Log the updated buyer ID and timestamp.
-
-### 3. Escrow Operations
-- [ ] **Lock Escrow:** When a listing is reserved by a local buyer, call `POST /escrow/lock` to secure the transaction funds.
-- [ ] **Release Escrow:** When a trade is marked as complete, call `POST /escrow/release` to transfer locked credits to the returning user.
-
-### 4. Digital Product Passport (DPP)
-- [ ] **Ownership History Chain:** Bind the DPP cards to fetch history using `GET /dpp?listing_id=<id>` to render real circular paths, ownership changes, and Scope-3 carbon savings.
+### 2. IAM Policy Configuration for Local ML Access
+- [ ] **Local Machine IAM Role:** Create an IAM Policy (`SecondLifeMLAccess`) allowing read/write actions on your DynamoDB tables:
+  * Actions: `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:Query`, `dynamodb:Scan`
+  * Resources: `arn:aws:dynamodb:*:*:table/*`
+- [ ] **AWS credentials propagation:** Configure local environment profiles so Naman's python Boto3 scripts can inherit access credentials automatically.
 
 ---
 
-## 🧠 Naman (AI/ML Models & UI Feature Integration)
+## 🧠 Naman (FastAPI ML Service Boto3 Integrations & UI Alignment)
 
-Your focus is connecting the web pre-checkout systems and mobile screen interactions to your local Python FastAPI ML microservice on port `8000`.
+Your focus is refactoring the Python ML sub-engines to execute Boto3 queries on DynamoDB, discarding hardcoded payload arguments.
 
-### 1. Visual Defect Damage Assessment
-- [x] **Bedrock Nova Pro Intake:** Ensure the image uploaded by the user is converted to base64 and sent to the FastAPI ML endpoint `POST /api/v1/ml/aws/inspect-condition`.
-- [x] **Dynamic Heatmap overlays:** Map the returned coordinates (`xmin`, `ymin`, `xmax`, `ymax`) directly to draw actual SVG defect box markers on the product visualizer instead of hardcoded coordinates.
+### 1. Predictive Friction Engine (`predictive_friction.py`)
+- [ ] **Live Return History Query:** Instead of accepting `user_history` from the client request body, use Boto3's `query` to count the user's records in the `ReturnsTable` matching the provided `user_id`.
+- [ ] **Compute Real Probability:** Retrieve `OriginalPrice` from the `OrdersTable` to weight high-value return risk.
 
-### 2. Mobile VTO Draping Simulation
-- [ ] **Mobile VTO API Hookup:** Connect the Mobile app's select-photo callback in `VTOEngineScreen.js` to call `POST /api/v1/ml/vto/drape` with the base64 user image.
-- [ ] **Dynamic Fit Display:** Display the returned size match confidence and fit stress points in the VTO metrics panel dynamically.
+### 2. GenAI Dynamic Pricing Engine (`dynamic_pricing.py`)
+- [ ] **Live Competitor Pricing Lookup:** Modify the endpoint to accept a `product_id`. Use Boto3's `scan` or `query` on `ListingsTable` to scan similar items and construct the competitor price array dynamically.
+- [ ] **Automatic Price Adjustments:** Calculate discount rates using the dynamic list.
 
-### 3. Pre-Checkout Return Prevention
-- [ ] **Predictive Friction check:** Connect the checkout action in the Pre-Checkout Tab to query `POST /api/v1/ml/friction/evaluate` with the cart items and purchase history.
-- [ ] **Sizing Anomaly alerts:** Wire the checkout listener to evaluate size configurations and display warning cards if sizing deviations are caught by the algorithm.
-- [ ] **SEFraud GNN trust scores:** Load the GNN trust score from `GET /api/v1/ml/fraud/trust-score/{user_id}` and apply strict green-credit limits if the trust score falls below a threshold.
+### 3. Local Demand Engine (`demand_engine.py`)
+- [ ] **Spatial Geohash Queries:** Update `rank_buyers` to query `ListingsTable` using the `Geohash-index` LSI. Filter candidate listings near the returning user's location, matching spatial logs directly from DynamoDB.
 
-### 4. Liveness Verification
-- [ ] **Rekognition Liveness Session:** Connect the Mobile camera screen `CameraScreen.js` to call `GET /api/v1/ml/aws/liveness-session` to retrieve the active session token before initiating scans.
+### 4. SEFraud GNN Trust Scoring (`network_fraud.py`)
+- [ ] **Graph Construction from Matches:** Replace the mock graph generator. Query `MatchesTable` and `ReturnsTable` to build an active transaction adjacency matrix (mapping user nodes sharing IPs, devices, or transaction histories) to calculate the SEFraud GNN trust score.
+
+### 5. Client UI Form Cleanups
+- [ ] **React Form Refactor:** Simplify the POST payloads inside the React frontends. Replace complex mock arrays with flat requests (e.g., passing `{ "user_id": "usr-kavya" }` or `{ "product_id": "p-smartphone" }`), letting the backend do the heavy lookup work.
+
 
