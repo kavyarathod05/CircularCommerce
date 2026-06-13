@@ -1,11 +1,55 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, typography, layout } from '../theme';
 import { deviceSecurityContext } from '../utils/DeviceFingerprint';
-
+import { getMediaUploadUrl, uploadMediaToS3, submitReturnIntercept } from '../utils/api';
 export default function ReturnRequestScreen({ navigation }) {
   const [images, setImages] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (images.length === 0) {
+      Alert.alert('Error', 'Please upload at least one image.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // For simplicity, we just upload the first image
+      const imageUri = images[0];
+      const filename = `return-${Date.now()}.jpg`;
+
+      // 1. Get presigned URL
+      const { upload_url, media_url } = await getMediaUploadUrl(filename);
+
+      // 2. Upload to S3
+      await uploadMediaToS3(upload_url, imageUri);
+
+      // 3. Submit to Intercept API
+      const payload = {
+        order_id: '9874-AX',
+        product_id: 'p-headphones-premium',
+        user_id: 'usr-demo-app',
+        reason: 'damaged',
+        lat: 12.9716, // Default coordinates for testing
+        lng: 77.5946,
+        media_url: media_url,
+        device_hash: deviceSecurityContext.deviceHash
+      };
+
+      const result = await submitReturnIntercept(payload);
+      Alert.alert('Success', `Return processed! Pathway: ${result.pathway}\nGrade: ${result.inspection_grade || 'N/A'}`);
+      
+      // Navigate to inspection result screen with data
+      navigation.navigate('InspectionResult', { result });
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Submission Failed', 'Could not process the return at this time.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library
@@ -55,9 +99,14 @@ export default function ReturnRequestScreen({ navigation }) {
 
       <TouchableOpacity 
         style={[styles.actionButton, styles.submitButton]}
-        onPress={() => Alert.alert('SUBMITTING', `MEDIA BUNDLE & DEVICE HASH (${deviceSecurityContext.deviceHash}) TRANSMITTED TO API GATEWAY.`)}
+        onPress={handleSubmit}
+        disabled={isSubmitting}
       >
-        <Text style={styles.buttonText}>[ TRANSMIT DOSSIER ]</Text>
+        {isSubmitting ? (
+          <ActivityIndicator color={colors.white} />
+        ) : (
+          <Text style={styles.buttonText}>[ TRANSMIT DOSSIER ]</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );

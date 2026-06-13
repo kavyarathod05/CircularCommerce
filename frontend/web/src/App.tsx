@@ -83,7 +83,8 @@ function App() {
     setUploading(true)
     setConsoleLogs(prev => [...prev, `LOGISTICS: Fetching S3 pre-signed upload URL for ${file.name}...`])
     try {
-      const resp = await fetch(`https://7fwutbh0wh.execute-api.us-east-1.amazonaws.com/Prod/return/media-url?filename=${encodeURIComponent(file.name)}`)
+      const awsBaseUrl = import.meta.env.VITE_AWS_API_URL || 'https://7fwutbh0wh.execute-api.us-east-1.amazonaws.com/Prod'
+      const resp = await fetch(`${awsBaseUrl}/return/media-url?filename=${encodeURIComponent(file.name)}`)
       if (!resp.ok) throw new Error("API pre-sign failed")
       const data = await resp.json()
 
@@ -149,7 +150,8 @@ function App() {
         imageBase64 = await getBase64(selectedFile)
       }
       
-      const mlResp = await fetch('http://localhost:8000/api/v1/ml/aws/inspect-condition', {
+      const mlBaseUrl = import.meta.env.VITE_ML_API_URL || 'http://localhost:8000'
+      const mlResp = await fetch(`${mlBaseUrl}/api/v1/ml/aws/inspect-condition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,7 +325,8 @@ function App() {
 
     // Call live API in background if reachable
     try {
-      await fetch('https://7fwutbh0wh.execute-api.us-east-1.amazonaws.com/Prod/return/intercept', {
+      const awsBaseUrl = import.meta.env.VITE_AWS_API_URL || 'https://7fwutbh0wh.execute-api.us-east-1.amazonaws.com/Prod'
+      await fetch(`${awsBaseUrl}/return/intercept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
