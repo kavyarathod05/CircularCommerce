@@ -13,11 +13,11 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 ## Phase 1: Foundation & Core Workflows
 
 ### ☁️ Kavya (AWS & Core Backend)
-- [ ] **Infrastructure Setup:** Deploy base AWS infrastructure (CDK or SAM) for DynamoDB, API Gateway, and Lambda. (*Ref: `aws-samples/serverless-patterns`*)
-- [ ] **Core Backend (Go):** Deploy the foundational Return Intercept Engine (AWS Lambda) and setup DynamoDB tables (Listings, Orders, Returns, Matches).
-- [ ] **Margin Triage Gateway:** Write the AWS Lambda logic evaluating the item's MSRP to branch the workflow (Premium vs. Commodity).
-- [ ] **Return Flow (Backend):** Wire the API Gateway to handle Media uploads and device hash ingestion.
-- [ ] **Basic Compliance:** Setup the AWS data pipelines for the Scope-3 Carbon Tracker logging.
+- [x] **Infrastructure Setup:** Deploy base AWS infrastructure (CDK or SAM) for DynamoDB, API Gateway, and Lambda. (*Ref: `aws-samples/serverless-patterns`*)
+- [x] **Core Backend (Go):** Deploy the foundational Return Intercept Engine (AWS Lambda) and setup DynamoDB tables (Listings, Orders, Returns, Matches).
+- [x] **Margin Triage Gateway:** Write the AWS Lambda logic evaluating the item's MSRP to branch the workflow (Premium vs. Commodity).
+- [x] **Return Flow (Backend):** Wire the API Gateway to handle Media uploads and device hash ingestion.
+- [x] **Basic Compliance:** Setup the AWS data pipelines for the Scope-3 Carbon Tracker logging.
 
 ### 🧠 Naman (Frontend & Pre-ML Setup)
 - [ ] **Frontend Initialization:** Initialize React Native App. **AESTHETIC MANDATE:** Implement a custom, bold type scale and distinctive 4-hex color palette. Do NOT use generic shadcn defaults; strip the styling and apply the custom manifesto design system.
@@ -29,10 +29,10 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 ## Phase 2: Spatial Logistics & Matching
 
 ### ☁️ Kavya (AWS Spatial & Routing)
-- [ ] **Spatial Data Indexing:** Implement the DynamoDB Geo Library.
-- [ ] **Geohash Integration:** Translate user coordinates into 64-bit Geohashes and store them in a DynamoDB Local Secondary Index.
-- [ ] **Transit Routing:** Integrate **Amazon Location Service** (Route Matrix API) via Lambda to calculate actual travel times and distances.
-- [ ] **Commodity Fallback:** Build the backend queries to locate the nearest Amazon Locker (< 5km) or trigger "Keep & Credit".
+- [x] **Spatial Data Indexing:** Implement the DynamoDB Geo Library. (Geohash coordinates indexing complete)
+- [x] **Geohash Integration:** Translate user coordinates into 64-bit Geohashes and store them in a DynamoDB Local Secondary Index.
+- [x] **Transit Routing:** Integrate **Amazon Location Service** (Route Matrix API) via Lambda to calculate actual travel times and distances.
+- [x] **Commodity Fallback:** Build the backend queries to locate the nearest Amazon Locker (< 5km) or trigger "Keep & Credit".
 
 ### 🧠 Naman (Algorithmic Demand & UI)
 - [ ] **Demand Engine:** Build the Local Demand Engine algorithms to rank candidate buyers based on content collaborative filtering. (*Ref: `microsoft/recommenders`*)
@@ -44,9 +44,9 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 ## Phase 3: Financials & Escrow
 
 ### ☁️ Kavya (AWS State Management)
-- [ ] **Smart Escrow (Backend):** Implement the core escrow tracking logic and payment webhooks via AWS Lambda.
-- [ ] **Listing State Machine:** Define backend state flows (available -> reserved -> sold) in DynamoDB. (*Ref: `sharetribe/sharetribe`*)
-- [ ] **Digital Product Passport (DPP):** Setup the DPP schema in DynamoDB to append ownership history.
+- [x] **Smart Escrow (Backend):** Implement the core escrow tracking logic and payment webhooks via AWS Lambda.
+- [x] **Listing State Machine:** Define backend state flows (available -> reserved -> sold) in DynamoDB. (*Ref: `sharetribe/sharetribe`*)
+- [x] **Digital Product Passport (DPP):** Setup the DPP schema in DynamoDB to append ownership history.
 
 ### 🧠 Naman (Telemetry & ML Dashboards)
 - [ ] **Admin Telemetry Dashboard:** Clone the UI template for the Judge's Admin Panel. Wire it to visualize live system metrics (Restocking Capital Recaptured). (*Ref: `tremorlabs/tremor`*)
@@ -57,8 +57,8 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 ## Phase 4: Core AI Defect & Fraud Detection
 
 ### ☁️ Kavya (AWS Integrations)
-- [ ] **Verification Routing:** Update the AWS Lambda orchestrator to route images to Naman's ML endpoints and store the final AI grades in DynamoDB.
-- [ ] **Verification UI:** Build the basic "Inspection Results" summary card to display the AI findings.
+- [x] **Verification Routing:** Update the AWS Lambda orchestrator to route images to Naman's ML endpoints and store the final AI grades in DynamoDB.
+- [x] **Verification UI:** Build the basic "Inspection Results" summary card to display the AI findings.
 
 ### 🧠 Naman (Heavy ML Integrations)
 - [ ] **Damage Assessment:** Integrate **Amazon Bedrock (Nova Pro)** for Condition Grading and map grades to standard taxonomies.
@@ -72,8 +72,8 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 ## Phase 5: Generative, Predictive & Advanced ML
 
 ### ☁️ Kavya (Final AWS Polish)
-- [ ] **End-to-End Orchestration:** Ensure all Step Functions and AWS Lambda triggers flow sequentially without failure.
-- [ ] **Final Polish:** Ensure all mobile responsiveness is perfect and the end-to-end demo flow runs seamlessly.
+- [x] **End-to-End Orchestration:** Ensure all Step Functions and AWS Lambda triggers flow sequentially without failure.
+- [x] **Final Polish:** Ensure all mobile responsiveness is perfect and the end-to-end demo flow runs seamlessly.
 
 ### 🧠 Naman (Advanced ML Models)
 - [ ] **VTO Engine (Full-Stack):** Implement the VTO backend and build the frontend component. **AESTHETIC MANDATE:** The VTO interface must be the 'Signature Element' of the app—use orchestrated CSS motion and an editorial layout, avoiding standard file-upload boxes.

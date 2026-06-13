@@ -1,0 +1,167 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: "Hackon Amazon Return Intercept Engine SAM Template for deploying core\
+  \ backend infrastructure\n"
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 256
+    Runtime: provided.al2023
+    Architectures:
+    - arm64
+Resources:
+  UploadsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: secondlife-uploads-${AWS::AccountId}-${AWS::Region}
+      CorsConfiguration:
+        CorsRules:
+        - AllowedHeaders:
+          - '*'
+          AllowedMethods:
+          - PUT
+          - GET
+          - POST
+          - HEAD
+          AllowedOrigins:
+          - '*'
+          MaxAge: 3000
+  ListingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Listings
+      AttributeDefinitions:
+      - AttributeName: ListingId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: ListingId
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Orders
+      AttributeDefinitions:
+      - AttributeName: OrderId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: OrderId
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  ReturnsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Returns
+      AttributeDefinitions:
+      - AttributeName: ReturnId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: ReturnId
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  MatchesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Matches
+      AttributeDefinitions:
+      - AttributeName: MatchId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: MatchId
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  CarbonMetricsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CarbonMetrics
+      AttributeDefinitions:
+      - AttributeName: ReturnId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: ReturnId
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  RouteCalculator:
+    Type: AWS::Location::RouteCalculator
+    Properties:
+      CalculatorName: SecondLifeRouteCalculator
+      DataSource: Esri
+      Description: Route calculator for P2P logistics routing
+  ReturnInterceptApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+  ReturnInterceptFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: 
+        s3://secondlife-returns-hackon-1781325749675/22d84a30a0202881c46c30a4db80ca94
+      Handler: bootstrap
+      Events:
+        InterceptEndpoint:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ReturnInterceptApi
+            Path: /return/intercept
+            Method: post
+        MediaUrlEndpoint:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ReturnInterceptApi
+            Path: /return/media-url
+            Method: get
+      Environment:
+        Variables:
+          RETURNS_TABLE:
+            Ref: ReturnsTable
+          LISTINGS_TABLE:
+            Ref: ListingsTable
+          ORDERS_TABLE:
+            Ref: OrdersTable
+          UPLOADS_BUCKET:
+            Ref: UploadsBucket
+          CARBON_TABLE:
+            Ref: CarbonMetricsTable
+          ROUTE_CALCULATOR_NAME:
+            Ref: RouteCalculator
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ReturnsTable
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ListingsTable
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: OrdersTable
+      - S3CrudPolicy:
+          BucketName:
+            Ref: UploadsBucket
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: CarbonMetricsTable
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - location:CalculateRouteMatrix
+          Resource:
+            Fn::GetAtt:
+            - RouteCalculator
+            - Arn
+Outputs:
+  ReturnInterceptApiEndpoint:
+    Description: API Gateway endpoint URL for Prod stage
+    Value:
+      Fn::Sub: 
+        https://${ReturnInterceptApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/return/intercept
+  MediaUrlApiEndpoint:
+    Description: API Gateway endpoint URL to get pre-signed upload URL
+    Value:
+      Fn::Sub: 
+        https://${ReturnInterceptApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/return/media-url
