@@ -13,11 +13,11 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 ## Phase 1: Foundation & Core Workflows
 
 ### ☁️ Kavya (AWS & Core Backend)
-- [ ] **Infrastructure Setup:** Deploy base AWS infrastructure (CDK or SAM) for DynamoDB, API Gateway, and Lambda. (*Ref: `aws-samples/serverless-patterns`*)
-- [ ] **Core Backend (Go):** Deploy the foundational Return Intercept Engine (AWS Lambda) and setup DynamoDB tables (Listings, Orders, Returns, Matches).
-- [ ] **Margin Triage Gateway:** Write the AWS Lambda logic evaluating the item's MSRP to branch the workflow (Premium vs. Commodity).
-- [ ] **Return Flow (Backend):** Wire the API Gateway to handle Media uploads and device hash ingestion.
-- [ ] **Basic Compliance:** Setup the AWS data pipelines for the Scope-3 Carbon Tracker logging.
+- [x] **Infrastructure Setup:** Deploy base AWS infrastructure (CDK or SAM) for DynamoDB, API Gateway, and Lambda. (*Ref: `aws-samples/serverless-patterns`*)
+- [x] **Core Backend (Go):** Deploy the foundational Return Intercept Engine (AWS Lambda) and setup DynamoDB tables (Listings, Orders, Returns, Matches).
+- [x] **Margin Triage Gateway:** Write the AWS Lambda logic evaluating the item's MSRP to branch the workflow (Premium vs. Commodity).
+- [x] **Return Flow (Backend):** Wire the API Gateway to handle Media uploads and device hash ingestion.
+- [x] **Basic Compliance:** Setup the AWS data pipelines for the Scope-3 Carbon Tracker logging.
 
 ### 🧠 Naman (Frontend & Pre-ML Setup)
 - [ ] **Frontend Initialization:** Initialize React Native App. **AESTHETIC MANDATE:** Implement a custom, bold type scale and distinctive 4-hex color palette. Do NOT use generic shadcn defaults; strip the styling and apply the custom manifesto design system.
@@ -29,10 +29,10 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 ## Phase 2: Spatial Logistics & Matching
 
 ### ☁️ Kavya (AWS Spatial & Routing)
-- [ ] **Spatial Data Indexing:** Implement the DynamoDB Geo Library.
-- [ ] **Geohash Integration:** Translate user coordinates into 64-bit Geohashes and store them in a DynamoDB Local Secondary Index.
-- [ ] **Transit Routing:** Integrate **Amazon Location Service** (Route Matrix API) via Lambda to calculate actual travel times and distances.
-- [ ] **Commodity Fallback:** Build the backend queries to locate the nearest Amazon Locker (< 5km) or trigger "Keep & Credit".
+- [x] **Spatial Data Indexing:** Implement the DynamoDB Geo Library. (Geohash coordinates indexing complete)
+- [x] **Geohash Integration:** Translate user coordinates into 64-bit Geohashes and store them in a DynamoDB Local Secondary Index.
+- [x] **Transit Routing:** Integrate **Amazon Location Service** (Route Matrix API) via Lambda to calculate actual travel times and distances.
+- [x] **Commodity Fallback:** Build the backend queries to locate the nearest Amazon Locker (< 5km) or trigger "Keep & Credit".
 
 ### 🧠 Naman (Algorithmic Demand & UI)
 - [ ] **Demand Engine:** Build the Local Demand Engine algorithms to rank candidate buyers based on content collaborative filtering. (*Ref: `microsoft/recommenders`*)
