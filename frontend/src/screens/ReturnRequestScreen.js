@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, typography, layout } from '../theme';
+import { deviceSecurityContext } from '../utils/DeviceFingerprint';
 
 export default function ReturnRequestScreen({ navigation }) {
   const [images, setImages] = useState([]);
@@ -54,7 +55,7 @@ export default function ReturnRequestScreen({ navigation }) {
 
       <TouchableOpacity 
         style={[styles.actionButton, styles.submitButton]}
-        onPress={() => Alert.alert('SUBMITTING', 'DATA HASH TRANSMITTED.')}
+        onPress={() => Alert.alert('SUBMITTING', `MEDIA BUNDLE & DEVICE HASH (${deviceSecurityContext.deviceHash}) TRANSMITTED TO API GATEWAY.`)}
       >
         <Text style={styles.buttonText}>[ TRANSMIT DOSSIER ]</Text>
       </TouchableOpacity>
