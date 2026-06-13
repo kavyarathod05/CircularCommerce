@@ -181,43 +181,22 @@ function App() {
         summary = 'Bypassed visual inspection. Direct route to consolidation locker.'
       } else {
         pathway = 'premium'
-        if (productId === 'p-smartphone-premium') {
-          if (reason === 'damaged') {
-            grade = 'Grade C'
-            summary = 'Cosmetic screen fracture on lower-right quadrant. Multi-touch functional.'
-            bboxes = [
-              { label: 'screen fracture', x: 140, y: 180, w: 50, h: 40 },
-              { label: 'bezel dent', x: 92, y: 220, w: 10, h: 10 }
-            ]
-          } else if (reason === 'fit' || reason === 'defective') {
-            grade = 'Grade B'
-            summary = 'Minor scratch blemish on side aluminum bezel. Display panel pristine.'
-            bboxes = [
-              { label: 'scratch', x: 92, y: 120, w: 8, h: 30 }
-            ]
-          } else {
-            grade = 'Grade A'
-            summary = 'Excellent visual condition. Fully certified and reset to factory settings.'
-          }
+        if (reason === 'damaged') {
+          grade = 'Grade C'
+          summary = 'Cosmetic crack on right band cup. Original box present.'
+          bboxes = [
+            { label: 'crack', x: 190, y: 140, w: 40, h: 20 },
+            { label: 'scratch', x: 80, y: 80, w: 20, h: 10 }
+          ]
+        } else if (reason === 'fit' || reason === 'defective') {
+          grade = 'Grade B'
+          summary = 'Minor scratch blemish on side cup casing. Fully operational.'
+          bboxes = [
+            { label: 'scratch', x: 120, y: 110, w: 30, h: 15 }
+          ]
         } else {
-          // Headphones or default
-          if (reason === 'damaged') {
-            grade = 'Grade C'
-            summary = 'Cosmetic crack on right band cup. Original box present.'
-            bboxes = [
-              { label: 'crack', x: 190, y: 140, w: 40, h: 20 },
-              { label: 'scratch', x: 80, y: 80, w: 20, h: 10 }
-            ]
-          } else if (reason === 'fit' || reason === 'defective') {
-            grade = 'Grade B'
-            summary = 'Minor scratch blemish on side cup casing. Fully operational.'
-            bboxes = [
-              { label: 'scratch', x: 120, y: 110, w: 30, h: 15 }
-            ]
-          } else {
-            grade = 'Grade A'
-            summary = 'Excellent condition. Fully certified resale-ready.'
-          }
+          grade = 'Grade A'
+          summary = 'Excellent condition. Fully certified resale-ready.'
         }
       }
 
@@ -493,22 +472,9 @@ function App() {
                       <div className="image-heatmap-container">
                         <svg className="heatmap-svg" viewBox="0 0 320 320">
                           {/* Dynamic Outline representation */}
-                          {lastResult.productId === 'p-smartphone-premium' ? (
-                            <>
-                              <rect x="95" y="40" width="130" height="240" rx="18" stroke="#30363d" strokeWidth="6" fill="none" />
-                              <rect x="130" y="52" width="60" height="12" rx="6" fill="#30363d" />
-                            </>
-                          ) : lastResult.productId === 'p-tshirt-commodity' ? (
-                            <>
-                              <path d="M 140,70 Q 160,82 180,70 L 210,70 L 250,110 L 225,135 L 205,125 L 205,260 L 115,260 L 115,125 L 95,135 L 70,110 L 110,70 Z" stroke="#30363d" strokeWidth="6" fill="none" />
-                            </>
-                          ) : (
-                            <>
-                              <circle cx="160" cy="160" r="100" stroke="#30363d" strokeWidth="6" fill="none" />
-                              <rect x="50" y="120" width="20" height="80" rx="10" fill="#ff9900" />
-                              <rect x="250" y="120" width="20" height="80" rx="10" fill="#ff9900" />
-                            </>
-                          )}
+                          <circle cx="160" cy="160" r="100" stroke="#30363d" strokeWidth="6" fill="none" />
+                          <rect x="50" y="120" width="20" height="80" rx="10" fill="#ff9900" />
+                          <rect x="250" y="120" width="20" height="80" rx="10" fill="#ff9900" />
                           {/* Bounding box rendering */}
                           {lastResult.bboxes.map((box, idx) => (
                             <rect
