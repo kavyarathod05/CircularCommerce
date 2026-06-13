@@ -44,16 +44,33 @@ class DemandEngine:
                     
                 elec_aff = float(item.get('ElectronicsAffinity', 0.5))
                 app_aff = float(item.get('ApparelAffinity', 0.5))
-                buyer_vector = np.array([[elec_aff, app_aff]])
                 
-                affinity_score = cosine_similarity(product_vector, buyer_vector)[0][0]
-                recency_score = float(item.get('RecencyScore', 0.5))
-                compound_score = affinity_score * recency_score
+                # Microsoft Recommenders (SAR / Content CF schema)
+                # Apply smoothed Jaccard/Affinity weighting and Exponential Time Decay
+                buyer_vector = np.array([elec_aff, app_aff])
+                prod_vector = np.array([is_electronics, is_apparel])
+                
+                # 1. Co-occurrence affinity (smoothed dot product)
+                raw_affinity = np.dot(buyer_vector, prod_vector)
+                norm_affinity = raw_affinity / (np.linalg.norm(buyer_vector) * np.linalg.norm(prod_vector) + 1e-9)
+                
+                # 2. SAR Exponential Time Decay (half-life weighting)
+                # Assumes recency_score is days since last interaction
+                days_since_active = float(item.get('DaysSinceActive', 10))
+                half_life = 30.0 # 30-day half-life decay
+                time_decay_weight = np.exp2(-days_since_active / half_life)
+                
+                # 3. Frequency / Wishlist Normalization (log smoothing)
+                wishlist_count = float(item.get('WishlistCount', 1))
+                freq_weight = np.log10(wishlist_count + 1)
+                
+                compound_score = norm_affinity * time_decay_weight * freq_weight
                 
                 results.append({
                     'buyer_id': buyer_id,
                     'compound_score': compound_score,
-                    'affinity_score': affinity_score
+                    'affinity_score': norm_affinity,
+                    'time_decay_weight': time_decay_weight
                 })
         except Exception as e:
             print(f"Warning: DynamoDB query failed: {e}")

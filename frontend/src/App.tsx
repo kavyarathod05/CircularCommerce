@@ -34,7 +34,8 @@ interface ListingRecord {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'wizard' | 'result' | 'admin' | 'prevention'>('wizard')
+  const [userRole, setUserRole] = useState<'buyer' | 'seller' | null>(null)
+  const [activeTab, setActiveTab] = useState<'catalog' | 'vto' | 'wizard' | 'result' | 'account' | 'admin' | 'prevention'>('catalog')
   
   // Wizard States
   const [orderId, setOrderId] = useState('999-65432-1789')
@@ -373,16 +374,229 @@ function App() {
           <h1 className="logo-title">SecondLife<span>Commerce</span></h1>
         </div>
         <div className="nav-tabs">
-          <button className={`tab-btn ${activeTab === 'wizard' ? 'active' : ''}`} onClick={() => setActiveTab('wizard')}>Your Returns</button>
-          <button className={`tab-btn ${activeTab === 'result' ? 'active' : ''}`} onClick={() => setActiveTab('result')}>Return Status</button>
-          <button className={`tab-btn ${activeTab === 'admin' ? 'active' : ''}`} onClick={() => setActiveTab('admin')}>Seller Central</button>
-          <button className={`tab-btn ${activeTab === 'prevention' ? 'active' : ''}`} onClick={() => setActiveTab('prevention')}>Fraud Prevention</button>
+          {userRole === 'buyer' && (
+            <>
+              <button className={`tab-btn ${activeTab === 'catalog' ? 'active' : ''}`} onClick={() => setActiveTab('catalog')}>Browse Catalog</button>
+              <button className={`tab-btn ${activeTab === 'vto' ? 'active' : ''}`} onClick={() => setActiveTab('vto')}>Virtual Try-On</button>
+              <button className={`tab-btn ${activeTab === 'prevention' ? 'active' : ''}`} onClick={() => setActiveTab('prevention')}>Your Cart</button>
+              <button className={`tab-btn ${activeTab === 'wizard' ? 'active' : ''}`} onClick={() => setActiveTab('wizard')}>Start a Return</button>
+              <button className={`tab-btn ${activeTab === 'result' ? 'active' : ''}`} onClick={() => setActiveTab('result')}>Return Status</button>
+              <button className={`tab-btn ${activeTab === 'account' ? 'active' : ''}`} onClick={() => setActiveTab('account')}>Your Account</button>
+            </>
+          )}
+          {userRole === 'seller' && (
+            <>
+              <button className={`tab-btn ${activeTab === 'admin' ? 'active' : ''}`} onClick={() => setActiveTab('admin')}>Seller Central</button>
+              <button className={`tab-btn ${activeTab === 'result' ? 'active' : ''}`} onClick={() => setActiveTab('result')}>Processing Logs</button>
+            </>
+          )}
+          {userRole && (
+            <button className="tab-btn" style={{ marginLeft: 'auto', borderLeft: '1px solid var(--border-color)' }} onClick={() => setUserRole(null)}>
+              Switch Role
+            </button>
+          )}
         </div>
       </header>
 
       <main>
+        {/* ROLE SELECTION SCREEN */}
+        {!userRole && (
+          <section className="view-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '2rem' }}>
+            <h2 style={{ fontFamily: 'var(--brutalist-font)', fontSize: '2rem' }}>Welcome to SecondLife Commerce</h2>
+            <p style={{ color: 'var(--text-muted)' }}>Please select your persona to continue.</p>
+            <div style={{ display: 'flex', gap: '2rem' }}>
+              <button 
+                className="btn-action" 
+                style={{ padding: '2rem', fontSize: '1.25rem', width: '250px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', backgroundColor: '#FFFFFF', border: '2px solid var(--amazon-orange)', color: 'var(--text-primary)' }}
+                onClick={() => { setUserRole('buyer'); setActiveTab('catalog'); }}
+              >
+                <span style={{ fontSize: '3rem' }}>🛍️</span>
+                I am a Buyer
+              </button>
+              <button 
+                className="btn-action" 
+                style={{ padding: '2rem', fontSize: '1.25rem', width: '250px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', backgroundColor: '#131A22', border: '2px solid #131A22', color: '#FFFFFF' }}
+                onClick={() => { setUserRole('seller'); setActiveTab('admin'); }}
+              >
+                <span style={{ fontSize: '3rem' }}>📦</span>
+                I am a Seller
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* CATALOG VIEW */}
+        {userRole === 'buyer' && activeTab === 'catalog' && (
+          <section className="view-section">
+            <h2 style={{ fontFamily: 'var(--brutalist-font)', marginBottom: '1.5rem', fontSize: '1.8rem' }}>Recommended For You</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+              
+              {/* Product 1: Bose */}
+              <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
+                <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F8FA', borderRadius: '8px', overflow: 'hidden' }}>
+                  <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500" alt="Bose Headphones" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                  <h3 style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>Bose QuietComfort Headphones</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '1.25rem', color: 'var(--amazon-orange)', fontWeight: 'bold' }}>₹7,900</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--success-green)' }}>In Stock</span>
+                  </div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.4', flexGrow: 1 }}>Premium noise-cancelling headphones for immersive audio.</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+                    <button className="btn-action" style={{ padding: '0.6rem', fontSize: '0.9rem' }} onClick={() => setActiveTab('prevention')}>Add to Cart</button>
+                    <button className="btn-action" style={{ backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.6rem', fontSize: '0.9rem' }} onClick={() => setActiveTab('vto')}>Try Before You Buy</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product 2: iPhone */}
+              <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
+                <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F8FA', borderRadius: '8px', overflow: 'hidden' }}>
+                  <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500" alt="iPhone 14" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                  <h3 style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>iPhone 14 Pro Max</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '1.25rem', color: 'var(--amazon-orange)', fontWeight: 'bold' }}>₹95,000</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--safety-yellow)' }}>Only 2 Left</span>
+                  </div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.4', flexGrow: 1 }}>Pro camera system and Dynamic Island. Unlocked for all carriers.</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+                    <button className="btn-action" style={{ padding: '0.6rem', fontSize: '0.9rem' }} onClick={() => setActiveTab('prevention')}>Add to Cart</button>
+                    <button className="btn-action" style={{ backgroundColor: '#F3F3F3', border: '1px solid #ddd', color: '#999', padding: '0.6rem', fontSize: '0.9rem', cursor: 'not-allowed' }} disabled>VTO Not Available</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product 3: Essentials Hoodie */}
+              <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
+                <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F8FA', borderRadius: '8px', overflow: 'hidden' }}>
+                  <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500" alt="Essentials Hoodie" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'cover' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                  <h3 style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>Essentials Cotton Hoodie</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '1.25rem', color: 'var(--amazon-orange)', fontWeight: 'bold' }}>₹2,999</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--success-green)' }}>In Stock</span>
+                  </div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.4', flexGrow: 1 }}>Everyday comfort meets premium cotton blend. Machine washable.</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+                    <button className="btn-action" style={{ padding: '0.6rem', fontSize: '0.9rem' }} onClick={() => setActiveTab('prevention')}>Add to Cart</button>
+                    <button className="btn-action" style={{ backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.6rem', fontSize: '0.9rem' }} onClick={() => setActiveTab('vto')}>Try Before You Buy</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+        )}
+
+        {/* VTO VIEW */}
+        {userRole === 'buyer' && activeTab === 'vto' && (
+          <section className="view-section">
+            <div className="grid-split">
+              <div className="panel">
+                <div className="panel-title">Virtual Try-On Preview</div>
+                <div className="image-heatmap-container" style={{ height: '400px', backgroundColor: '#F3F3F3', borderRadius: '8px', overflow: 'hidden' }}>
+                  {mediaUrl ? (
+                     <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                       <img src={mediaUrl} alt="VTO Source" style={{ maxWidth: '100%', maxHeight: '100%', opacity: 0.8 }} />
+                       <div style={{ position: 'absolute', top: '40%', left: '35%', border: '2px dashed var(--amazon-orange)', width: '30%', height: '30%', backgroundColor: 'rgba(255, 153, 0, 0.2)' }}></div>
+                       <div style={{ position: 'absolute', bottom: '10%', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.85rem' }}>Generating Preview...</div>
+                     </div>
+                  ) : (
+                     <span style={{ color: 'var(--text-muted)' }}>Upload a photo to see a preview</span>
+                  )}
+                </div>
+              </div>
+              <div className="panel">
+                <div className="panel-title">Your Style Match</div>
+                <div className="step-container">
+                  <div className="field-group">
+                    <label className="field-label">Upload a photo of yourself</label>
+                    <input type="file" accept="image/*" onChange={handleFileChange} style={{ border: '1px dashed var(--amazon-orange)', padding: '0.5rem' }} />
+                  </div>
+                  <div className="health-card" style={{ marginTop: '1rem' }}>
+                    <div className="health-card-row">
+                      <span>Item</span>
+                      <span>Bose QuietComfort</span>
+                    </div>
+                    <div className="health-card-row">
+                      <span>Style Match</span>
+                      <span style={{ color: 'var(--success-green)' }}>Excellent</span>
+                    </div>
+                    <div className="health-card-row">
+                      <span>Recommendation</span>
+                      <span style={{ color: 'var(--success-green)' }}>Highly Recommended</span>
+                    </div>
+                  </div>
+                  <button className="btn-action" onClick={() => setActiveTab('prevention')} style={{ marginTop: '1rem' }}>Confirm & Add to Cart</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ACCOUNT VIEW */}
+        {userRole === 'buyer' && activeTab === 'account' && (
+          <section className="view-section">
+            <div className="grid-split">
+              <div className="step-container">
+                <div className="panel" style={{ padding: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <h2 style={{ fontFamily: 'var(--brutalist-font)' }}>Your Account Balance</h2>
+                    <span style={{ color: 'var(--success-green)', fontWeight: 'bold' }}>Prime Member</span>
+                  </div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--error-red)' }}>₹1,240.50</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem' }}>Available to use on your next purchase</div>
+                </div>
+
+                <div className="panel">
+                  <div className="panel-title">Your Orders & Returns</div>
+                  <div style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                    <h4 style={{ color: 'var(--accent)', marginBottom: '0.75rem', fontFamily: 'var(--brutalist-font)' }}>Bose QuietComfort Headphones</h4>
+                    <p style={{ margin: '0.25rem 0', color: 'var(--text-primary)' }}>✓ Return Initiated: Today, 10:42 AM</p>
+                    <p style={{ margin: '0.25rem 0', color: 'var(--text-primary)' }}>✓ Item Received - Refund Processed</p>
+                    <div style={{ margin: '0.75rem 0', padding: '0.75rem', backgroundColor: '#FFF8F0', border: '1px solid var(--amazon-orange)', borderRadius: '4px' }}>
+                      <strong>Local Match Found - Transferring to Escrow</strong>
+                    </div>
+                    <p style={{ margin: '0.25rem 0', color: 'var(--text-muted)' }}>Awaiting local handoff completion</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="step-container">
+                <div className="panel">
+                  <div className="panel-title">Product Verification</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <strong>Authenticity Trail</strong>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>ID: 9f8a-4b2c</span>
+                  </div>
+                  <p style={{ margin: '0.5rem 0' }}>Origin: Factory A, Vietnam</p>
+                  <p style={{ margin: '0.5rem 0' }}>Purchased: Oct 12, 2026</p>
+                  <p style={{ margin: '0.5rem 0' }}>Transferred: Oct 15, 2026</p>
+                  <button className="btn-action" style={{ backgroundColor: '#F3F3F3', color: 'var(--text-primary)', border: '1px solid var(--border-color)', marginTop: '1rem' }}>View Digital Receipt</button>
+                </div>
+
+                <div className="panel" style={{ backgroundColor: '#E8F5E9', border: '1px solid #C8E6C9' }}>
+                  <div className="panel-title" style={{ color: '#2E7D32' }}>Climate Pledge Impact</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0.5rem 0' }}>
+                    <span style={{ color: '#1B5E20' }}>CO2 Avoided by Local Return:</span>
+                    <strong style={{ color: 'var(--success-green)' }}>18.4 kg</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0.5rem 0' }}>
+                    <span style={{ color: '#1B5E20' }}>Tree Equivalent:</span>
+                    <strong style={{ color: 'var(--success-green)' }}>0.87 trees</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* RETURN WIZARD VIEW */}
-        {activeTab === 'wizard' && (
+        {userRole === 'buyer' && activeTab === 'wizard' && (
           <section className="view-section">
             <div className="grid-split">
               <div className="panel">
@@ -481,7 +695,7 @@ function App() {
         )}
 
         {/* TRIAGE RESULT VIEW */}
-        {activeTab === 'result' && (
+        {userRole && activeTab === 'result' && (
           <section className="view-section">
             <div className="grid-split">
               <div className="panel">
@@ -629,7 +843,7 @@ function App() {
         )}
 
         {/* SELLER DASHBOARD VIEW */}
-        {activeTab === 'admin' && (
+        {userRole === 'seller' && activeTab === 'admin' && (
           <section className="view-section">
             <div className="telemetry-grid">
               <div className="telemetry-metric">
@@ -700,7 +914,7 @@ function App() {
         )}
 
         {/* PRE-CHECKOUT PREVENTION VIEW */}
-        {activeTab === 'prevention' && (
+        {userRole === 'buyer' && activeTab === 'prevention' && (
           <section className="view-section">
             <div className="grid-split">
               <div className="panel">
