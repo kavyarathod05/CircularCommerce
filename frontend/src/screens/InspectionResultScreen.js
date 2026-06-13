@@ -24,11 +24,11 @@ export default function InspectionResultScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.sectionHeader}>// AI INSPECTION REPORT</Text>
+      <Text style={styles.sectionHeader}>Return Status: Approved</Text>
       
       <View style={styles.imageContainer}>
         <View style={styles.placeholderImg}>
-           <Text style={styles.placeholderText}>[ ANALYZED IMAGE ]</Text>
+           <Text style={styles.placeholderText}>Item Condition Photo</Text>
            
            {/* Render Dynamic Bounding Boxes */}
            {inspectionData.damages.map((defect, index) => {
@@ -42,7 +42,7 @@ export default function InspectionResultScreen() {
              
              return (
                <View key={index} style={[styles.dynamicBoundingBox, boxStyle]}>
-                 <Text style={styles.boundingText}>DEFECT: {defect.type.toUpperCase()}</Text>
+                 <Text style={styles.boundingText}>Noted: {defect.type}</Text>
                </View>
              );
            })}
@@ -50,20 +50,17 @@ export default function InspectionResultScreen() {
       </View>
 
       <View style={styles.reportBox}>
-        <Text style={styles.reportRow}>GRADE: <Text style={styles.highlight}>{inspectionData.grade} / {inspectionData.ebayConditionName.toUpperCase()}</Text></Text>
-        <Text style={styles.reportRow}>EBAY TAXONOMY: <Text style={styles.highlight}>ID {inspectionData.ebayConditionId}</Text></Text>
-        <Text style={styles.reportRow}>CONFIDENCE: <Text style={styles.highlight}>94.2%</Text></Text>
-        <Text style={styles.reportRow}>FRAUD RISK: <Text style={styles.highlightGreen}>LOW</Text></Text>
+        <Text style={styles.reportRow}>Condition: <Text style={styles.highlight}>Used - {inspectionData.grade}</Text></Text>
+        <Text style={styles.reportRow}>Resale Category: <Text style={styles.highlight}>Electronics (Used)</Text></Text>
+        <Text style={styles.reportRow}>Verification: <Text style={styles.highlightGreen}>Successful</Text></Text>
         <View style={styles.separator} />
         <Text style={styles.reportText}>
-          Amazon Nova Pro assessment complete. Minor cosmetic scratch detected on left panel. 
-          Cross-modal Swapped Goods detection verified match with original SKU. 
-          Liveness check verified.
+          Your return has been verified and processed. We noted a minor cosmetic scratch on the left panel, but the item matches the original SKU. Your refund has been authorized and will be issued to your Amazon account balance.
         </Text>
       </View>
 
       <View style={styles.actionBox}>
-        <Text style={styles.actionText}>[ KMS-SIGNED CERTIFICATE GENERATED ]</Text>
+        <Text style={styles.actionText}>View Return Details</Text>
       </View>
     </ScrollView>
   );
@@ -77,58 +74,66 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     ...typography.header,
-    color: colors.text,
-    fontSize: 16,
+    color: colors.success,
+    fontSize: 20,
     marginBottom: layout.padding,
   },
   imageContainer: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
     height: 300,
     marginBottom: layout.padding * 2,
     position: 'relative',
+    borderRadius: layout.borderRadius,
+    overflow: 'hidden',
   },
   placeholderImg: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: '#F3F3F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderText: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.border,
   },
   dynamicBoundingBox: {
     borderWidth: 2,
-    borderColor: colors.error,
-    backgroundColor: 'rgba(255, 59, 48, 0.2)',
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(255, 153, 0, 0.1)',
   },
   boundingText: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.white,
-    backgroundColor: colors.error,
+    backgroundColor: colors.primary,
     fontSize: 10,
     alignSelf: 'flex-start',
-    paddingHorizontal: 2,
+    paddingHorizontal: 4,
+    fontWeight: 'bold',
   },
   reportBox: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: layout.padding,
     backgroundColor: colors.white,
     marginBottom: layout.padding,
+    borderRadius: layout.borderRadius,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   reportRow: {
-    ...typography.mono,
-    color: colors.subtext,
-    marginBottom: 4,
+    ...typography.body,
+    color: colors.text,
+    marginBottom: 6,
   },
   highlight: {
-    color: colors.accent,
+    color: colors.text,
     fontWeight: 'bold',
   },
   highlightGreen: {
-    color: '#00C853',
+    color: colors.success,
     fontWeight: 'bold',
   },
   separator: {
@@ -141,16 +146,18 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   actionBox: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
-    padding: layout.padding,
-    backgroundColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+    backgroundColor: colors.white,
     alignItems: 'center',
     marginTop: layout.padding,
+    borderRadius: layout.borderRadius,
   },
   actionText: {
     ...typography.button,
-    color: colors.white,
-    fontSize: 12,
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: 'normal',
   }
 });

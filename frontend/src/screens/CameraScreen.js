@@ -24,16 +24,16 @@ export default function CameraScreen({ navigation }) {
   }, []);
 
   const handleCapture = async () => {
-    Alert.alert('CAPTURED', 'LIVENESS HASH GENERATED.', [
+    Alert.alert('Success', 'Verification Complete.', [
       { text: 'OK', onPress: () => navigation.goBack() }
     ]);
   };
 
   if (hasPermission === null) {
-    return <View style={styles.container}><Text style={styles.text}>AWAITING PERMISSION...</Text></View>;
+    return <View style={styles.container}><Text style={styles.text}>Requesting camera access...</Text></View>;
   }
   if (hasPermission === false) {
-    return <View style={styles.container}><Text style={styles.text}>NO ACCESS TO CAMERA OPTICS.</Text></View>;
+    return <View style={styles.container}><Text style={styles.text}>Camera access denied. Please enable in settings.</Text></View>;
   }
 
   const isWeb = Platform.OS === 'web';
@@ -41,18 +41,18 @@ export default function CameraScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
-        <Text style={styles.headerText}>[ LIVENESS VERIFICATION ]</Text>
-        <Text style={styles.subtext}>ALIGN FACE IN FRAME. NO MOVEMENT REQUIRED.</Text>
+        <Text style={styles.headerText}>Identity Verification</Text>
+        <Text style={styles.subtext}>Please align your face in the frame. No movement required.</Text>
       </View>
       
       <View style={styles.cameraFrame}>
         {isWeb ? (
           <View style={[styles.camera, { backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' }]}>
-            <Text style={{ color: '#888', fontSize: 12, fontFamily: 'monospace', marginBottom: 15 }}>
-              [ WEB OPTICS SIMULATION ACTIVE ]
+            <Text style={{ color: '#888', fontSize: 12, fontFamily: 'System', marginBottom: 15 }}>
+              Camera Simulation Active
             </Text>
             <View style={styles.targetBox}>
-              <View style={{ width: 140, height: 180, borderRadius: 90, borderWidth: 1, borderColor: colors.accent, borderStyle: 'dashed', marginTop: 50, alignSelf: 'center' }} />
+              <View style={{ width: 140, height: 180, borderRadius: 90, borderWidth: 2, borderColor: colors.primary, borderStyle: 'dashed', marginTop: 50, alignSelf: 'center' }} />
             </View>
           </View>
         ) : (
@@ -69,14 +69,14 @@ export default function CameraScreen({ navigation }) {
           style={styles.actionButton}
           onPress={handleCapture}
         >
-          <Text style={styles.buttonText}>[ INITIATE SCAN ]</Text>
+          <Text style={styles.buttonText}>Capture Image</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.cancelButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.buttonTextCancel}>[ ABORT ]</Text>
+          <Text style={styles.buttonTextCancel}>Cancel</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -96,24 +96,26 @@ const styles = StyleSheet.create({
   headerText: {
     ...typography.header,
     color: colors.text,
-    fontSize: 18,
+    fontSize: 22,
+    marginBottom: 4,
   },
   subtext: {
-    ...typography.mono,
-    color: colors.text,
+    ...typography.body,
+    color: colors.subtext,
   },
   text: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.text,
     alignSelf: 'center',
     marginTop: 100,
   },
   cameraFrame: {
     flex: 1,
-    borderWidth: 4,
-    borderColor: colors.accent,
+    borderWidth: 1,
+    borderColor: colors.border,
     marginBottom: layout.padding,
     overflow: 'hidden',
+    borderRadius: layout.borderRadius,
   },
   camera: {
     flex: 1,
@@ -128,33 +130,37 @@ const styles = StyleSheet.create({
     width: 250,
     height: 300,
     borderWidth: 2,
-    borderColor: colors.accent,
+    borderColor: colors.primary,
     borderStyle: 'dashed',
+    borderRadius: 125,
   },
   controls: {
     paddingBottom: layout.padding,
   },
   actionButton: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
-    padding: layout.padding,
-    backgroundColor: colors.text,
+    borderWidth: 1,
+    borderColor: '#FCD200',
+    padding: 14,
+    backgroundColor: '#FFD814',
     alignItems: 'center',
     marginBottom: 10,
+    borderRadius: layout.borderRadius,
   },
   cancelButton: {
-    borderWidth: layout.borderWidth,
+    borderWidth: 1,
     borderColor: colors.border,
-    padding: layout.padding,
-    backgroundColor: 'transparent',
+    padding: 14,
+    backgroundColor: colors.white,
     alignItems: 'center',
+    borderRadius: layout.borderRadius,
   },
   buttonText: {
     ...typography.button,
-    color: colors.white,
+    color: colors.text,
   },
   buttonTextCancel: {
     ...typography.button,
-    color: colors.border,
+    color: colors.text,
+    fontWeight: 'normal',
   }
 });

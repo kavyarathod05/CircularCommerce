@@ -68,13 +68,13 @@ export default function ReturnRequestScreen({ navigation }) {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.infoBox}>
-        <Text style={styles.infoText}>ORDER_ID: 9874-AX</Text>
-        <Text style={styles.infoText}>ITEM: WIRELESS HEADPHONES</Text>
-        <Text style={styles.infoText}>STATUS: PENDING RETURN</Text>
+        <Text style={styles.infoText}>Order ID: 9874-AX</Text>
+        <Text style={styles.infoTextTitle}>Wireless Over-Ear Headphones V2</Text>
+        <Text style={styles.infoStatus}>Eligible for Return through Nov 15, 2026</Text>
       </View>
 
-      <Text style={styles.sectionHeader}>1. MEDIA UPLOAD</Text>
-      <Text style={styles.subtext}>UPLOAD 3-4 IMAGES FOR AI DEFECT INSPECTION</Text>
+      <Text style={styles.sectionHeader}>Step 1: Upload Item Photos</Text>
+      <Text style={styles.subtext}>Upload 3-4 images showing the condition of the item to expedite your return and confirm local handoff eligibility.</Text>
       
       <View style={styles.imageGrid}>
         {images.map((uri, index) => (
@@ -87,14 +87,14 @@ export default function ReturnRequestScreen({ navigation }) {
         )}
       </View>
 
-      <Text style={styles.sectionHeader}>2. IDENTITY VERIFICATION</Text>
-      <Text style={styles.subtext}>LIVENESS CAPTURE REQUIRED FOR HIGH-VALUE TRANSFER</Text>
+      <Text style={styles.sectionHeader}>Step 2: Security Verification</Text>
+      <Text style={styles.subtext}>A quick security scan is required to instantly approve your refund.</Text>
       
       <TouchableOpacity 
         style={styles.actionButton}
         onPress={() => navigation.navigate('Camera')}
       >
-        <Text style={styles.buttonText}>[ LAUNCH CAMERA ]</Text>
+        <Text style={styles.buttonText}>Verify Identity</Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
@@ -105,7 +105,7 @@ export default function ReturnRequestScreen({ navigation }) {
         {isSubmitting ? (
           <ActivityIndicator color={colors.white} />
         ) : (
-          <Text style={styles.buttonText}>[ TRANSMIT DOSSIER ]</Text>
+          <Text style={styles.buttonText}>Submit Return Request</Text>
         )}
       </TouchableOpacity>
     </ScrollView>
@@ -119,15 +119,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   infoBox: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: layout.padding,
     marginBottom: layout.padding * 2,
+    backgroundColor: colors.white,
+    borderRadius: layout.borderRadius,
   },
   infoText: {
-    ...typography.mono,
-    color: colors.text,
+    ...typography.body,
+    color: colors.subtext,
     marginBottom: 4,
+  },
+  infoTextTitle: {
+    ...typography.header,
+    color: colors.text,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  infoStatus: {
+    ...typography.body,
+    color: colors.success,
+    fontWeight: 'bold',
   },
   sectionHeader: {
     ...typography.header,
@@ -136,50 +149,60 @@ const styles = StyleSheet.create({
     marginTop: layout.padding,
   },
   subtext: {
-    ...typography.mono,
+    ...typography.body,
     color: colors.subtext,
     marginBottom: layout.padding,
+    marginTop: 4,
   },
   imageGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 12,
     marginBottom: layout.padding * 2,
   },
   imageThumbnail: {
-    width: 70,
-    height: 70,
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
+    width: 80,
+    height: 80,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
   },
   addImageButton: {
-    width: 70,
-    height: 70,
-    borderWidth: layout.borderWidth,
-    borderColor: colors.border,
+    width: 80,
+    height: 80,
+    borderWidth: 1,
+    borderColor: colors.accent,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#F0F8FF',
   },
   addText: {
     ...typography.header,
-    color: colors.border,
+    color: colors.accent,
+    fontSize: 32,
   },
   actionButton: {
-    borderWidth: layout.borderWidth,
-    borderColor: colors.text,
-    padding: layout.padding,
-    backgroundColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 14,
+    backgroundColor: colors.white,
     alignItems: 'center',
     marginBottom: 16,
+    borderRadius: layout.borderRadius,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   submitButton: {
-    backgroundColor: colors.accent,
-    borderColor: colors.text,
-    marginTop: layout.padding * 2,
+    backgroundColor: '#FFD814',
+    borderColor: '#FCD200',
+    marginTop: layout.padding,
   },
   buttonText: {
     ...typography.button,
-    color: colors.white,
+    color: colors.text,
   }
 });
