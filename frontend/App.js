@@ -10,6 +10,7 @@ import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
 import InspectionResultScreen from './src/screens/InspectionResultScreen';
 import VTOEngineScreen from './src/screens/VTOEngineScreen';
 import ProductScreen from './src/screens/ProductScreen';
+import UserDashboardScreen from './src/screens/UserDashboardScreen';
 import { colors } from './src/theme';
 
 const Stack = createNativeStackNavigator();
@@ -43,6 +44,11 @@ export default function App() {
             name="Product" 
             component={ProductScreen} 
             options={{ title: 'PRODUCT CATALOG' }}
+          />
+          <Stack.Screen 
+            name="UserDashboard" 
+            component={UserDashboardScreen} 
+            options={{ title: 'CUSTOMER PORTAL' }}
           />
           <Stack.Screen 
             name="ReturnRequest" 

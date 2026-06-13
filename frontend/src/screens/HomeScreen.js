@@ -20,6 +20,13 @@ export default function HomeScreen({ navigation }) {
 
         <TouchableOpacity 
           style={styles.actionButton}
+          onPress={() => navigation.navigate('UserDashboard')}
+        >
+          <Text style={styles.buttonText}>[ CUSTOMER DASHBOARD ]</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.actionButton}
           onPress={() => navigation.navigate('ReturnRequest')}
         >
           <Text style={styles.buttonText}>[ INITIATE RETURN ]</Text>
