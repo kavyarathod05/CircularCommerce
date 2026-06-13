@@ -16,14 +16,26 @@ export default function AdminDashboardScreen() {
           <Text style={styles.metricTitle}>INTERCEPT RATE</Text>
           <Text style={styles.metricValue}>34%</Text>
         </View>
-        <View style={styles.metricCardFull}>
-          <Text style={styles.metricTitle}>CARBON AVOIDED</Text>
-          <Text style={styles.metricValue}>1,420 KG CO2</Text>
-          <Text style={styles.metricSub}>EQUIVALENT TO 67 TREES</Text>
+      <Text style={styles.sectionHeader}>// CARBON OPTIMIZATION VISUALIZER</Text>
+      <View style={styles.carbonBox}>
+        <View style={styles.carbonRow}>
+          <Text style={styles.carbonLabel}>TOTAL CO2 SAVED:</Text>
+          <Text style={styles.carbonValue}>1,420 KG</Text>
+        </View>
+        <View style={styles.progressBarBg}>
+          <View style={[styles.progressBarFill, { width: '75%' }]} />
+        </View>
+        <View style={styles.carbonRow}>
+          <Text style={styles.carbonSubText}>TREE EQUIVALENCE:</Text>
+          <Text style={styles.carbonSubValue}>[ 67 MATURE TREES ]</Text>
+        </View>
+        <View style={styles.carbonRow}>
+          <Text style={styles.carbonSubText}>DISTANCE OFFSET:</Text>
+          <Text style={styles.carbonSubValue}>[ 8,500 KM AVOIDED ]</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionHeader}>// LOCATION CLUSTERS</Text>
+      <Text style={styles.sectionHeader}>// SPATIAL ROUTING & CLUSTERS</Text>
       <View style={styles.mapPlaceholder}>
         <Text style={styles.mapText}>[ RENDER LEAFLET CLUSTER MAP HERE ]</Text>
       </View>
@@ -84,16 +96,67 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   mapPlaceholder: {
-    height: 150,
+    height: 180,
     borderWidth: layout.borderWidth,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
+    borderColor: colors.text,
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: layout.padding,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  mapGridLines: {
+    position: 'absolute',
+    width: '200%',
+    height: '200%',
+    borderWidth: 1,
+    borderColor: colors.border,
+    opacity: 0.3,
   },
   mapText: {
     ...typography.mono,
-    color: colors.border,
+    color: colors.text,
+    backgroundColor: colors.white,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: colors.text,
+  },
+  carbonBox: {
+    borderWidth: layout.borderWidth,
+    borderColor: colors.accent,
+    padding: layout.padding,
+    backgroundColor: colors.text,
+    marginBottom: layout.padding,
+  },
+  carbonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  carbonLabel: {
+    ...typography.mono,
+    color: colors.white,
+  },
+  carbonValue: {
+    ...typography.header,
+    color: colors.accent,
+  },
+  progressBarBg: {
+    height: 12,
+    backgroundColor: colors.border,
+    marginBottom: 12,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: colors.accent,
+  },
+  carbonSubText: {
+    ...typography.mono,
+    color: colors.subtext,
+  },
+  carbonSubValue: {
+    ...typography.mono,
+    color: colors.white,
   }
 });
