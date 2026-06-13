@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Hackon Amazon Return Intercept Engine
+  SAM Template for deploying core backend infrastructure
+
+Globals:
+  Function:
+    Timeout: 15
+    MemorySize: 256
+    Runtime: provided.al2023
+    Architectures:
+      - arm64
+
+Resources:
+  # S3 Bucket for Media Uploads (CORS configured for frontend access)
+  UploadsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "secondlife-uploads-${AWS::AccountId}-${AWS::Region}"
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - PUT
+              - GET
+              - POST
+              - HEAD
+            AllowedOrigins:
+              - "*"
+            MaxAge: 3000
+
+  # DynamoDB Tables (On-Demand billing as requested)
+  ListingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Listings
+      AttributeDefinitions:
+        - AttributeName: ListingId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ListingId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Orders
+      AttributeDefinitions:
+        - AttributeName: OrderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: OrderId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ReturnsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Returns
+      AttributeDefinitions:
+        - AttributeName: ReturnId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ReturnId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  MatchesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Matches
+      AttributeDefinitions:
+        - AttributeName: MatchId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: MatchId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # Carbon Metrics Table for Scope-3 Tracker
+  CarbonMetricsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CarbonMetrics
+      AttributeDefinitions:
+        - AttributeName: ReturnId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ReturnId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # API Gateway
+  ReturnInterceptApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+
+  # Go Lambda Function
+  ReturnInterceptFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      CodeUri: return-intercept/
+      Handler: bootstrap
+      Events:
+        InterceptEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ReturnInterceptApi
+            Path: /return/intercept
+            Method: post
+        MediaUrlEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ReturnInterceptApi
+            Path: /return/media-url
+            Method: get
+      Environment:
+        Variables:
+          RETURNS_TABLE: !Ref ReturnsTable
+          LISTINGS_TABLE: !Ref ListingsTable
+          ORDERS_TABLE: !Ref OrdersTable
+          UPLOADS_BUCKET: !Ref UploadsBucket
+          CARBON_TABLE: !Ref CarbonMetricsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReturnsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ListingsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref OrdersTable
+        - S3CrudPolicy:
+            BucketName: !Ref UploadsBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CarbonMetricsTable
+
+Outputs:
+  ReturnInterceptApiEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ReturnInterceptApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/return/intercept"
+  MediaUrlApiEndpoint:
+    Description: "API Gateway endpoint URL to get pre-signed upload URL"
+    Value: !Sub "https://${ReturnInterceptApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/return/media-url"
