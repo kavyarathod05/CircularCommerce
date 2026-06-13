@@ -3,23 +3,55 @@ import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
 import { colors, typography, layout } from '../theme';
 
 export default function InspectionResultScreen() {
+  // Mock data mimicking Nova Pro API output
+  const inspectionData = {
+    grade: "B",
+    ebayConditionId: 3000,
+    ebayConditionName: "Used",
+    damages: [
+      {
+        type: "scratch",
+        description: "2cm surface scratch",
+        boundingBox: {
+          xmin: 0.40,
+          ymin: 0.20,
+          xmax: 0.55,
+          ymax: 0.45
+        }
+      }
+    ]
+  };
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.sectionHeader}>// AI INSPECTION REPORT</Text>
       
       <View style={styles.imageContainer}>
-        {/* Placeholder image that would normally be the uploaded photo */}
         <View style={styles.placeholderImg}>
            <Text style={styles.placeholderText}>[ ANALYZED IMAGE ]</Text>
-           {/* Bounding Box overlay representing defect detected by Nova Pro */}
-           <View style={styles.boundingBox}>
-             <Text style={styles.boundingText}>DEFECT: SCRATCH</Text>
-           </View>
+           
+           {/* Render Dynamic Bounding Boxes */}
+           {inspectionData.damages.map((defect, index) => {
+             const boxStyle = {
+               position: 'absolute',
+               left: `${defect.boundingBox.xmin * 100}%`,
+               top: `${defect.boundingBox.ymin * 100}%`,
+               width: `${(defect.boundingBox.xmax - defect.boundingBox.xmin) * 100}%`,
+               height: `${(defect.boundingBox.ymax - defect.boundingBox.ymin) * 100}%`,
+             };
+             
+             return (
+               <View key={index} style={[styles.dynamicBoundingBox, boxStyle]}>
+                 <Text style={styles.boundingText}>DEFECT: {defect.type.toUpperCase()}</Text>
+               </View>
+             );
+           })}
         </View>
       </View>
 
       <View style={styles.reportBox}>
-        <Text style={styles.reportRow}>GRADE: <Text style={styles.highlight}>B / GOOD</Text></Text>
+        <Text style={styles.reportRow}>GRADE: <Text style={styles.highlight}>{inspectionData.grade} / {inspectionData.ebayConditionName.toUpperCase()}</Text></Text>
+        <Text style={styles.reportRow}>EBAY TAXONOMY: <Text style={styles.highlight}>ID {inspectionData.ebayConditionId}</Text></Text>
         <Text style={styles.reportRow}>CONFIDENCE: <Text style={styles.highlight}>94.2%</Text></Text>
         <Text style={styles.reportRow}>FRAUD RISK: <Text style={styles.highlightGreen}>LOW</Text></Text>
         <View style={styles.separator} />
@@ -66,12 +98,7 @@ const styles = StyleSheet.create({
     ...typography.mono,
     color: colors.border,
   },
-  boundingBox: {
-    position: 'absolute',
-    top: 50,
-    left: 40,
-    width: 100,
-    height: 80,
+  dynamicBoundingBox: {
     borderWidth: 2,
     borderColor: colors.error,
     backgroundColor: 'rgba(255, 59, 48, 0.2)',
