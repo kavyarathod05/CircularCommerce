@@ -4,6 +4,8 @@ const {
   ShadingType, PageBreak, VerticalAlign
 } = require('docx');
 const fs = require('fs');
+const path = require('path');
+
 
 const BORDER = { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" };
 const BORDERS = { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER };
@@ -595,7 +597,7 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then(buffer => {
-  const outputPath = "./SecondLifeCommerce_ProblemResearch.docx";
+  const outputPath = path.join(__dirname, "SecondLifeCommerce_ProblemResearch.docx");
   fs.writeFileSync(outputPath, buffer);
   console.log("Document created successfully.");
 });

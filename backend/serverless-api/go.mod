@@ -1,4 +1,4 @@
-module hackon-amazon/aws-backend
+module hackon-amazon/serverless-api
 
 go 1.25.0
 

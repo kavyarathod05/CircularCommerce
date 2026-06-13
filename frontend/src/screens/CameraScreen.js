@@ -1,28 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { Camera, CameraType } from 'expo-camera';
 import { colors, typography, layout } from '../theme';
 
 export default function CameraScreen({ navigation }) {
-  const [hasPermission, setHasPermission] = useState(null);
-  const [type, setType] = useState(CameraType.front);
+  const [hasPermission, setHasPermission] = useState(Platform.OS === 'web' ? true : null);
+  const safeCameraType = CameraType ? (CameraType.front || 'front') : 'front';
+  const [type, setType] = useState(safeCameraType);
   const cameraRef = useRef(null);
 
   useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
+    if (Platform.OS !== 'web') {
+      (async () => {
+        try {
+          const { status } = await Camera.requestCameraPermissionsAsync();
+          setHasPermission(status === 'granted');
+        } catch (e) {
+          console.warn("Failed to request camera permission, using fallback", e);
+          setHasPermission(false);
+        }
+      })();
+    }
   }, []);
 
   const handleCapture = async () => {
-    if (cameraRef.current) {
-      // In a real scenario, this would record a short video or sequence of frames
-      // for Amazon Rekognition Face Liveness.
-      Alert.alert('CAPTURED', 'LIVENESS HASH GENERATED.', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
-    }
+    Alert.alert('CAPTURED', 'LIVENESS HASH GENERATED.', [
+      { text: 'OK', onPress: () => navigation.goBack() }
+    ]);
   };
 
   if (hasPermission === null) {
@@ -32,6 +36,8 @@ export default function CameraScreen({ navigation }) {
     return <View style={styles.container}><Text style={styles.text}>NO ACCESS TO CAMERA OPTICS.</Text></View>;
   }
 
+  const isWeb = Platform.OS === 'web';
+
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
@@ -40,11 +46,22 @@ export default function CameraScreen({ navigation }) {
       </View>
       
       <View style={styles.cameraFrame}>
-        <Camera style={styles.camera} type={type} ref={cameraRef}>
-          <View style={styles.overlay}>
-             <View style={styles.targetBox} />
+        {isWeb ? (
+          <View style={[styles.camera, { backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' }]}>
+            <Text style={{ color: '#888', fontSize: 12, fontFamily: 'monospace', marginBottom: 15 }}>
+              [ WEB OPTICS SIMULATION ACTIVE ]
+            </Text>
+            <View style={styles.targetBox}>
+              <View style={{ width: 140, height: 180, borderRadius: 90, borderWidth: 1, borderColor: colors.accent, borderStyle: 'dashed', marginTop: 50, alignSelf: 'center' }} />
+            </View>
           </View>
-        </Camera>
+        ) : (
+          <Camera style={styles.camera} type={type} ref={cameraRef}>
+            <View style={styles.overlay}>
+               <View style={styles.targetBox} />
+            </View>
+          </Camera>
+        )}
       </View>
 
       <View style={styles.controls}>

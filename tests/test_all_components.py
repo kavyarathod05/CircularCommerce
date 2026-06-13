@@ -71,7 +71,7 @@ def test_ml_microservice():
     status, headers, body = run_http_request(f"{ML_API_BASE}/health", "GET")
     if status == 0:
         print("[ML] Local FastAPI Server is OFFLINE or not running.")
-        print("    -> Run it using: uvicorn main:app --reload --port 8000 inside the 'ml-models' directory.")
+        print("    -> Run it using: uvicorn main:app --reload --port 8000 inside the 'backend/ml-service' directory.")
         print("-" * 60)
         return
         
