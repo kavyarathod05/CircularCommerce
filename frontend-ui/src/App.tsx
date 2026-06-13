@@ -43,7 +43,9 @@ function App() {
   const [reason, setReason] = useState('damaged')
   const [lat, setLat] = useState('12.9716')
   const [lng, setLng] = useState('77.5946')
-  const [mediaUrl] = useState('https://secondlife-uploads-331608077815-us-east-1.s3.amazonaws.com/returns/QC-photo-bose.jpg')
+  const [mediaUrl, setMediaUrl] = useState('https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [, setUploading] = useState(false)
   
   // Terminal Simulation Logs
   const [consoleLogs, setConsoleLogs] = useState<string[]>([
@@ -68,6 +70,44 @@ function App() {
   const [returnVelocity, setReturnVelocity] = useState(4) // >3 returns in 7 days -> velocity alert!
   const [showPreventionAlert, setShowPreventionAlert] = useState(true)
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setSelectedFile(file)
+      setMediaUrl(URL.createObjectURL(file))
+      setConsoleLogs(prev => [...prev, `SYSTEM: Selected file ${file.name} for upload.`])
+    }
+  }
+
+  const uploadFileToS3 = async (file: File): Promise<string> => {
+    setUploading(true)
+    setConsoleLogs(prev => [...prev, `LOGISTICS: Fetching S3 pre-signed upload URL for ${file.name}...`])
+    try {
+      const resp = await fetch(`https://7fwutbh0wh.execute-api.us-east-1.amazonaws.com/Prod/return/media-url?filename=${encodeURIComponent(file.name)}`)
+      if (!resp.ok) throw new Error("API pre-sign failed")
+      const data = await resp.json()
+
+      setConsoleLogs(prev => [...prev, `LOGISTICS: Performing direct binary PUT upload to S3...`])
+      const s3Resp = await fetch(data.upload_url, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      })
+      if (!s3Resp.ok) throw new Error("S3 put failed")
+
+      setConsoleLogs(prev => [...prev, `LOGISTICS: Direct S3 Upload Complete! ✓`])
+      setUploading(false)
+      return data.media_url
+    } catch (err) {
+      console.error(err)
+      setConsoleLogs(prev => [...prev, `LOGISTICS: S3 upload failed/unreachable. Falling back to local URL.`])
+      setUploading(false)
+      return URL.createObjectURL(file)
+    }
+  }
+
   // Update MSRP automatically on product change
   useEffect(() => {
     if (productId === 'p-headphones-premium') {
@@ -82,6 +122,11 @@ function App() {
   const runTriageSimulation = async () => {
     setIsEvaluating(true)
     setConsoleLogs(['SYSTEM: Ingesting return order...'])
+    
+    let finalMediaUrl = mediaUrl
+    if (selectedFile) {
+      finalMediaUrl = await uploadFileToS3(selectedFile)
+    }
     
     // Simulate real-time progress events
     setTimeout(() => {
@@ -162,7 +207,7 @@ function App() {
         reason,
         lat: parseFloat(lat),
         lng: parseFloat(lng),
-        mediaUrl,
+        mediaUrl: finalMediaUrl,
         pathway,
         grade,
         summary,
@@ -201,7 +246,7 @@ function App() {
           reason: reason,
           lat: parseFloat(lat),
           lng: parseFloat(lng),
-          media_url: mediaUrl
+          media_url: finalMediaUrl
         })
       })
     } catch (e) {
@@ -285,9 +330,37 @@ function App() {
                       <input type="text" value={lng} onChange={e => setLng(e.target.value)} placeholder="Lng" />
                     </div>
                   </div>
+                   <div className="field-group">
+                    <label className="field-label">Or Select A Pre-built Demo Photo</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                      <button type="button" className="tab-btn" style={{ flex: 1, padding: '0.4rem', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} onClick={() => {
+                        setProductId('p-headphones-premium');
+                        setMediaUrl('https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500');
+                        setConsoleLogs(prev => [...prev, "SYSTEM: Selected pre-built Bose Headphones photo"]);
+                        setSelectedFile(null);
+                      }}>Bose Headphones</button>
+                      <button type="button" className="tab-btn" style={{ flex: 1, padding: '0.4rem', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} onClick={() => {
+                        setProductId('p-smartphone-premium');
+                        setMediaUrl('https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500');
+                        setConsoleLogs(prev => [...prev, "SYSTEM: Selected pre-built iPhone photo"]);
+                        setSelectedFile(null);
+                      }}>iPhone 14</button>
+                      <button type="button" className="tab-btn" style={{ flex: 1, padding: '0.4rem', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} onClick={() => {
+                        setProductId('p-tshirt-commodity');
+                        setMediaUrl('https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500');
+                        setConsoleLogs(prev => [...prev, "SYSTEM: Selected pre-built Essentials T-shirt photo"]);
+                        setSelectedFile(null);
+                      }}>Essentials T-Shirt</button>
+                    </div>
+                  </div>
                   <div className="field-group">
                     <label className="field-label">Media Upload (Visual Proof of Condition)</label>
-                    <input type="text" value={mediaUrl} readOnly />
+                    <input type="file" accept="image/*" onChange={handleFileChange} style={{ border: '1px dashed var(--amazon-orange)', padding: '0.5rem' }} />
+                    {mediaUrl && (
+                      <div style={{ marginTop: '0.5rem', border: '1px solid var(--border-color)', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--dark-bg)', overflow: 'hidden' }}>
+                        <img src={mediaUrl} alt="Preview" style={{ height: '100%', objectFit: 'contain' }} />
+                      </div>
+                    )}
                   </div>
                   <button className="btn-action" onClick={runTriageSimulation} disabled={isEvaluating}>
                     {isEvaluating ? 'Running Evaluation...' : 'Submit & Run Triage'}
