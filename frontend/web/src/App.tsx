@@ -119,6 +119,15 @@ function App() {
     }
   }, [productId])
 
+  const getBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   const runTriageSimulation = async () => {
     setIsEvaluating(true)
     setConsoleLogs(['SYSTEM: Ingesting return order...'])
@@ -126,6 +135,52 @@ function App() {
     let finalMediaUrl = mediaUrl
     if (selectedFile) {
       finalMediaUrl = await uploadFileToS3(selectedFile)
+    }
+
+    // Call local ML server for live defect assessment!
+    let liveGrade = 'Grade B'
+    let liveSummary = 'Minor scratch on side casing. Original packaging intact.'
+    let liveBboxes: DefectBBox[] = []
+    let isLiveMLAvailable = false
+
+    try {
+      let imageBase64 = 'dGVzdA==' // default fallback dummy
+      if (selectedFile) {
+        imageBase64 = await getBase64(selectedFile)
+      }
+      
+      const mlResp = await fetch('http://localhost:8000/api/v1/ml/aws/inspect-condition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_bytes_list: [imageBase64]
+        })
+      })
+      
+      if (mlResp.ok) {
+        const mlData = await mlResp.json()
+        if (mlData.status === 'success' && mlData.data) {
+          const data = mlData.data
+          liveGrade = data.grade ? `Grade ${data.grade}` : 'Grade B'
+          liveSummary = data.summary || data.gradeReasoning || 'Assessed successfully.'
+          isLiveMLAvailable = true
+          
+          if (data.damages && Array.isArray(data.damages)) {
+            liveBboxes = data.damages.map((d: any) => {
+              const bbox = d.boundingBox || { xmin: 0.4, ymin: 0.2, xmax: 0.55, ymax: 0.45 }
+              return {
+                label: d.type || 'defect',
+                x: bbox.xmin * 320,
+                y: bbox.ymin * 320,
+                w: (bbox.xmax - bbox.xmin) * 320,
+                h: (bbox.ymax - bbox.ymin) * 320
+              }
+            })
+          }
+        }
+      }
+    } catch (err) {
+      console.log("Local ML Server not running or failed. Falling back to local UI simulator.", err)
     }
     
     // Simulate real-time progress events
@@ -149,17 +204,22 @@ function App() {
 
     setTimeout(() => {
       if (msrp >= 5000) {
-        let detectedGrade = 'Grade A'
-        let feedback = 'Excellent cosmetic condition. No functional defects. Original box present.'
-        if (reason === 'damaged') {
-          detectedGrade = 'Grade C'
-          feedback = 'Cosmetic crack detected on headband (severity 6/10). Wear on cups.'
-        } else if (reason === 'fit' || reason === 'defective') {
-          detectedGrade = 'Grade B'
-          feedback = 'Minor scratch blemish on side casing. Original packaging intact.'
+        if (isLiveMLAvailable) {
+          setConsoleLogs(prev => [...prev, `AI: Image graded successfully via Bedrock: ${liveGrade}`])
+          setConsoleLogs(prev => [...prev, `AI Summary: "${liveSummary}"`])
+        } else {
+          let detectedGrade = 'Grade A'
+          let feedback = 'Excellent cosmetic condition. No functional defects. Original box present.'
+          if (reason === 'damaged') {
+            detectedGrade = 'Grade C'
+            feedback = 'Cosmetic crack detected on headband (severity 6/10). Wear on cups.'
+          } else if (reason === 'fit' || reason === 'defective') {
+            detectedGrade = 'Grade B'
+            feedback = 'Minor scratch blemish on side casing. Original packaging intact.'
+          }
+          setConsoleLogs(prev => [...prev, `AI: Image graded successfully (Simulator): ${detectedGrade}`])
+          setConsoleLogs(prev => [...prev, `AI Summary: "${feedback}"`])
         }
-        setConsoleLogs(prev => [...prev, `AI: Image graded successfully: ${detectedGrade}`])
-        setConsoleLogs(prev => [...prev, `AI Summary: "${feedback}"`])
       } else {
         setConsoleLogs(prev => [...prev, 'LOGISTICS: Proximity scan complete. Finding nearest Locker node.'])
       }
@@ -181,42 +241,48 @@ function App() {
         summary = 'Bypassed visual inspection. Direct route to consolidation locker.'
       } else {
         pathway = 'premium'
-        if (productId === 'p-smartphone-premium') {
-          if (reason === 'damaged') {
-            grade = 'Grade C'
-            summary = 'Cosmetic screen fracture on lower-right quadrant. Multi-touch functional.'
-            bboxes = [
-              { label: 'screen fracture', x: 140, y: 180, w: 50, h: 40 },
-              { label: 'bezel dent', x: 92, y: 220, w: 10, h: 10 }
-            ]
-          } else if (reason === 'fit' || reason === 'defective') {
-            grade = 'Grade B'
-            summary = 'Minor scratch blemish on side aluminum bezel. Display panel pristine.'
-            bboxes = [
-              { label: 'scratch', x: 92, y: 120, w: 8, h: 30 }
-            ]
-          } else {
-            grade = 'Grade A'
-            summary = 'Excellent visual condition. Fully certified and reset to factory settings.'
-          }
+        if (isLiveMLAvailable) {
+          grade = liveGrade
+          summary = liveSummary
+          bboxes = liveBboxes
         } else {
-          // Headphones or default
-          if (reason === 'damaged') {
-            grade = 'Grade C'
-            summary = 'Cosmetic crack on right band cup. Original box present.'
-            bboxes = [
-              { label: 'crack', x: 190, y: 140, w: 40, h: 20 },
-              { label: 'scratch', x: 80, y: 80, w: 20, h: 10 }
-            ]
-          } else if (reason === 'fit' || reason === 'defective') {
-            grade = 'Grade B'
-            summary = 'Minor scratch blemish on side cup casing. Fully operational.'
-            bboxes = [
-              { label: 'scratch', x: 120, y: 110, w: 30, h: 15 }
-            ]
+          if (productId === 'p-smartphone-premium') {
+            if (reason === 'damaged') {
+              grade = 'Grade C'
+              summary = 'Cosmetic screen fracture on lower-right quadrant. Multi-touch functional.'
+              bboxes = [
+                { label: 'screen fracture', x: 140, y: 180, w: 50, h: 40 },
+                { label: 'bezel dent', x: 92, y: 220, w: 10, h: 10 }
+              ]
+            } else if (reason === 'fit' || reason === 'defective') {
+              grade = 'Grade B'
+              summary = 'Minor scratch blemish on side aluminum bezel. Display panel pristine.'
+              bboxes = [
+                { label: 'scratch', x: 92, y: 120, w: 8, h: 30 }
+              ]
+            } else {
+              grade = 'Grade A'
+              summary = 'Excellent visual condition. Fully certified and reset to factory settings.'
+            }
           } else {
-            grade = 'Grade A'
-            summary = 'Excellent condition. Fully certified resale-ready.'
+            // Headphones or default
+            if (reason === 'damaged') {
+              grade = 'Grade C'
+              summary = 'Cosmetic crack on right band cup. Original box present.'
+              bboxes = [
+                { label: 'crack', x: 190, y: 140, w: 40, h: 20 },
+                { label: 'scratch', x: 80, y: 80, w: 20, h: 10 }
+              ]
+            } else if (reason === 'fit' || reason === 'defective') {
+              grade = 'Grade B'
+              summary = 'Minor scratch blemish on side cup casing. Fully operational.'
+              bboxes = [
+                { label: 'scratch', x: 120, y: 110, w: 30, h: 15 }
+              ]
+            } else {
+              grade = 'Grade A'
+              summary = 'Excellent condition. Fully certified resale-ready.'
+            }
           }
         }
       }

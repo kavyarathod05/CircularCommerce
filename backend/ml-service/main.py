@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
@@ -12,6 +13,15 @@ from aws_ai_integrations import AWSAIIntegrations
 from vto_engine import VirtualTryOnEngine
 
 app = FastAPI(title="SecondLife Commerce - Naman ML Microservice")
+
+# Enable CORS for local dev testing
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Initialize Models
 demand_model = DemandEngine()
