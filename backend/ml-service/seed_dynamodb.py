@@ -86,30 +86,26 @@ def seed_data():
     
     print("Seeding ListingsTable...")
     listings = resource.Table('ListingsTable')
-    listings.put_item(Item={
-        'ListingId': 'LST-1', 
-        'ProductId': 'p-smartphone', 
-        'Price': Decimal('85000'), 
-        'Geohash': 'gcpvj', 
-        'Status': 'available',
-        'OwnerId': 'B001',
-        'PriceThreshold': Decimal('100000'),
-        'ElectronicsAffinity': Decimal('0.9'),
-        'ApparelAffinity': Decimal('0.1'),
-        'RecencyScore': Decimal('0.8')
-    })
-    listings.put_item(Item={
-        'ListingId': 'LST-2', 
-        'ProductId': 'p-smartphone', 
-        'Price': Decimal('87000'), 
-        'Geohash': 'gcpvj', 
-        'Status': 'available',
-        'OwnerId': 'B002',
-        'PriceThreshold': Decimal('90000'),
-        'ElectronicsAffinity': Decimal('0.8'),
-        'ApparelAffinity': Decimal('0.2'),
-        'RecencyScore': Decimal('0.9')
-    })
+    
+    catalog = [
+        { "ListingId": 'lst-101', "ProductId": 'Bose QC Headphones', "Price": Decimal('25000'), "Geohash": 'gcpvj', "Status": 'reserved', "OwnerId": 'usr-arjun' },
+        { "ListingId": 'lst-102', "ProductId": 'iPhone 14 Pro Max', "Price": Decimal('120000'), "Geohash": 'gcpvj', "Status": 'available', "OwnerId": 'usr-naman' },
+        { "ListingId": 'lst-103', "ProductId": 'Vintage Leather Jacket', "Price": Decimal('12500'), "Geohash": 'gcpvj', "Status": 'sold', "OwnerId": 'usr-kavya' },
+        { "ListingId": 'lst-104', "ProductId": 'Sony DualSense Controller', "Price": Decimal('5999'), "Geohash": 'gcpvj', "Status": 'reserved', "OwnerId": 'usr-priya' },
+        { "ListingId": 'lst-105', "ProductId": 'iPad Pro 11-inch', "Price": Decimal('85000'), "Geohash": 'gcpvj', "Status": 'available', "OwnerId": 'usr-rahul' },
+        { "ListingId": 'lst-106', "ProductId": 'Keychron Mechanical Keyboard', "Price": Decimal('8500'), "Geohash": 'gcpvj', "Status": 'available', "OwnerId": 'usr-amit' },
+        { "ListingId": 'lst-107', "ProductId": 'Essentials Cotton Hoodie', "Price": Decimal('2999'), "Geohash": 'gcpvj', "Status": 'available', "OwnerId": 'usr-customer' },
+        { "ListingId": 'lst-108', "ProductId": 'Levis Denim Jeans', "Price": Decimal('3499'), "Geohash": 'gcpvj', "Status": 'available', "OwnerId": 'usr-sara' },
+        { "ListingId": 'lst-109', "ProductId": 'Amazon Echo Dot', "Price": Decimal('4499'), "Geohash": 'gcpvj', "Status": 'reserved', "OwnerId": 'usr-dev' },
+        { "ListingId": 'lst-110', "ProductId": 'Basic White T-Shirt', "Price": Decimal('999'), "Geohash": 'gcpvj', "Status": 'available', "OwnerId": 'usr-sneha' },
+        { "ListingId": 'lst-111', "ProductId": 'Milton Thermosteel Bottle', "Price": Decimal('1200'), "Geohash": 'gcpvj', "Status": 'available', "OwnerId": 'usr-vikas' }
+    ]
+    
+    for item in catalog:
+        item['Grade'] = 'Grade A'
+        item['PriceThreshold'] = item['Price']
+        item['EscrowStatus'] = 'Locked (₹19,000)' if item['Status'] == 'reserved' else ('Released' if item['Status'] == 'sold' else 'N/A')
+        listings.put_item(Item=item)
     
     print("Seeding complete.")
 

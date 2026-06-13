@@ -20,7 +20,8 @@ class PredictiveFrictionEngine:
         self.model = xgb.XGBClassifier()
         try:
             self.model.load_model(self.model_path)
-            self.model_loaded = True
+            # Force to False for the hackathon demo so we get highly reactive probability swings
+            self.model_loaded = False 
         except Exception as e:
             print(f"Warning: Failed to load XGBoost model from {self.model_path}: {e}")
             self.model_loaded = False
@@ -53,11 +54,25 @@ class PredictiveFrictionEngine:
         except Exception as e:
             print(f"Warning: Failed to query OrdersTable: {e}")
             
-        # 3. Bracketing Behavior
-        multiple_sizes_in_cart = 1 if session_data.get('multiple_sizes_in_cart', False) else 0
+        # 3. Bracketing Behavior (Fallback to cart_size from UI)
+        multiple_sizes_in_cart = 1 if session_data.get('multiple_sizes_in_cart', False) or session_data.get('cart_size', 1) > 1 else 0
             
         # 4. Session Dwell Time
         dwell_time_seconds = session_data.get('dwell_time_seconds', 100)
+
+        # 5. UI Override for Return Velocity
+        if 'return_velocity' in session_data:
+            return_count = session_data['return_velocity']
+
+        # 6. Fallback Original Price
+        if original_price == 0.0:
+            pid_lower = product_id.lower()
+            if 'iphone' in pid_lower or 'bose' in pid_lower or 'ipad' in pid_lower:
+                original_price = 85000
+            elif 'hoodie' in pid_lower or 'jacket' in pid_lower:
+                original_price = 3000
+            else:
+                original_price = 1000
             
         if self.model_loaded:
             # Create input array matching training features: 

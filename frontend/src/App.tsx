@@ -21,6 +21,9 @@ interface SimulatedResult {
   grade: string
   summary: string
   bboxes: DefectBBox[]
+  carbon_saved_co2_kg?: number
+  matched_buyer?: any
+  transit_distance_km?: number
 }
 
 interface ListingRecord {
@@ -56,20 +59,84 @@ function App() {
   const [lastResult, setLastResult] = useState<SimulatedResult | null>(null)
 
   // Seller Dashboard Listings State Machine
-  const [listings, setListings] = useState<ListingRecord[]>([
-    { listingId: 'lst-101', productId: 'Bose QC Headphones', msrp: 25000, owner: 'usr-arjun', grade: 'Grade B', escrowStatus: 'Locked (₹19,000)', status: 'reserved' },
-    { listingId: 'lst-102', productId: 'iPhone 14 Pro Max', msrp: 120000, owner: 'usr-naman', grade: 'Grade A', escrowStatus: 'N/A', status: 'available' },
-    { listingId: 'lst-103', productId: 'Leather Jacket', msrp: 12500, owner: 'usr-kavya', grade: 'Grade C', escrowStatus: 'Released', status: 'sold' },
-    { listingId: 'lst-104', productId: 'Sony Controller', msrp: 5999, owner: 'usr-priya', grade: 'Grade A', escrowStatus: 'Locked (₹4,500)', status: 'reserved' }
-  ])
+  const [listings, setListings] = useState<ListingRecord[]>([])
+  const [sellerMetrics, setSellerMetrics] = useState<any>(null)
+  const [userMetrics, setUserMetrics] = useState<any>(null)
+  const [dppData, setDppData] = useState<any>(null)
+  const [catalogItems, setCatalogItems] = useState<ListingRecord[]>([])
+
+  useEffect(() => {
+    const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
+    if (activeTab === 'catalog') {
+      fetch(`${mlApiUrl}/catalog`)
+        .then(res => res.json())
+        .then(data => setCatalogItems(Array.isArray(data) ? data : []))
+        .catch(err => console.error("Catalog fetch failed", err))
+    } else if (activeTab === 'admin') {
+      fetch(`${mlApiUrl}/seller/metrics?seller_id=usr-12`)
+        .then(res => res.json())
+        .then(data => setSellerMetrics(data))
+        .catch(err => console.error("Seller metrics fetch failed", err))
+      // Mock fetching listings from Go API for the seller
+      fetch(`${mlApiUrl}/catalog`)
+        .then(res => res.json())
+        .then(data => setListings(Array.isArray(data) ? data : []))
+        .catch(err => console.error("Listings fetch failed", err))
+    } else if (activeTab === 'account') {
+      fetch(`${mlApiUrl}/user/metrics?user_id=usr-12`)
+        .then(res => res.json())
+        .then(data => setUserMetrics(data))
+        .catch(err => console.error("User metrics fetch failed", err))
+      // Mock fetching a specific DPP record from Go API
+      fetch(`${mlApiUrl}/dpp?listing_id=lst-123`)
+        .then(res => res.json())
+        .then(data => setDppData(data))
+        .catch(err => console.error("DPP fetch failed", err))
+    }
+  }, [activeTab])
 
   // Prevention Tab States
-  const [cartItems] = useState<{ id: string; name: string; size: string; price: number }[]>([
+  const [cartItems, setCartItems] = useState<{ id: string; name: string; size: string; price: number }[]>([
     { id: 'item-1', name: 'Essentials Cotton Hoodie', size: 'M', price: 2999 },
     { id: 'item-2', name: 'Essentials Cotton Hoodie', size: 'L', price: 2999 } // Ordering two sizes -> sizing anomaly trigger!
   ])
   const [returnVelocity, setReturnVelocity] = useState(4) // >3 returns in 7 days -> velocity alert!
   const [showPreventionAlert, setShowPreventionAlert] = useState(true)
+  const [frictionScore, setFrictionScore] = useState<any>(null)
+
+  const evaluateFriction = async (currentCart: any[] = cartItems) => {
+    try {
+      const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
+      const resp = await fetch(`${mlApiUrl}/api/v1/ml/friction/evaluate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: 'usr-12',
+          product_id: currentCart.length > 0 ? currentCart[0].id : 'p-hoodie',
+          session_data: { cart_size: currentCart.length, return_velocity: returnVelocity }
+        })
+      })
+      const data = await resp.json()
+      setFrictionScore(data.data)
+      setShowPreventionAlert(true)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const addToCart = (item: any) => {
+    const newCart = [...cartItems, { id: item.listingId || item.productId, name: item.productId, size: 'M', price: item.msrp }]
+    setCartItems(newCart)
+    evaluateFriction(newCart)
+    setActiveTab('prevention')
+  }
+
+  const removeFromCart = (index: number) => {
+    const newCart = [...cartItems]
+    newCart.splice(index, 1)
+    setCartItems(newCart)
+    evaluateFriction(newCart)
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -228,17 +295,44 @@ function App() {
       }
     }, 4000)
 
+    // Call live API in background if reachable
+    let liveInterceptData: any = null
+    try {
+      const awsBaseUrl = import.meta.env.VITE_AWS_API_URL || 'https://7fwutbh0wh.execute-api.us-east-1.amazonaws.com/Prod'
+      const interceptResp = await fetch(`${awsBaseUrl}/return/intercept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: orderId,
+          product_id: productId,
+          user_id: 'usr-12',
+          reason: reason,
+          lat: parseFloat(lat),
+          lng: parseFloat(lng),
+          media_url: finalMediaUrl
+        })
+      })
+      if (interceptResp.ok) {
+        liveInterceptData = await interceptResp.json()
+      }
+    } catch (e) {
+      console.log("Live API is currently offline/unreachable in local tests; running fully offline high-fidelity simulator.")
+    }
+
     setTimeout(async () => {
       setConsoleLogs(prev => [...prev, 'System: Return records updated successfully.'])
       setConsoleLogs(prev => [...prev, 'Status: Return approved. Please check the Return Status tab for details.'])
       setIsEvaluating(false)
 
-      let pathway = 'hyperlocal-p2p'
+      let pathway = liveInterceptData ? liveInterceptData.pathway : 'hyperlocal-p2p'
       let grade = 'Grade B'
       let summary = 'Minor scratch on side casing. Original packaging intact.'
       let bboxes: DefectBBox[] = []
 
-      if (msrp < 5000) {
+      if (liveInterceptData && liveInterceptData.inspection_grade) {
+        grade = liveInterceptData.inspection_grade
+        summary = liveInterceptData.ai_summary
+      } else if (msrp < 5000) {
         pathway = 'locker-dropoff'
         grade = 'N/A (Commodity)'
         summary = 'Bypassed visual inspection. Direct route to consolidation locker.'
@@ -301,7 +395,10 @@ function App() {
         pathway,
         grade,
         summary,
-        bboxes
+        bboxes,
+        carbon_saved_co2_kg: liveInterceptData?.carbon_saved_co2_kg,
+        matched_buyer: liveInterceptData?.matched_buyer,
+        transit_distance_km: liveInterceptData?.transit_distance_km
       }
 
       setLastResult(res)
@@ -323,46 +420,40 @@ function App() {
       // Auto switch view
       setActiveTab('result')
     }, 5500)
-
-    // Call live API in background if reachable
-    try {
-      const awsBaseUrl = import.meta.env.VITE_AWS_API_URL || 'https://7fwutbh0wh.execute-api.us-east-1.amazonaws.com/Prod'
-      await fetch(`${awsBaseUrl}/return/intercept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_id: orderId,
-          product_id: productId,
-          user_id: 'usr-12',
-          reason: reason,
-          lat: parseFloat(lat),
-          lng: parseFloat(lng),
-          media_url: finalMediaUrl
-        })
-      })
-    } catch (e) {
-      console.log("Live API is currently offline/unreachable in local tests; running fully offline high-fidelity simulator.")
-    }
   }
 
-  const toggleListingStatus = (id: string) => {
-    setListings(prev => prev.map(list => {
-      if (list.listingId === id) {
-        let nextStatus: 'available' | 'reserved' | 'sold' = 'available'
-        let nextEscrow = list.escrowStatus
-        if (list.status === 'available') {
-          nextStatus = 'reserved'
-          nextEscrow = 'Locked (₹' + (list.msrp * 0.75) + ')'
-        } else if (list.status === 'reserved') {
-          nextStatus = 'sold'
-          nextEscrow = 'Released'
-        } else {
-          nextStatus = 'available'
-          nextEscrow = 'N/A'
-        }
-        return { ...list, status: nextStatus, escrowStatus: nextEscrow }
+  const toggleListingStatus = async (id: string) => {
+    const list = listings.find(l => l.listingId === id)
+    if (!list) return
+    let nextStatus: 'available' | 'reserved' | 'sold' = 'available'
+    let nextEscrow = list.escrowStatus
+    if (list.status === 'available') {
+      nextStatus = 'reserved'
+      nextEscrow = 'Locked (₹' + (list.msrp * 0.75) + ')'
+    } else if (list.status === 'reserved') {
+      nextStatus = 'sold'
+      nextEscrow = 'Released'
+    } else {
+      nextStatus = 'available'
+      nextEscrow = 'N/A'
+    }
+
+    try {
+      const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
+      await fetch(`${mlApiUrl}/listing`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: id, new_status: nextStatus, buyer_id: 'usr-buyer-demo' })
+      })
+    } catch (e) {
+      console.error("Failed to transition listing state", e)
+    }
+
+    setListings(prev => prev.map(l => {
+      if (l.listingId === id) {
+        return { ...l, status: nextStatus, escrowStatus: nextEscrow }
       }
-      return list
+      return l
     }))
   }
 
@@ -430,63 +521,47 @@ function App() {
           <section className="view-section">
             <h2 style={{ fontFamily: 'var(--brutalist-font)', marginBottom: '1.5rem', fontSize: '1.8rem' }}>Recommended For You</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-              
-              {/* Product 1: Bose */}
-              <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
-                <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F8FA', borderRadius: '8px', overflow: 'hidden' }}>
-                  <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500" alt="Bose Headphones" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                  <h3 style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>Bose QuietComfort Headphones</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '1.25rem', color: 'var(--amazon-orange)', fontWeight: 'bold' }}>₹7,900</span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--success-green)' }}>In Stock</span>
+              {catalogItems.length === 0 ? (
+                <p>Loading catalog or no items available...</p>
+              ) : (
+                catalogItems.map((item, idx) => (
+                  <div key={idx} className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #E7E7E7' }}>
+                    <div style={{ height: '220px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '4px', overflow: 'hidden' }}>
+                      <img src={
+                        item.productId.includes('iPhone') || item.productId.includes('smartphone') ? 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500' :
+                        item.productId.includes('Jacket') ? 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500' :
+                        item.productId.includes('Hoodie') || item.productId.includes('Shirt') ? 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500' :
+                        item.productId.includes('Jeans') ? 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500' :
+                        item.productId.includes('Controller') ? 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=500' :
+                        item.productId.includes('iPad') ? 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500' :
+                        item.productId.includes('Keyboard') ? 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=500' :
+                        item.productId.includes('Echo') ? 'https://images.unsplash.com/photo-1543512214-318c7553f230?w=500' :
+                        item.productId.includes('Bottle') ? 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500' :
+                        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500'
+                      } alt={item.productId} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, padding: '0.5rem 0' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: '500', color: '#0F1111', margin: '0 0 0.25rem 0' }}>{item.productId}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                        <span style={{ fontSize: '1.4rem', color: '#B12704', fontWeight: 'bold' }}>₹{Math.floor(item.msrp * 0.9)}</span>
+                        <span style={{ fontSize: '0.85rem', color: '#565959', textDecoration: 'line-through' }}>₹{item.msrp}</span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#B12704', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                        Flash Deal (High Local Availability)
+                      </div>
+                      { (item.productId.includes('Jacket') || item.productId.includes('Hoodie') || item.productId.includes('Shirt') || item.productId.includes('Jeans') || item.productId.includes('T-Shirt')) && (
+                        <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: '#007185' }}>
+                          ✓ <b>Recommended Size: M</b>
+                        </div>
+                      )}
+                      <p style={{ color: '#565959', fontSize: '0.85rem', flexGrow: 1 }}>Ships from {item.owner}</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+                        <button className="btn-action" style={{ padding: '0.5rem', fontSize: '0.9rem', borderRadius: '100px', backgroundColor: '#FFD814', border: '1px solid #FCD200' }} onClick={() => addToCart(item)}>Add to Cart</button>
+                      </div>
+                    </div>
                   </div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.4', flexGrow: 1 }}>Premium noise-cancelling headphones for immersive audio.</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
-                    <button className="btn-action" style={{ padding: '0.6rem', fontSize: '0.9rem' }} onClick={() => setActiveTab('prevention')}>Add to Cart</button>
-                    <button className="btn-action" style={{ backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.6rem', fontSize: '0.9rem' }} onClick={() => setActiveTab('vto')}>Try Before You Buy</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product 2: iPhone */}
-              <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
-                <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F8FA', borderRadius: '8px', overflow: 'hidden' }}>
-                  <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500" alt="iPhone 14" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                  <h3 style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>iPhone 14 Pro Max</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '1.25rem', color: 'var(--amazon-orange)', fontWeight: 'bold' }}>₹95,000</span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--safety-yellow)' }}>Only 2 Left</span>
-                  </div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.4', flexGrow: 1 }}>Pro camera system and Dynamic Island. Unlocked for all carriers.</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
-                    <button className="btn-action" style={{ padding: '0.6rem', fontSize: '0.9rem' }} onClick={() => setActiveTab('prevention')}>Add to Cart</button>
-                    <button className="btn-action" style={{ backgroundColor: '#F3F3F3', border: '1px solid #ddd', color: '#999', padding: '0.6rem', fontSize: '0.9rem', cursor: 'not-allowed' }} disabled>VTO Not Available</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product 3: Essentials Hoodie */}
-              <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
-                <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F7F8FA', borderRadius: '8px', overflow: 'hidden' }}>
-                  <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500" alt="Essentials Hoodie" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'cover' }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                  <h3 style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>Essentials Cotton Hoodie</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '1.25rem', color: 'var(--amazon-orange)', fontWeight: 'bold' }}>₹2,999</span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--success-green)' }}>In Stock</span>
-                  </div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.4', flexGrow: 1 }}>Everyday comfort meets premium cotton blend. Machine washable.</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
-                    <button className="btn-action" style={{ padding: '0.6rem', fontSize: '0.9rem' }} onClick={() => setActiveTab('prevention')}>Add to Cart</button>
-                    <button className="btn-action" style={{ backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.6rem', fontSize: '0.9rem' }} onClick={() => setActiveTab('vto')}>Try Before You Buy</button>
-                  </div>
-                </div>
-              </div>
+                ))
+              )}
 
             </div>
           </section>
@@ -541,11 +616,11 @@ function App() {
         {/* ACCOUNT VIEW */}
         {userRole === 'buyer' && activeTab === 'account' && (
           <section className="view-section">
-            <div className="grid-split">
+            <div style={{ display: 'grid', gridTemplateColumns: '70% 30%', gap: '2rem' }}>
               <div className="step-container">
                 <div className="panel" style={{ padding: '2rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <h2 style={{ fontFamily: 'var(--brutalist-font)' }}>Your Account Balance</h2>
+                    <h2 style={{ fontFamily: 'var(--headline-font)', fontWeight: '700' }}>Your Account Balance</h2>
                     <span style={{ color: 'var(--success-green)', fontWeight: 'bold' }}>Prime Member</span>
                   </div>
                   <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--error-red)' }}>₹1,240.50</div>
@@ -555,7 +630,7 @@ function App() {
                 <div className="panel">
                   <div className="panel-title">Your Orders & Returns</div>
                   <div style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                    <h4 style={{ color: 'var(--accent)', marginBottom: '0.75rem', fontFamily: 'var(--brutalist-font)' }}>Bose QuietComfort Headphones</h4>
+                    <h4 style={{ color: 'var(--amazon-orange)', marginBottom: '0.75rem', fontFamily: 'var(--headline-font)' }}>Bose QuietComfort Headphones</h4>
                     <p style={{ margin: '0.25rem 0', color: 'var(--text-primary)' }}>✓ Return Initiated: Today, 10:42 AM</p>
                     <p style={{ margin: '0.25rem 0', color: 'var(--text-primary)' }}>✓ Item Received - Refund Processed</p>
                     <div style={{ margin: '0.75rem 0', padding: '0.75rem', backgroundColor: '#FFF8F0', border: '1px solid var(--amazon-orange)', borderRadius: '4px' }}>
@@ -571,11 +646,19 @@ function App() {
                   <div className="panel-title">Product Verification</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <strong>Authenticity Trail</strong>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>ID: 9f8a-4b2c</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>ID: {dppData?.listing_id || '9f8a-4b2c'}</span>
                   </div>
-                  <p style={{ margin: '0.5rem 0' }}>Origin: Factory A, Vietnam</p>
-                  <p style={{ margin: '0.5rem 0' }}>Purchased: Oct 12, 2026</p>
-                  <p style={{ margin: '0.5rem 0' }}>Transferred: Oct 15, 2026</p>
+                  {dppData && dppData.dpp_history ? (
+                    dppData.dpp_history.map((block: any, idx: number) => (
+                      <p key={idx} style={{ margin: '0.5rem 0' }}>{block.action}: {new Date(block.timestamp).toLocaleDateString()} by {block.owner}</p>
+                    ))
+                  ) : (
+                    <>
+                      <p style={{ margin: '0.5rem 0' }}>Origin: Factory A, Vietnam</p>
+                      <p style={{ margin: '0.5rem 0' }}>Purchased: Oct 12, 2026</p>
+                      <p style={{ margin: '0.5rem 0' }}>Transferred: Oct 15, 2026</p>
+                    </>
+                  )}
                   <button className="btn-action" style={{ backgroundColor: '#F3F3F3', color: 'var(--text-primary)', border: '1px solid var(--border-color)', marginTop: '1rem' }}>View Digital Receipt</button>
                 </div>
 
@@ -583,11 +666,11 @@ function App() {
                   <div className="panel-title" style={{ color: '#2E7D32' }}>Climate Pledge Impact</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0.5rem 0' }}>
                     <span style={{ color: '#1B5E20' }}>CO2 Avoided by Local Return:</span>
-                    <strong style={{ color: 'var(--success-green)' }}>18.4 kg</strong>
+                    <strong style={{ color: 'var(--success-green)' }}>{userMetrics?.co2_saved_kg ? userMetrics.co2_saved_kg.toFixed(1) : 18.4} kg</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0.5rem 0' }}>
                     <span style={{ color: '#1B5E20' }}>Tree Equivalent:</span>
-                    <strong style={{ color: 'var(--success-green)' }}>0.87 trees</strong>
+                    <strong style={{ color: 'var(--success-green)' }}>{userMetrics?.trees_planted ? userMetrics.trees_planted.toFixed(2) : 0.87} trees</strong>
                   </div>
                 </div>
               </div>
@@ -598,28 +681,26 @@ function App() {
         {/* RETURN WIZARD VIEW */}
         {userRole === 'buyer' && activeTab === 'wizard' && (
           <section className="view-section">
-            <div className="grid-split">
-              <div className="panel">
+            <div style={{ display: 'grid', gridTemplateColumns: '70% 30%', gap: '2rem' }}>
+              <div className="panel" style={{ padding: '2rem' }}>
                 <div className="panel-title">Start a Return</div>
                 <div className="step-container">
                   <div className="field-group">
-                    <label className="field-label">Order ID</label>
-                    <input type="text" value={orderId} onChange={e => setOrderId(e.target.value)} />
-                  </div>
-                  <div className="field-group">
-                    <label className="field-label">Product Reference ID</label>
-                    <select value={productId} onChange={e => setProductId(e.target.value)}>
-                      <option value="p-headphones-premium">Bose QuietComfort Headphones (Premium, MSRP &ge; 5000)</option>
-                      <option value="p-tshirt-commodity">Essentials Cotton T-Shirt (Commodity, MSRP &lt; 5000)</option>
-                      <option value="p-smartphone-premium">iPhone 14 Pro Max (Premium, MSRP &ge; 5000)</option>
+                    <label className="field-label">Select Item from Order History</label>
+                    <select value={productId} onChange={e => {
+                      setProductId(e.target.value);
+                      if (e.target.value.includes('headphones')) setMediaUrl('https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500');
+                      if (e.target.value.includes('smartphone')) setMediaUrl('https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500');
+                      if (e.target.value.includes('tshirt')) setMediaUrl('https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500');
+                    }}>
+                      <option value="p-headphones-premium">Bose QuietComfort Headphones</option>
+                      <option value="p-tshirt-commodity">Essentials Cotton T-Shirt</option>
+                      <option value="p-smartphone-premium">iPhone 14 Pro Max</option>
                     </select>
                   </div>
+                  
                   <div className="field-group">
-                    <label className="field-label">Estimated Value (INR)</label>
-                    <input type="number" value={msrp} readOnly />
-                  </div>
-                  <div className="field-group">
-                    <label className="field-label">Reason for Return</label>
+                    <label className="field-label">Why are you returning this?</label>
                     <select value={reason} onChange={e => setReason(e.target.value)}>
                       <option value="fit">Too big / wrong fit</option>
                       <option value="damaged">Damaged during shipping (scratches/cracks)</option>
@@ -627,64 +708,64 @@ function App() {
                       <option value="changed-mind">Changed mind / wrong style</option>
                     </select>
                   </div>
-                  <div className="field-group">
-                    <label className="field-label">Your Proximity Coordinates</label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <input type="text" value={lat} onChange={e => setLat(e.target.value)} placeholder="Lat" />
-                      <input type="text" value={lng} onChange={e => setLng(e.target.value)} placeholder="Lng" />
+
+                  <details style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '1rem' }}>
+                    <summary>🛠️ Hackathon Demo Controls</summary>
+                    <div style={{ padding: '1rem', border: '1px dashed var(--border-color)', marginTop: '0.5rem', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div className="field-group">
+                        <label className="field-label">Simulate Order ID</label>
+                        <input type="text" value={orderId} onChange={e => setOrderId(e.target.value)} />
+                      </div>
+                      <div className="field-group">
+                        <label className="field-label">Simulate GPS Proximity (Lat/Lng)</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input type="text" value={lat} onChange={e => setLat(e.target.value)} placeholder="Lat" />
+                          <input type="text" value={lng} onChange={e => setLng(e.target.value)} placeholder="Lng" />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                   <div className="field-group">
-                    <label className="field-label">Or Select A Pre-built Demo Photo</label>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-                      <button type="button" className="tab-btn" style={{ flex: 1, padding: '0.4rem', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} onClick={() => {
-                        setProductId('p-headphones-premium');
-                        setMediaUrl('https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500');
-                        setConsoleLogs(prev => [...prev, "SYSTEM: Selected pre-built Bose Headphones photo"]);
-                        setSelectedFile(null);
-                      }}>Bose Headphones</button>
-                      <button type="button" className="tab-btn" style={{ flex: 1, padding: '0.4rem', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} onClick={() => {
-                        setProductId('p-smartphone-premium');
-                        setMediaUrl('https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500');
-                        setConsoleLogs(prev => [...prev, "SYSTEM: Selected pre-built iPhone photo"]);
-                        setSelectedFile(null);
-                      }}>iPhone 14</button>
-                      <button type="button" className="tab-btn" style={{ flex: 1, padding: '0.4rem', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} onClick={() => {
-                        setProductId('p-tshirt-commodity');
-                        setMediaUrl('https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500');
-                        setConsoleLogs(prev => [...prev, "SYSTEM: Selected pre-built Essentials T-shirt photo"]);
-                        setSelectedFile(null);
-                      }}>Essentials T-Shirt</button>
-                    </div>
-                  </div>
+                  </details>
+
                   <div className="field-group">
-                    <label className="field-label">Media Upload (Visual Proof of Condition)</label>
-                    <input type="file" accept="image/*" onChange={handleFileChange} style={{ border: '1px dashed var(--amazon-orange)', padding: '0.5rem' }} />
+                    <label className="field-label">Upload a photo of the item (Required)</label>
+                    <input type="file" accept="image/*" onChange={handleFileChange} style={{ border: '1px dashed var(--amazon-orange)', padding: '0.5rem', width: '100%' }} />
                     {mediaUrl && (
-                      <div style={{ marginTop: '0.5rem', border: '1px solid var(--border-color)', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--dark-bg)', overflow: 'hidden' }}>
+                      <div style={{ marginTop: '0.5rem', border: '1px solid var(--border-color)', height: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F8FA', overflow: 'hidden', borderRadius: '8px' }}>
                         <img src={mediaUrl} alt="Preview" style={{ height: '100%', objectFit: 'contain' }} />
                       </div>
                     )}
                   </div>
-                  <button className="btn-action" onClick={runTriageSimulation} disabled={isEvaluating}>
-                    {isEvaluating ? 'Running Evaluation...' : 'Submit & Run Triage'}
+                  <button className="btn-action" onClick={runTriageSimulation} disabled={isEvaluating} style={{ marginTop: '1rem' }}>
+                    {isEvaluating ? 'Processing Return...' : 'Submit Return Request'}
                   </button>
                 </div>
               </div>
 
               <div className="panel">
-                <div className="panel-title">Return Processing Timeline</div>
-                <div className="inspection-terminal">
+                <div className="panel-title">Return Status Tracker</div>
+                <div style={{ padding: '1.5rem', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid var(--border-color)', fontFamily: 'var(--body-font)', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                   {consoleLogs.map((log, index) => {
                     let logClass = ''
-                    if (log.includes('Complete') || log.includes('success') || log.includes('✓')) {
+                    let icon = '🔄'
+                    if (log.includes('Complete') || log.includes('success') || log.includes('✓') || log.includes('APPROVED')) {
                       logClass = 'success'
-                    } else if (log.includes('Routing') || log.includes('Analyzing') || log.includes('Scanning')) {
-                      logClass = 'working'
+                      icon = '✅'
+                    } else if (log.includes('Failed') || log.includes('REJECTED')) {
+                      logClass = 'error'
+                      icon = '❌'
+                    } else if (log.includes('Analyzing') || log.includes('Scanning')) {
+                      icon = '🔍'
+                    } else if (log.includes('Routing') || log.includes('Escrow')) {
+                      icon = '🚚'
                     }
+
+                    // Clean up the log text to make it customer friendly
+                    let cleanLog = log.replace('SYSTEM: ', '').replace('LOGISTICS: ', '').replace('ML ENGINE: ', '');
+                    
                     return (
-                      <div key={index} className={`console-line ${logClass}`}>
-                        {log}
+                      <div key={index} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', color: logClass === 'success' ? 'var(--success-green)' : logClass === 'error' ? 'var(--error-red)' : 'var(--text-primary)' }}>
+                        <span>{icon}</span>
+                        <span style={{ fontWeight: logClass ? 'bold' : 'normal' }}>{cleanLog}</span>
                       </div>
                     )
                   })}
@@ -697,44 +778,46 @@ function App() {
         {/* TRIAGE RESULT VIEW */}
         {userRole && activeTab === 'result' && (
           <section className="view-section">
-            <div className="grid-split">
-              <div className="panel">
-                <div className="panel-title">Return Approval Details</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '70% 30%', gap: '2rem' }}>
+              <div className="panel" style={{ padding: '2rem' }}>
+                <div className="panel-title">Your Refund Summary</div>
                 {lastResult ? (
                   <>
-                    <div className="health-card">
-                      <div className="health-card-header">
-                        <span>RETURN STATUS | #RET-{lastResult.orderId.substring(0, 4)}</span>
+                    <div className="health-card" style={{ backgroundColor: '#F8F9FA', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1.5rem' }}>
+                      <div className="health-card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+                        <span style={{ fontWeight: 'bold' }}>RETURN AUTHORIZED | #RET-{lastResult.orderId.substring(0, 4)}</span>
                         <span className={`grade-badge ${
                           lastResult.grade.includes('B') ? 'b-grade' :
                           lastResult.grade.includes('C') ? 'c-grade' :
                           lastResult.grade.includes('D') ? 'd-grade' : ''
-                        }`}>{lastResult.grade}</span>
+                        }`} style={{ padding: '0.4rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem' }}>Condition: {lastResult.grade}</span>
                       </div>
                       <div className="health-card-row">
-                        <span>Product ID</span>
-                        <span>{lastResult.productId}</span>
+                        <span>Item Name</span>
+                        <span style={{ fontWeight: '500' }}>{
+                          lastResult.productId.includes('smartphone') ? 'iPhone 14 Pro Max' :
+                          lastResult.productId.includes('headphones') ? 'Bose QuietComfort Headphones' :
+                          lastResult.productId.includes('tshirt') ? 'Essentials Cotton T-Shirt' : lastResult.productId
+                        }</span>
                       </div>
                       <div className="health-card-row">
-                        <span>MSRP Value</span>
-                        <span>₹{lastResult.msrp}</span>
+                        <span>Refund Amount</span>
+                        <span style={{ fontWeight: 'bold', color: 'var(--success-green)' }}>₹{lastResult.msrp}</span>
                       </div>
                       <div className="health-card-row">
-                        <span>Triage Pathway</span>
-                        <span style={{ color: 'var(--amazon-orange)', textTransform: 'uppercase' }}>{lastResult.pathway}</span>
+                        <span>Next Steps</span>
+                        <span style={{ color: 'var(--amazon-orange)', fontWeight: 'bold' }}>
+                          {lastResult.pathway === 'premium' ? 'Instant Refund Approved' : lastResult.pathway === 'local-match' ? 'Drop off at Local Buyer' : 'Return to Warehouse'}
+                        </span>
                       </div>
                       <div className="health-card-row">
-                        <span>Inspection Summary</span>
-                        <span style={{ color: 'white', fontSize: '0.8rem' }}>{lastResult.summary}</span>
+                        <span>Inspection Notes</span>
+                        <span style={{ color: 'var(--text-primary)', fontSize: '0.85rem', fontStyle: 'italic', maxWidth: '60%', textAlign: 'right' }}>{lastResult.summary}</span>
                       </div>
-                      <div className="health-card-row">
-                        <span>Account Standing</span>
-                        <span style={{ color: 'var(--success-green)' }}>✓ Excellent</span>
-                      </div>
-                      <div className="health-card-footer">
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          Return Authorization ID:<br />
-                          <span style={{ color: 'var(--amazon-orange)', fontSize: '0.6rem' }}>AUTH-8f3b2a1c9e99a8b7</span>
+                      <div className="health-card-footer" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                          Authorization Code:<br />
+                          <span style={{ color: 'var(--amazon-orange)', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '1px' }}>AUTH-8F3B</span>
                         </div>
                         <div className="qr-placeholder">
                           <svg width="50" height="50" viewBox="0 0 100 100">
@@ -754,21 +837,21 @@ function App() {
 
                     <div className="carbon-card">
                       <div className="carbon-badge-circle">
-                        {lastResult.pathway === 'locker-dropoff' ? 14 : 52}
+                        {lastResult.carbon_saved_co2_kg ? Math.round(lastResult.carbon_saved_co2_kg) : (lastResult.pathway === 'locker-dropoff' ? 14 : 52)}
                       </div>
                       <div className="carbon-details">
                         <h4>Scope-3 Carbon Avoided</h4>
-                        <p>Calculated equivalent of avoiding warehouse shipping. Saved {lastResult.pathway === 'locker-dropoff' ? 14 : 52.5} Kg CO₂ ({(lastResult.pathway === 'locker-dropoff' ? 14 / 21 : 52.5 / 21).toFixed(2)} trees planted equivalent).</p>
+                        <p>Calculated equivalent of avoiding warehouse shipping. Saved {lastResult.carbon_saved_co2_kg ? lastResult.carbon_saved_co2_kg.toFixed(2) : (lastResult.pathway === 'locker-dropoff' ? 14 : 52.5)} Kg CO₂ ({(lastResult.carbon_saved_co2_kg ? lastResult.carbon_saved_co2_kg / 21 : (lastResult.pathway === 'locker-dropoff' ? 14 / 21 : 52.5 / 21)).toFixed(2)} trees planted equivalent).</p>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <p style={{ fontFamily: 'var(--mono-font)', color: 'var(--text-muted)' }}>No return Triaged yet. Go to Return Wizard and submit.</p>
+                  <p style={{ fontFamily: 'var(--body-font)', color: 'var(--text-muted)' }}>No return Triaged yet. Go to Return Wizard and submit.</p>
                 )}
               </div>
 
               <div className="panel">
-                <div className="panel-title">Condition Proof & Routing Options</div>
+                <div className="panel-title">Visual Condition Verification</div>
                 {lastResult ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {/* Blemish Image Overlays */}
@@ -826,16 +909,16 @@ function App() {
                         <div className="node-marker destination" style={{ top: '60%', left: '75%' }} title="Matched Buyer"></div>
                       )}
                     </div>
-                    <div style={{ fontFamily: 'var(--mono-font)', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontFamily: 'var(--body-font)', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                       {lastResult.pathway === 'locker-dropoff' ? (
-                        <span><b>Routing:</b> Locker Dropoff (Amazon Locker - Metro Hub, 1.4 km). Fallback triggered.</span>
+                        <span><b>Routing:</b> Locker Dropoff (Amazon Locker - Metro Hub, {lastResult.transit_distance_km ? lastResult.transit_distance_km.toFixed(1) : '1.4'} km).</span>
                       ) : (
-                        <span><b>Routing:</b> Hyperlocal P2P Match (Matched to buyer-alpha, 3.2 km). Escrow Locked.</span>
+                        <span><b>Routing:</b> Hyperlocal P2P Match (Matched to {lastResult.matched_buyer?.listing_id ? 'Buyer-Local' : 'buyer-alpha'}, {lastResult.transit_distance_km ? lastResult.transit_distance_km.toFixed(1) : '3.2'} km). Escrow Locked.</span>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <p style={{ fontFamily: 'var(--mono-font)', color: 'var(--text-muted)' }}>Submit a return from the wizard to generate routing path.</p>
+                  <p style={{ fontFamily: 'var(--body-font)', color: 'var(--text-muted)' }}>Submit a return from the wizard to generate routing path.</p>
                 )}
               </div>
             </div>
@@ -848,23 +931,28 @@ function App() {
             <div className="telemetry-grid">
               <div className="telemetry-metric">
                 <div className="metric-label">Warehouse Avoidance Rate</div>
-                <div className="metric-value">68.4%</div>
+                <div className="metric-value">{sellerMetrics?.warehouse_avoidance_rate || 68.4}%</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--success-green)' }}>+12.4% vs Last Month</div>
               </div>
               <div className="telemetry-metric">
                 <div className="metric-label">Scope-3 Carbon Avoided</div>
-                <div className="metric-value">847.2 Kg</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--success-green)' }}>40.3 Trees Planted Equiv.</div>
+                <div className="metric-value">{sellerMetrics?.co2_saved_kg ? sellerMetrics.co2_saved_kg.toFixed(1) : 847.2} Kg</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--success-green)' }}>{sellerMetrics?.trees_planted ? sellerMetrics.trees_planted.toFixed(1) : 40.3} Trees Planted Equiv.</div>
               </div>
               <div className="telemetry-metric">
                 <div className="metric-label">Capital Recovery Value</div>
-                <div className="metric-value">₹4.28M</div>
+                <div className="metric-value">₹{sellerMetrics?.capital_recovery_value ? sellerMetrics.capital_recovery_value.toLocaleString() : '4.28M'}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--success-green)' }}>82.6% Recovery Rate</div>
               </div>
               <div className="telemetry-metric">
+                <div className="metric-label">Fraudulent Returns Blocked</div>
+                <div className="metric-value">14</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--success-green)' }}>GNN Fraud Engine Active ✓</div>
+              </div>
+              <div className="telemetry-metric">
                 <div className="metric-label">Escrow Locked Funds</div>
-                <div className="metric-value">₹145,200</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--safety-yellow)' }}>14 Open P2P Swaps</div>
+                <div className="metric-value">₹{sellerMetrics?.escrow_locked_funds ? sellerMetrics.escrow_locked_funds.toLocaleString() : '145,200'}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--safety-yellow)' }}>Live from MatchesTable</div>
               </div>
             </div>
 
@@ -916,34 +1004,105 @@ function App() {
         {/* PRE-CHECKOUT PREVENTION VIEW */}
         {userRole === 'buyer' && activeTab === 'prevention' && (
           <section className="view-section">
-            <div className="grid-split">
-              <div className="panel">
+            <div style={{ display: 'grid', gridTemplateColumns: '70% 30%', gap: '2rem' }}>
+              <div className="panel" style={{ padding: '2rem' }}>
                 <div className="panel-title">Your Shopping Cart</div>
                 <div className="step-container">
                   {cartItems.map((item, idx) => (
-                    <div key={idx} className="cart-scenario-card">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--mono-font)' }}>
+                    <div key={idx} className="cart-scenario-card" style={{ marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--body-font)' }}>
                         <span><b>{item.name}</b></span>
                         <span style={{ color: 'var(--amazon-orange)' }}>₹{item.price}</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                        Selected Size: {item.size}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Selected Size: {item.size}
+                        </div>
+                        <button style={{ background: 'none', border: 'none', color: '#FF4444', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => removeFromCart(idx)}>
+                          Remove
+                        </button>
                       </div>
                     </div>
                   ))}
-                  <div className="field-group">
-                    <label className="field-label">User Historical Returns (Past 7 Days)</label>
-                    <input type="number" value={returnVelocity} onChange={e => setReturnVelocity(parseInt(e.target.value))} />
-                  </div>
-                  <button className="btn-action" onClick={() => setShowPreventionAlert(true)}>
-                    Refresh Checkout Risk Check
-                  </button>
+                  
+                  <details style={{ marginTop: '2rem', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                    <summary>🛠️ Hackathon Demo Controls</summary>
+                    <div style={{ padding: '1rem', border: '1px dashed var(--border-color)', marginTop: '0.5rem', borderRadius: '4px' }}>
+                      <div className="field-group">
+                        <label className="field-label">Simulate Historical Returns (Past 7 Days)</label>
+                        <input type="number" value={returnVelocity} onChange={e => { setReturnVelocity(parseInt(e.target.value)); evaluateFriction(); }} style={{ padding: '0.4rem', width: '60px' }} />
+                      </div>
+                    </div>
+                  </details>
                 </div>
               </div>
 
-              <div className="panel">
-                <div className="panel-title">Size & Fit Recommendations</div>
-                {showPreventionAlert && (
+              <div className="panel" style={{ padding: '2rem', height: 'fit-content', position: 'sticky', top: '2rem' }}>
+                <div className="panel-title">Smart Fit Check</div>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                  Find your perfect fit and help us reduce return emissions! 🌍
+                </p>
+
+                {showPreventionAlert && frictionScore && (
+                  <div className={`prevention-alert ${frictionScore.intercept ? 'high-risk' : 'low-risk'}`} style={{
+                    backgroundColor: frictionScore.intercept ? '#FFF4F4' : '#F0FFF4',
+                    border: `1px solid ${frictionScore.intercept ? '#FFDCE0' : '#C6F6D5'}`,
+                    padding: '1.5rem', borderRadius: '8px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '1.5rem' }}>{frictionScore.intercept ? '⚠️' : '✅'}</span>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: frictionScore.intercept ? 'var(--error-red)' : 'var(--success-green)' }}>
+                        {frictionScore.intercept ? 'Fit Uncertainty Detected' : 'Perfect Match!'}
+                      </span>
+                    </div>
+                    
+                    <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                      {frictionScore.intercept ? (
+                        <>
+                          <p style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>
+                            Ordering multiple sizes increases carbon footprint. Unsure about the fit?
+                          </p>
+                          <button className="btn-action" onClick={() => setActiveTab('vto')} style={{ width: '100%' }}>
+                            Try It On Virtually 👗
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p style={{ color: 'var(--text-muted)' }}>
+                            High fit confidence based on your profile: <b>{((1 - frictionScore.returnProbability) * 100).toFixed(0)}%</b>
+                          </p>
+                          <button className="btn-action" style={{ marginTop: '1rem', width: '100%', backgroundColor: 'var(--success-green)' }}>
+                            Proceed to Checkout
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {showPreventionAlert && frictionScore && (
+                  <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>📊</span> Smart Fit Insights
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                      <div style={{ minWidth: '120px', backgroundColor: '#F8F9FA', padding: '0.75rem', borderRadius: '6px', borderLeft: `4px solid ${frictionScore.intercept ? '#FF4444' : 'var(--success-green)'}` }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fit Confidence</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: frictionScore.intercept ? '#FF4444' : 'var(--success-green)' }}>
+                          {((1 - frictionScore.returnProbability) * 100).toFixed(0)}%
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.4' }}>
+                        {cartItems.filter(i => i.name === 'Essentials Cotton Hoodie').length > 1 ? (
+                          <span><b>Heads up:</b> You have multiple sizes of the same item in your cart. Ordering just one perfect size helps reduce carbon emissions from returns!</span>
+                        ) : (
+                          <span><b>Looks good:</b> Your sizing profile closely matches these items based on historical purchase data.</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {showPreventionAlert && !frictionScore && (
                   <div className="prevention-alert">
                     <div className="prevention-alert-header">
                       <span>Information for your order</span>

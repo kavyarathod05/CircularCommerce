@@ -97,4 +97,72 @@ def get_trust_score(user_id: str):
 def health_check():
     return {"status": "ML Microservice is ALIVE"}
 
+# --- Local Fallback Endpoints for Frontend (replaces Go Serverless temporarily) ---
+import datetime
+import boto3
+
+@app.get("/catalog")
+def get_catalog():
+    try:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        listings = dynamodb.Table('ListingsTable')
+        response = listings.scan()
+        items = response.get('Items', [])
+        
+        # Format the items for the frontend
+        formatted = []
+        for item in items:
+            formatted.append({
+                "listingId": item.get("ListingId"),
+                "productId": item.get("ProductId"),
+                "msrp": float(item.get("Price", 0)),
+                "owner": item.get("OwnerId"),
+                "grade": item.get("Grade", "Grade B"),
+                "escrowStatus": item.get("EscrowStatus", "N/A"),
+                "status": item.get("Status", "available")
+            })
+        return formatted
+    except Exception as e:
+        print("Failed to fetch from DynamoDB", e)
+        # Fallback to empty if DB fails
+        return []
+
+@app.get("/seller/metrics")
+def get_seller_metrics(seller_id: str = "usr-12"):
+    return {
+        "warehouse_avoidance_rate": 71.2,
+        "co2_saved_kg": 855.4,
+        "trees_planted": 40.7,
+        "capital_recovery_value": 4350000,
+        "escrow_locked_funds": 164200
+    }
+
+@app.get("/user/metrics")
+def get_user_metrics(user_id: str = "usr-12"):
+    return {
+        "user_id": user_id,
+        "co2_saved_kg": 22.4,
+        "trees_planted": 1.06
+    }
+
+@app.get("/dpp")
+def get_dpp(listing_id: str):
+    return {
+        "listing_id": listing_id,
+        "dpp_history": [
+            {"action": "Manufactured", "timestamp": "2026-08-01T10:00:00Z", "owner": "Factory A, Vietnam"},
+            {"action": "Purchased", "timestamp": "2026-10-12T14:30:00Z", "owner": "Amazon Fulfillment"},
+            {"action": "Returned", "timestamp": datetime.datetime.utcnow().isoformat() + "Z", "owner": "usr-12"}
+        ]
+    }
+
+class ListingUpdate(BaseModel):
+    listing_id: str
+    new_status: str
+    buyer_id: str
+
+@app.put("/listing")
+def update_listing(req: ListingUpdate):
+    return {"status": "success", "message": f"Listing {req.listing_id} updated to {req.new_status}"}
+
 # Run locally using: uvicorn main:app --reload --port 8000

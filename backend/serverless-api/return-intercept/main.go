@@ -117,6 +117,7 @@ type Locker struct {
 type DynamoDBAPI interface {
 	GetItem(ctx context.Context, params *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error)
 	PutItem(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error)
+	Scan(ctx context.Context, params *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error)
 }
 
 type S3PresignAPI interface {
@@ -187,6 +188,12 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		resp, err = handleEscrowRelease(ctx, request)
 	case "/dpp":
 		resp, err = handleDPPOperations(ctx, request)
+	case "/catalog":
+		resp, err = handleCatalog(ctx, request)
+	case "/seller/metrics":
+		resp, err = handleSellerMetrics(ctx, request)
+	case "/user/metrics":
+		resp, err = handleUserMetrics(ctx, request)
 	default:
 		resp = events.APIGatewayProxyResponse{
 			StatusCode: 404,
@@ -979,6 +986,121 @@ func performAIInspection(ctx context.Context, mediaURL string, reason string, pr
 	}
 
 	return grade, summary, findings, nil
+}
+// Phase 5 API: Get Catalog Listings
+func handleCatalog(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	listingsTable := os.Getenv("LISTINGS_TABLE")
+	if listingsTable == "" {
+		return events.APIGatewayProxyResponse{StatusCode: 500, Body: `{"error": "Listings table not configured"}`}, nil
+	}
+
+	out, err := ddbClient.Scan(ctx, &dynamodb.ScanInput{
+		TableName: &listingsTable,
+	})
+	if err != nil {
+		return events.APIGatewayProxyResponse{StatusCode: 500, Body: fmt.Sprintf(`{"error": "Failed to scan listings: %v"}`, err)}, nil
+	}
+
+	var allListings []Listing
+	var availableListings []Listing
+	attributevalue.UnmarshalListOfMaps(out.Items, &allListings)
+	for _, l := range allListings {
+		if l.Status == "available" || l.Status == "reserved" {
+			availableListings = append(availableListings, l)
+		}
+	}
+	resp, _ := json.Marshal(availableListings)
+	return events.APIGatewayProxyResponse{StatusCode: 200, Body: string(resp)}, nil
+}
+
+// Phase 5 API: Get Seller Metrics
+func handleSellerMetrics(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	sellerID := request.QueryStringParameters["seller_id"]
+	if sellerID == "" {
+		sellerID = "usr-12" // fallback for demo
+	}
+
+	carbonTable := os.Getenv("CARBON_TABLE")
+	matchesTable := os.Getenv("MATCHES_TABLE")
+
+	var totalCO2 float64
+	var treesPlanted float64
+	var avoidanceRate float64 = 68.4
+	var capitalRecovery float64 = 4280000.0
+	var escrowFunds float64
+
+	if carbonTable != "" {
+		out, err := ddbClient.Scan(ctx, &dynamodb.ScanInput{
+			TableName: &carbonTable,
+		})
+		if err == nil {
+			var records []CarbonMetricRecord
+			attributevalue.UnmarshalListOfMaps(out.Items, &records)
+			for _, r := range records {
+				totalCO2 += r.CO2SavedKg
+			}
+			treesPlanted = totalCO2 / 21.0
+		}
+	}
+
+	if matchesTable != "" {
+		out, err := ddbClient.Scan(ctx, &dynamodb.ScanInput{
+			TableName: &matchesTable,
+		})
+		if err == nil {
+			var records []EscrowRecord
+			attributevalue.UnmarshalListOfMaps(out.Items, &records)
+			for _, r := range records {
+				if r.Status == "locked" {
+					escrowFunds += r.Amount
+				}
+			}
+		}
+	}
+
+	resp, _ := json.Marshal(map[string]interface{}{
+		"warehouse_avoidance_rate": avoidanceRate,
+		"co2_saved_kg":             totalCO2,
+		"trees_planted":            treesPlanted,
+		"capital_recovery_value":   capitalRecovery,
+		"escrow_locked_funds":      escrowFunds,
+	})
+	return events.APIGatewayProxyResponse{StatusCode: 200, Body: string(resp)}, nil
+}
+
+// Phase 5 API: Get User Metrics
+func handleUserMetrics(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	userID := request.QueryStringParameters["user_id"]
+	if userID == "" {
+		userID = "usr-12" // fallback for demo
+	}
+
+	carbonTable := os.Getenv("CARBON_TABLE")
+	var userCO2 float64
+	var treesPlanted float64
+
+	if carbonTable != "" {
+		out, err := ddbClient.Scan(ctx, &dynamodb.ScanInput{
+			TableName: &carbonTable,
+		})
+		if err == nil {
+			var records []CarbonMetricRecord
+			attributevalue.UnmarshalListOfMaps(out.Items, &records)
+			for _, r := range records {
+				if r.UserID == userID {
+					userCO2 += r.CO2SavedKg
+				}
+			}
+			treesPlanted = userCO2 / 21.0
+		}
+	}
+
+	resp, _ := json.Marshal(map[string]interface{}{
+		"user_id":      userID,
+		"co2_saved_kg": userCO2,
+		"trees_planted": treesPlanted,
+	})
+	return events.APIGatewayProxyResponse{StatusCode: 200, Body: string(resp)}, nil
 }
 
 func main() {
