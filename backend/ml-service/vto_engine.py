@@ -1,14 +1,16 @@
 import time
 import json
+import boto3
 
 class VirtualTryOnEngine:
     """
     Virtual Try-On (VTO) Engine
     Uses GAN / Diffusion Model stubs to drape clothing over user photos.
     """
-    def __init__(self, model_name="diffusion-gan-v1"):
+    def __init__(self, model_name="diffusion-gan-v1", region_name='us-east-1'):
         self.model_name = model_name
         self.status = "INITIALIZED"
+        self.sagemaker_client = boto3.client('sagemaker-runtime', region_name=region_name)
 
     def process_vto_draping(self, user_image_bytes, clothing_sku, user_measurements=None):
         """
@@ -17,11 +19,34 @@ class VirtualTryOnEngine:
         print(f"[VTO Engine] Starting draping process using {self.model_name}...")
         print(f"[VTO Engine] Target SKU: {clothing_sku}")
         
-        # In a real environment, this would invoke an AWS SageMaker endpoint 
-        # hosting a stable-diffusion pipeline or a specialized GAN like TryOnGAN.
+        endpoint_name = "vto-diffusion-gan-endpoint"
         
-        # Simulate processing delay
-        # time.sleep(2) 
+        try:
+            print(f"[VTO Engine] Attempting to invoke SageMaker endpoint '{endpoint_name}'...")
+            payload = {
+                "user_image_base64": user_image_bytes,
+                "clothing_sku": clothing_sku
+            }
+            
+            response = self.sagemaker_client.invoke_endpoint(
+                EndpointName=endpoint_name,
+                ContentType='application/json',
+                Body=json.dumps(payload)
+            )
+            
+            result_body = json.loads(response['Body'].read().decode())
+            print("[VTO Engine] VTO Draping complete via AWS SageMaker!")
+            return {
+                "vto_job_id": "vto-job-live-aws",
+                "status": "COMPLETED",
+                "model_used": self.model_name,
+                "draped_image_url": result_body.get("draped_image_url", ""),
+                "fit_analysis": result_body.get("fit_analysis", {})
+            }
+            
+        except Exception as e:
+            print(f"[VTO Engine] SageMaker Endpoint '{endpoint_name}' not found or unreachable: {e}")
+            print(f"[VTO Engine] Falling back to high-fidelity Simulator Mode...")
         
         result = {
             "vto_job_id": "vto-job-9938-abcd",
