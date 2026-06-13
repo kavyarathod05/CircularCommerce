@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing, ScrollView, Alert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { colors, typography, layout } from '../theme';
 
 export default function VTOEngineScreen({ navigation }) {
   const [scanAnim] = useState(new Animated.Value(0));
+  const [hasPhoto, setHasPhoto] = useState(false);
 
   useEffect(() => {
     Animated.loop(
@@ -29,44 +31,69 @@ export default function VTOEngineScreen({ navigation }) {
     outputRange: ['0%', '100%']
   });
 
+  const handleUploadPhoto = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setHasPhoto(true);
+      Alert.alert('PHOTO UPLOADED', 'Initializing Diffusion-GAN draping model...');
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.sectionHeader}>// VTO DRAPING ENGINE</Text>
       
-      <View style={styles.editorialGrid}>
-        <View style={styles.signatureElement}>
-          <View style={styles.vtoFrame}>
-            <Text style={styles.vtoText}>[ GENERATING MESH ]</Text>
-            <Animated.View style={[styles.scanningLine, { top: scanLineTop }]} />
-            <View style={styles.targetCornerTL} />
-            <View style={styles.targetCornerTR} />
-            <View style={styles.targetCornerBL} />
-            <View style={styles.targetCornerBR} />
+      {!hasPhoto ? (
+        <View style={styles.uploadState}>
+          <Text style={styles.uploadText}>UPLOAD REFERENCE PHOTO FOR VIRTUAL FIT</Text>
+          <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPhoto}>
+            <Text style={styles.uploadButtonText}>[ SELECT PHOTO ]</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <View style={styles.editorialGrid}>
+            <View style={styles.signatureElement}>
+              <View style={styles.vtoFrame}>
+                <Text style={styles.vtoText}>[ GENERATING MESH ]</Text>
+                <Animated.View style={[styles.scanningLine, { top: scanLineTop }]} />
+                <View style={styles.targetCornerTL} />
+                <View style={styles.targetCornerTR} />
+                <View style={styles.targetCornerBL} />
+                <View style={styles.targetCornerBR} />
+              </View>
+            </View>
+            
+            <View style={styles.editorialSidePanel}>
+              <Text style={styles.editorialLabel}>SKU</Text>
+              <Text style={styles.editorialValue}>HDPN-V2</Text>
+              <Text style={styles.editorialLabel}>FIT</Text>
+              <Text style={styles.editorialValue}>TRUE</Text>
+              <Text style={styles.editorialLabel}>MODEL</Text>
+              <Text style={styles.editorialValue}>DIFFUSION-GAN</Text>
+            </View>
           </View>
-        </View>
-        
-        <View style={styles.editorialSidePanel}>
-          <Text style={styles.editorialLabel}>SKU</Text>
-          <Text style={styles.editorialValue}>HDPN-V2</Text>
-          <Text style={styles.editorialLabel}>FIT</Text>
-          <Text style={styles.editorialValue}>TRUE</Text>
-          <Text style={styles.editorialLabel}>MODEL</Text>
-          <Text style={styles.editorialValue}>DIFFUSION-GAN</Text>
-        </View>
-      </View>
 
-      <View style={styles.metricsBox}>
-        <Text style={styles.metricRow}>MODEL: <Text style={styles.highlight}>DIFFUSION-GAN</Text></Text>
-        <Text style={styles.metricRow}>USER DIMENSIONS: <Text style={styles.highlight}>MAPPED</Text></Text>
-        <Text style={styles.metricRow}>RETURN PROBABILITY: <Text style={styles.highlightGreen}>REDUCED TO 8%</Text></Text>
-      </View>
+          <View style={styles.metricsBox}>
+            <Text style={styles.metricRow}>MODEL: <Text style={styles.highlight}>DIFFUSION-GAN</Text></Text>
+            <Text style={styles.metricRow}>USER DIMENSIONS: <Text style={styles.highlight}>MAPPED</Text></Text>
+            <Text style={styles.metricRow}>RETURN PROBABILITY: <Text style={styles.highlightGreen}>REDUCED TO 8%</Text></Text>
+          </View>
 
-      <TouchableOpacity 
-        style={styles.actionButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Text style={styles.buttonText}>[ CONFIRM SIZE MATCH ]</Text>
-      </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.buttonText}>[ CONFIRM SIZE MATCH ]</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -86,6 +113,30 @@ const styles = StyleSheet.create({
   editorialGrid: {
     flexDirection: 'row',
     marginBottom: layout.padding * 2,
+  },
+  uploadState: {
+    borderWidth: layout.borderWidth,
+    borderColor: colors.border,
+    padding: layout.padding * 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderStyle: 'dashed',
+    marginBottom: layout.padding * 2,
+  },
+  uploadText: {
+    ...typography.mono,
+    color: colors.subtext,
+    textAlign: 'center',
+    marginBottom: layout.padding,
+  },
+  uploadButton: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+    padding: layout.padding,
+  },
+  uploadButtonText: {
+    ...typography.button,
+    color: colors.accent,
   },
   editorialSidePanel: {
     width: 80,
