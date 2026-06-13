@@ -44,9 +44,9 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 ## Phase 3: Financials & Escrow
 
 ### ☁️ Kavya (AWS State Management)
-- [ ] **Smart Escrow (Backend):** Implement the core escrow tracking logic and payment webhooks via AWS Lambda.
-- [ ] **Listing State Machine:** Define backend state flows (available -> reserved -> sold) in DynamoDB. (*Ref: `sharetribe/sharetribe`*)
-- [ ] **Digital Product Passport (DPP):** Setup the DPP schema in DynamoDB to append ownership history.
+- [x] **Smart Escrow (Backend):** Implement the core escrow tracking logic and payment webhooks via AWS Lambda.
+- [x] **Listing State Machine:** Define backend state flows (available -> reserved -> sold) in DynamoDB. (*Ref: `sharetribe/sharetribe`*)
+- [x] **Digital Product Passport (DPP):** Setup the DPP schema in DynamoDB to append ownership history.
 
 ### 🧠 Naman (Telemetry & ML Dashboards)
 - [ ] **Admin Telemetry Dashboard:** Clone the UI template for the Judge's Admin Panel. Wire it to visualize live system metrics (Restocking Capital Recaptured). (*Ref: `tremorlabs/tremor`*)
@@ -57,8 +57,8 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 ## Phase 4: Core AI Defect & Fraud Detection
 
 ### ☁️ Kavya (AWS Integrations)
-- [ ] **Verification Routing:** Update the AWS Lambda orchestrator to route images to Naman's ML endpoints and store the final AI grades in DynamoDB.
-- [ ] **Verification UI:** Build the basic "Inspection Results" summary card to display the AI findings.
+- [x] **Verification Routing:** Update the AWS Lambda orchestrator to route images to Naman's ML endpoints and store the final AI grades in DynamoDB.
+- [x] **Verification UI:** Build the basic "Inspection Results" summary card to display the AI findings.
 
 ### 🧠 Naman (Heavy ML Integrations)
 - [ ] **Damage Assessment:** Integrate **Amazon Bedrock (Nova Pro)** for Condition Grading and map grades to standard taxonomies.
@@ -72,8 +72,8 @@ This document breaks down the 5-Phase Execution Plan into parallel tracks for **
 ## Phase 5: Generative, Predictive & Advanced ML
 
 ### ☁️ Kavya (Final AWS Polish)
-- [ ] **End-to-End Orchestration:** Ensure all Step Functions and AWS Lambda triggers flow sequentially without failure.
-- [ ] **Final Polish:** Ensure all mobile responsiveness is perfect and the end-to-end demo flow runs seamlessly.
+- [x] **End-to-End Orchestration:** Ensure all Step Functions and AWS Lambda triggers flow sequentially without failure.
+- [x] **Final Polish:** Ensure all mobile responsiveness is perfect and the end-to-end demo flow runs seamlessly.
 
 ### 🧠 Naman (Advanced ML Models)
 - [ ] **VTO Engine (Full-Stack):** Implement the VTO backend and build the frontend component. **AESTHETIC MANDATE:** The VTO interface must be the 'Signature Element' of the app—use orchestrated CSS motion and an editorial layout, avoiding standard file-upload boxes.
