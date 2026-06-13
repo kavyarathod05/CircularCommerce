@@ -28,7 +28,6 @@ demand_model = DemandEngine()
 friction_model = PredictiveFrictionEngine()
 pricing_model = DynamicPricingEngine()
 fraud_model = SEFraudGNN()
-fraud_model.build_mock_graph()
 size_model = SizeRecommendationEngine()
 aws_ai = AWSAIIntegrations()
 vto_model = VirtualTryOnEngine()
@@ -37,18 +36,18 @@ vto_model = VirtualTryOnEngine()
 class DemandRequest(BaseModel):
     product_category: str
     product_price: float
-    candidate_ids: List[str]
+    user_geohash: str
 
 class FrictionRequest(BaseModel):
-    user_history: Dict[str, Any]
-    product_specs: Dict[str, Any]
+    user_id: str
+    product_id: str
     session_data: Dict[str, Any]
 
 class PricingRequest(BaseModel):
+    product_id: str
     original_price: float
     hours_on_market: float
     local_demand_score: float
-    competitor_prices: List[float]
 
 class VTORequest(BaseModel):
     user_image_base64: str
@@ -62,7 +61,7 @@ class NovaProRequest(BaseModel):
 @app.post("/api/v1/ml/demand/rank")
 def rank_demand(req: DemandRequest):
     """Phase 2: Local Demand Engine Algorithm"""
-    return {"status": "success", "data": demand_model.rank_buyers(req.product_category, req.product_price, req.candidate_ids)}
+    return {"status": "success", "data": demand_model.rank_buyers(req.product_category, req.product_price, req.user_geohash)}
 
 @app.post("/api/v1/ml/aws/inspect-condition")
 def inspect_condition(req: NovaProRequest):
@@ -82,12 +81,12 @@ def generate_vto(req: VTORequest):
 @app.post("/api/v1/ml/friction/evaluate")
 def evaluate_friction(req: FrictionRequest):
     """Phase 5: Predictive Friction / Return Probability"""
-    return {"status": "success", "data": friction_model.evaluate_checkout(req.user_history, req.product_specs, req.session_data)}
+    return {"status": "success", "data": friction_model.evaluate_checkout(req.user_id, req.product_id, req.session_data)}
 
 @app.post("/api/v1/ml/pricing/dynamic")
 def get_dynamic_price(req: PricingRequest):
     """Phase 5: GenAI Dynamic Pricing"""
-    return {"status": "success", "data": pricing_model.calculate_current_price(req.original_price, req.hours_on_market, req.local_demand_score, req.competitor_prices)}
+    return {"status": "success", "data": pricing_model.calculate_current_price(req.product_id, req.original_price, req.hours_on_market, req.local_demand_score)}
 
 @app.get("/api/v1/ml/fraud/trust-score/{user_id}")
 def get_trust_score(user_id: str):

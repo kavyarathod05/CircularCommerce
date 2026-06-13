@@ -3,13 +3,3 @@ node_modules/
 .gemini/
 antigravity-ide/
 *.log
-
-# Python cache and build files
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.pytest_cache/
-.venv/
-venv/
-env/

@@ -1,31 +1,61 @@
 import networkx as nx
+import boto3
+from boto3.dynamodb.conditions import Key, Attr
 
 class SEFraudGNN:
     """
     Heterogeneous Graph Neural Network (SEFraud) Stub
-    Detects multi-accounting, graph-based node overlaps, and calculates Trust Scores.
+    Detects multi-accounting, graph-based node overlaps, and calculates Trust Scores
+    by querying DynamoDB MatchesTable and ReturnsTable.
     """
-    def __init__(self):
-        # Create a mock graph representing users, devices, and payment methods
+    def __init__(self, region_name='us-east-1'):
+        self.dynamodb = boto3.resource('dynamodb', region_name=region_name)
+        self.matches_table = self.dynamodb.Table('MatchesTable')
+        self.returns_table = self.dynamodb.Table('ReturnsTable')
+        
+    def build_live_graph(self, target_user):
         self.graph = nx.Graph()
         
-    def build_mock_graph(self):
-        self.graph.add_node('U1', type='user', trust_score=80)
-        self.graph.add_node('U2', type='user', trust_score=30)
-        self.graph.add_node('D1', type='device')
-        self.graph.add_node('P1', type='payment')
+        # Add target user
+        self.graph.add_node(target_user, type='user', trust_score=100)
         
-        # U1 and U2 share the same device and payment method (Suspicious!)
-        self.graph.add_edge('U1', 'D1')
-        self.graph.add_edge('U2', 'D1')
-        self.graph.add_edge('U1', 'P1')
-        self.graph.add_edge('U2', 'P1')
+        try:
+            # Query returns for the target user to find IPs or Devices
+            # Assuming ReturnsTable has an index 'UserId-index' and attributes DeviceId/IP
+            ret_res = self.returns_table.query(
+                IndexName='UserId-index',
+                KeyConditionExpression=Key('UserId').eq(target_user)
+            )
+            for item in ret_res.get('Items', []):
+                device = item.get('DeviceId')
+                ip = item.get('IPAddress')
+                if device:
+                    self.graph.add_node(device, type='device')
+                    self.graph.add_edge(target_user, device)
+                if ip:
+                    self.graph.add_node(ip, type='ip')
+                    self.graph.add_edge(target_user, ip)
+                    
+            # Scan matches or returns to find others sharing the same device/ip
+            # (In a real scenario, use an inverted index, here we just do a limited scan)
+            scan_res = self.returns_table.scan(Limit=100)
+            for item in scan_res.get('Items', []):
+                uid = item.get('UserId')
+                if not uid or uid == target_user: continue
+                
+                device = item.get('DeviceId')
+                if device and device in self.graph:
+                    self.graph.add_node(uid, type='user', trust_score=int(item.get('TrustScore', 50)))
+                    self.graph.add_edge(uid, device)
+        except Exception as e:
+            print(f"Warning: Failed to build graph from DynamoDB: {e}")
         
     def evaluate_trust_score(self, target_user):
         """
-        Evaluates trust score based on graph connectivity.
+        Evaluates trust score based on graph connectivity using live data.
         If a user shares device/payment with a low-trust user, their score drops.
         """
+        self.build_live_graph(target_user)
         if target_user not in self.graph:
             return 100 # Default new user score
             
@@ -52,6 +82,5 @@ class SEFraudGNN:
 
 if __name__ == "__main__":
     gnn = SEFraudGNN()
-    gnn.build_mock_graph()
-    print("Evaluating User 1 (connected to User 2 who has low trust):")
-    print(gnn.evaluate_trust_score('U1'))
+    print("Evaluating User 12:")
+    print(gnn.evaluate_trust_score('usr-12'))

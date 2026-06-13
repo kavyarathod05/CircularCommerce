@@ -81,7 +81,7 @@ def test_ml_microservice():
     demand_payload = {
         "product_category": "electronics",
         "product_price": 7900.0,
-        "candidate_ids": ["usr-buyer1", "usr-buyer2"]
+        "user_geohash": "gcpvj"
     }
     status, headers, body = run_http_request(f"{ML_API_BASE}/api/v1/ml/demand/rank", "POST", data=demand_payload)
     print_result("ML", "Local Demand Ranking (/api/v1/ml/demand/rank)", status, body)
@@ -102,8 +102,8 @@ def test_ml_microservice():
     
     # 6. Predictive Friction
     friction_payload = {
-        "user_history": {"returns_count": 4},
-        "product_specs": {"size": "L"},
+        "user_id": "usr-12",
+        "product_id": "p-smartphone",
         "session_data": {"dwell_time_seconds": 120}
     }
     status, headers, body = run_http_request(f"{ML_API_BASE}/api/v1/ml/friction/evaluate", "POST", data=friction_payload)
@@ -111,10 +111,10 @@ def test_ml_microservice():
     
     # 7. Dynamic Pricing
     pricing_payload = {
+        "product_id": "p-smartphone",
         "original_price": 5000.0,
         "hours_on_market": 48.0,
-        "local_demand_score": 0.8,
-        "competitor_prices": [4800.0, 4900.0]
+        "local_demand_score": 0.8
     }
     status, headers, body = run_http_request(f"{ML_API_BASE}/api/v1/ml/pricing/dynamic", "POST", data=pricing_payload)
     print_result("ML", "GenAI Dynamic Pricing (/api/v1/ml/pricing/dynamic)", status, body)
