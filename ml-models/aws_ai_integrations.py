@@ -16,19 +16,34 @@ class AWSAIIntegrations:
     def inspect_product_condition_nova_pro(self, image_bytes_list):
         """
         Damage Assessment: Integrate Amazon Bedrock (Nova Pro) for Condition Grading
+        Maps grades to eBay standard taxonomies.
         """
         print("[MOCK API CALL] Invoking Amazon Nova Pro for Multimodal Damage Assessment...")
+        
+        # eBay Taxonomy Mapping
+        # 1000: New, 1500: New other, 2000: Certified Refurbished, 2500: Seller refurbished, 
+        # 2750: Like New, 3000: Used, 7000: For parts or not working
+        ebay_condition_id = 3000 
+        ebay_condition_name = "Used"
         
         # Simulated response from Nova Pro based on the System Prompt in the architecture
         mock_response = {
             "grade": "B",
+            "ebayConditionId": ebay_condition_id,
+            "ebayConditionName": ebay_condition_name,
             "gradeReasoning": "Minor cosmetic scratch on the left panel, packaging is intact.",
             "damages": [
                 {
                     "type": "scratch",
                     "severity": 3,
-                    "location": "left_panel",
-                    "description": "2cm surface scratch"
+                    "description": "2cm surface scratch",
+                    "boundingBox": {
+                        # Coordinates relative to image width/height (0.0 to 1.0)
+                        "xmin": 0.40,
+                        "ymin": 0.20,
+                        "xmax": 0.55,
+                        "ymax": 0.45
+                    }
                 }
             ],
             "packagingCondition": "Original packaging, undamaged",
