@@ -1,76 +1,80 @@
 # Hackathon Team Execution Checklist
 
-This document breaks down the 5-Phase Execution Plan into parallel, full-stack tracks for **Kavya** and **Naman**. The workload is distributed gracefully so that both members contribute to the frontend UI and backend logic, avoiding bottlenecks. 
+This document breaks down the 5-Phase Execution Plan into parallel tracks for **Kavya** and **Naman**, strictly divided by domain expertise.
 
-*   **Naman's Focus:** Core Infrastructure, Spatial/Matching Engine, Heavy ML Models (VTO, Vision, Pricing), and their associated complex UI components.
-*   **Kavya's Focus:** Telemetry & Dashboards, Fraud/Friction Flows, Compliance & Sustainability logic, and the Core Return UX.
+*   **Kavya's Focus (AWS & Infrastructure):** All AWS services (Lambda, DynamoDB, API Gateway, Location Service), the core Go routing backend, data persistence, and foundational infrastructure.
+*   **Naman's Focus (Machine Learning & AI):** All AI/ML models (Amazon Bedrock, Nova Pro, Rekognition, VTO Models, Predictive Friction, Dynamic Pricing, GNNs) and integrating these ML outputs into the client UI.
 
 ---
 
 ## Phase 1: Foundation & Core Workflows
 
-### 💻 Naman
-- [ ] **Infrastructure Setup:** Initialize Git monorepo and deploy base AWS infrastructure (CDK or SAM) for DynamoDB, API Gateway, and Lambda. (*Ref: `aws-samples/serverless-patterns`*)
-- [ ] **Frontend Initialization:** Initialize React Native App and the base eCommerce UI shell. (*Ref: `vercel/commerce`, `shadcn-ui/ui`*)
-- [ ] **Core Backend (Go):** Deploy the foundational Return Intercept Engine (AWS Lambda) and setup DynamoDB tables.
-- [ ] **Device Security (Full-Stack):** Implement secure live-capture camera access on the frontend and the device fingerprinting hash verification on the backend.
+### ☁️ Kavya (AWS & Core Backend)
+- [ ] **Infrastructure Setup:** Deploy base AWS infrastructure (CDK or SAM) for DynamoDB, API Gateway, and Lambda. (*Ref: `aws-samples/serverless-patterns`*)
+- [ ] **Core Backend (Go):** Deploy the foundational Return Intercept Engine (AWS Lambda) and setup DynamoDB tables (Listings, Orders, Returns, Matches).
+- [ ] **Margin Triage Gateway:** Write the AWS Lambda logic evaluating the item's MSRP to branch the workflow (Premium vs. Commodity).
+- [ ] **Return Flow (Backend):** Wire the API Gateway to handle Media uploads and device hash ingestion.
+- [ ] **Basic Compliance:** Setup the AWS data pipelines for the Scope-3 Carbon Tracker logging.
 
-### 🎨 Kavya
-- [ ] **Return Flow (UI & API):** Build the Return Request flow wizard on the frontend (Media upload screens, reason selection) and wire it to the API Gateway.
-- [ ] **Margin Triage Gateway (Backend):** Write the logic layer in the Lambda backend that evaluates the item's MSRP upon ingestion to branch the workflow (Premium vs. Commodity).
-- [ ] **Basic Compliance (Full-Stack):** Build the baseline Scope-3 Carbon Tracker UI and write the basic distance math for initial Analytics logging. (*Ref: `thegreenwebfoundation/co2.js`*)
+### 🧠 Naman (Frontend & Pre-ML Setup)
+- [ ] **Frontend Initialization:** Initialize React Native App and the base eCommerce UI shell. (*Ref: `vercel/commerce`, `shadcn-ui/ui`*)
+- [ ] **Return Flow (UI):** Build the Return Request flow wizard on the frontend (Media upload screens).
+- [ ] **Device Security (Client):** Implement secure live-capture camera access on the mobile device for later Liveness verification.
 
 ---
 
 ## Phase 2: Spatial Logistics & Matching
 
-### 💻 Naman
-- [ ] **Spatial Data Indexing:** Implement the DynamoDB Geo Library and translate user coordinates into 64-bit Geohashes.
-- [ ] **Demand Engine:** Build the Local Demand Engine to execute radius queries (`$geoWithin`) and rank candidate buyers. (*Ref: `microsoft/recommenders`*)
-- [ ] **Transit Routing:** Integrate Amazon Location Service (Route Matrix API) to calculate actual travel times and distances.
+### ☁️ Kavya (AWS Spatial & Routing)
+- [ ] **Spatial Data Indexing:** Implement the DynamoDB Geo Library.
+- [ ] **Geohash Integration:** Translate user coordinates into 64-bit Geohashes and store them in a DynamoDB Local Secondary Index.
+- [ ] **Transit Routing:** Integrate **Amazon Location Service** (Route Matrix API) via Lambda to calculate actual travel times and distances.
+- [ ] **Commodity Fallback:** Build the backend queries to locate the nearest Amazon Locker (< 5km) or trigger "Keep & Credit".
 
-### 🎨 Kavya
-- [ ] **ETA Optimization (UI):** Consume Naman's Route Matrix API data to visualize the optimal P2P route on the client. (*Ref: `mapbox/mapbox-gl-js`*)
-- [ ] **Commodity Fallback (Full-Stack):** Build the backend logic to locate the nearest Amazon Locker (< 5km) and the corresponding frontend UI directing users to Lockers or notifying them of "Keep & Credit".
+### 🧠 Naman (Algorithmic Demand & UI)
+- [ ] **Demand Engine:** Build the Local Demand Engine algorithms to rank candidate buyers based on content collaborative filtering. (*Ref: `microsoft/recommenders`*)
+- [ ] **ETA Optimization (UI):** Consume Kavya's Route Matrix API data to visualize the optimal P2P route on the client. (*Ref: `mapbox/mapbox-gl-js`*)
 - [ ] **Location Clusters (UI):** Implement cluster maps for the admin logistics views. (*Ref: `Leaflet/Leaflet`*)
 
 ---
 
 ## Phase 3: Financials & Escrow
 
-### 💻 Naman
-- [ ] **Smart Escrow (Full-Stack):** Implement Smart Escrow backend logic to capture secondary buyer funds and build the payment checkout UI.
-- [ ] **Listing State Machine:** Define backend state flows (available -> reserved -> sold) to release funds upon verified delivery. (*Ref: `sharetribe/sharetribe`*)
+### ☁️ Kavya (AWS State Management)
+- [ ] **Smart Escrow (Backend):** Implement the core escrow tracking logic and payment webhooks via AWS Lambda.
+- [ ] **Listing State Machine:** Define backend state flows (available -> reserved -> sold) in DynamoDB. (*Ref: `sharetribe/sharetribe`*)
+- [ ] **Digital Product Passport (DPP):** Setup the DPP schema in DynamoDB to append ownership history.
 
-### 🎨 Kavya
-- [ ] **Digital Product Passport (DPP):** Setup the DPP schema in DynamoDB to append ownership history, and display the DPP trail on the user dashboard.
-- [ ] **Admin Telemetry Dashboard (UI):** Clone the UI template for the Judge's Admin Panel. Wire it to visualize live system metrics (Restocking Capital Recaptured, Active Intercept Efficiency). (*Ref: `tremorlabs/tremor`*)
-- [ ] **Carbon Visualizers (UI):** Build the visual blocks representing trees planted and vehicle-distance equivalence. (*Ref: `climateiq/climateiq-frontend`*)
+### 🧠 Naman (Telemetry & ML Dashboards)
+- [ ] **Admin Telemetry Dashboard:** Clone the UI template for the Judge's Admin Panel. Wire it to visualize live system metrics (Restocking Capital Recaptured). (*Ref: `tremorlabs/tremor`*)
+- [ ] **Carbon Visualizers:** Build the visual blocks representing trees planted and vehicle-distance equivalence. (*Ref: `climateiq/climateiq-frontend`*)
 
 ---
 
 ## Phase 4: Core AI Defect & Fraud Detection
 
-### 💻 Naman
-- [ ] **Damage Assessment (ML APIs):** Integrate Amazon Nova Pro via Bedrock for Condition Grading and map grades to standard taxonomies. (*Ref: `openai/openai-cookbook`, `eBay/ebay-sdk-python`*)
-- [ ] **Product Verification (ML APIs):** Set up Bedrock Knowledge Bases (Nova Embeddings) for Cross-Modal Swapped Goods detection.
-- [ ] **Deepfake Detection (ML APIs):** Utilize Rekognition to check uploaded media for GAN Artifacts and pixel tampering.
+### ☁️ Kavya (AWS Integrations)
+- [ ] **Verification Routing:** Update the AWS Lambda orchestrator to route images to Naman's ML endpoints and store the final AI grades in DynamoDB.
+- [ ] **Verification UI:** Build the basic "Inspection Results" summary card to display the AI findings.
 
-### 🎨 Kavya
-- [ ] **Liveness Check (Full-Stack):** Build the Liveness Check camera recording UI wrapper and integrate the Amazon Rekognition Face Liveness backend calls.
-- [ ] **Bounding Boxes (UI):** Extract defect coordinates from Naman's Nova Pro API response and draw bounding boxes on the frontend images using HTML5 Canvas. (*Ref: `ultralytics/ultralytics`*)
-- [ ] **Verification UI:** Build the "Inspection Results" summary card to display the AI findings to the user.
+### 🧠 Naman (Heavy ML Integrations)
+- [ ] **Damage Assessment:** Integrate **Amazon Bedrock (Nova Pro)** for Condition Grading and map grades to standard taxonomies.
+- [ ] **Product Verification:** Set up **Bedrock Knowledge Bases (Nova Embeddings)** for Cross-Modal Swapped Goods detection.
+- [ ] **Liveness Check:** Integrate **Amazon Rekognition Face Liveness** API calls.
+- [ ] **Deepfake Detection:** Utilize **Amazon Rekognition** to check uploaded media for GAN Artifacts and pixel tampering.
+- [ ] **Bounding Boxes (UI):** Extract defect coordinates from the Nova Pro API response and draw bounding boxes on the frontend images using HTML5 Canvas. (*Ref: `ultralytics/ultralytics`*)
 
 ---
 
 ## Phase 5: Generative, Predictive & Advanced ML
 
-### 💻 Naman
-- [ ] **VTO Engine (Full-Stack):** Implement the Virtual Try-On (VTO) backend module (diffusion models/GANs) AND build the frontend component for users to upload their photo and view the result.
-- [ ] **Dynamic Pricing (ML APIs):** Deploy the GenAI Dynamic Pricing engine to execute demand-aware discounts.
-- [ ] **Network Fraud (ML APIs):** Implement Heterogeneous GNNs (SEFraud) to detect multi-accounting and calculate Trust Scores.
+### ☁️ Kavya (Final AWS Polish)
+- [ ] **End-to-End Orchestration:** Ensure all Step Functions and AWS Lambda triggers flow sequentially without failure.
+- [ ] **Final Polish:** Ensure all mobile responsiveness is perfect and the end-to-end demo flow runs seamlessly.
 
-### 🎨 Kavya
-- [ ] **Size Recommendation (Full-Stack):** Deploy the AI Size Recommendation model (RF, KNN, CNN, XGBoost) endpoint and build the sizing UI component.
-- [ ] **Predictive Friction (Full-Stack):** Set up the backend to serve predictive return probability scores. Build the frontend listener to monitor session dwell time, injecting the dynamic "Size Match" modal to pause checkout if flagged. (*Ref: `GiorgiModebadze/Customer-returns-prediction`, `gurbaaz27/amazon-hackathon`*)
-- [ ] **Final Polish:** Ensure all mobile responsiveness is perfect and the end-to-end demo flow runs seamlessly across both of your features.
+### 🧠 Naman (Advanced ML Models)
+- [ ] **VTO Engine (Full-Stack):** Implement the Virtual Try-On (VTO) module (diffusion models/GANs) and build the frontend upload component.
+- [ ] **Size Recommendation (ML):** Deploy the AI Size Recommendation model (RF, KNN, CNN, XGBoost).
+- [ ] **Predictive Friction (ML):** Generate predictive return probability scores. Build the frontend listener to monitor session dwell time and inject the dynamic "Size Match" modal. (*Ref: `GiorgiModebadze/Customer-returns-prediction`*)
+- [ ] **Dynamic Pricing (ML):** Deploy the GenAI Dynamic Pricing engine to execute demand-aware discounts.
+- [ ] **Network Fraud (ML):** Implement Heterogeneous GNNs (SEFraud) to detect multi-accounting and calculate Trust Scores.
