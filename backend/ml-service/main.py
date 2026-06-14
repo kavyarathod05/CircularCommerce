@@ -12,9 +12,12 @@ from dynamic_pricing import DynamicPricingEngine
 from network_fraud import SEFraudGNN
 from size_recommendation import SizeRecommendationEngine
 from gemini_ai_integrations import GeminiAIIntegrations
+from aws_ai_integrations import AWSAIIntegrations
+from hf_ai_integrations import HuggingFaceIntegrations
 from vto_engine import VirtualTryOnEngine
 from nsga2_routing import NSGA2Router
 from fleet_optimizer import SustainableFleetOptimizer
+from unit_inventory import UnitInventoryEngine
 
 app = FastAPI(title="SecondLife Commerce - Naman ML Microservice")
 
@@ -45,6 +48,7 @@ hf_ai = HuggingFaceIntegrations()
 vto_model = VirtualTryOnEngine()
 nsga2_router = NSGA2Router()
 fleet_opt = SustainableFleetOptimizer()
+unit_inventory_model = UnitInventoryEngine()
 
 # --- Request Models ---
 class DemandRequest(BaseModel):
@@ -420,6 +424,11 @@ def optimize_fleet(req: FleetRequest):
     nodes, depot = fleet_opt.generate_scenario(req.num_orders)
     result = fleet_opt.optimize(nodes, depot, req.cost_weight, req.emission_weight, req.ga_generations)
     return {"status": "success", "data": result}
+
+@app.get("/api/v1/inventory/units")
+def get_inventory_units():
+    units = unit_inventory_model.get_all_units()
+    return {"status": "success", "data": units}
 
 # AWS Lambda Handler
 handler = Mangum(app)

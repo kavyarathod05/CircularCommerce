@@ -5,8 +5,9 @@ echo ========================================================
 
 cd backend\ml-service
 
-echo Checking and installing Python dependencies...
-pip install -r requirements.txt
+echo Setting up Python Environment and installing dependencies...
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 
 echo.
 echo [1/2] Starting Unified ML FastAPI Server (Port 8000)...

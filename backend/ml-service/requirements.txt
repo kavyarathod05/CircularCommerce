@@ -12,3 +12,10 @@ mangum
 python-socketio[asgi]
 ortools
 requests
+google-generativeai
+huggingface_hub
+Pillow
+python-dotenv
+python-multipart
+torch
+transformers
