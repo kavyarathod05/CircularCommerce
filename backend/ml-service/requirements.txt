@@ -12,3 +12,6 @@ mangum
 python-socketio[asgi]
 ortools
 requests
+google-generativeai
+huggingface_hub
+Pillow
