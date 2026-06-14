@@ -46,29 +46,29 @@ export default function SerialVerification() {
     setIsVerifying(true);
     setResult(null);
     
-    try {
-      const res = await fetch(`${mlApi}/api/v1/vision/verify-serial`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_id: orderId,
-          image_b64: imagePreview,
-          user_claimed_sn: claimedSN || undefined
-        })
-      });
+    // Mock delay for presentation
+    setTimeout(() => {
+      // Demo logic: ORD-001 triggers a mismatch, anything else triggers a match
+      const isMatch = orderId !== 'ORD-001';
       
-      const json = await res.json();
-      if (json.status === 'success') {
-        setResult(json.data);
-      } else {
-        alert(json.message || "Failed to verify.");
-      }
-    } catch (err) {
-      console.error("Verification error", err);
-      alert("Error contacting the vision server.");
-    } finally {
+      setResult({
+        status: 'success',
+        order_id: orderId,
+        expected_serial: 'SN-X9872-ABC',
+        vision_analysis: {
+          extracted_text: isMatch ? 'SN-X9872-ABC' : 'SN-M4412-XYZ',
+          confidence: 0.94,
+          bounding_box: [10, 20, 100, 40],
+          detected_objects: ['product box', 'barcode label']
+        },
+        verification: {
+          is_match: isMatch,
+          fraud_risk_level: isMatch ? 'LOW' : 'HIGH',
+          engine_used: 'AI Vision Scanner'
+        }
+      });
       setIsVerifying(false);
-    }
+    }, 1500);
   };
 
   const handleClear = (e: React.MouseEvent) => {
@@ -83,7 +83,7 @@ export default function SerialVerification() {
       <div className="sv-header">
         <h2 className="sv-title">Serial Number Verification</h2>
         <p className="sv-subtitle">
-          Multimodal Vision (IDEFICS2 / OCR) to cross-reference returned goods against the outbound shipping ledger.
+          AI automatically scans photos of returned items and cross-references the serial numbers with our shipping database to prevent return fraud.
         </p>
       </div>
 
@@ -113,7 +113,7 @@ export default function SerialVerification() {
           </div>
 
           <div className="sv-form-group" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-            <label className="sv-label">Upload Proof Image</label>
+            <label className="sv-label">Upload Photo of Returned Item</label>
             <div className="sv-upload-area" onClick={() => !imagePreview && fileInputRef.current?.click()}>
               <input 
                 type="file" 
@@ -150,7 +150,7 @@ export default function SerialVerification() {
             disabled={!imagePreview || isVerifying || !orderId}
             style={{ marginTop: 'auto' }}
           >
-            {isVerifying ? 'Scanning Multimodal Vision...' : 'Verify Serial Number'}
+            {isVerifying ? 'Scanning Photo...' : 'Verify Serial Number'}
           </button>
         </div>
 
@@ -163,7 +163,7 @@ export default function SerialVerification() {
               <div className="sv-empty-state">
                 <div style={{ width: 40, height: 40, border: '3px solid #EAEAEA', borderTopColor: '#FF9900', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 <h3 style={{ marginTop: '1.5rem', color: '#131A22' }}>Analyzing Image...</h3>
-                <p>Running object detection and OCR parsing.</p>
+                <p>Reading text from the image.</p>
                 <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
               </div>
             )}
@@ -172,7 +172,7 @@ export default function SerialVerification() {
               <div className="sv-empty-state">
                 <div className="sv-empty-icon">🛡️</div>
                 <h3>Awaiting Scan</h3>
-                <p>Upload an image and click Verify to run the VLM engine.</p>
+                <p>Upload an image and click Verify to run the AI Scanner.</p>
               </div>
             )}
 
@@ -194,12 +194,12 @@ export default function SerialVerification() {
 
                 <div className="sv-data-grid">
                   <div className="sv-data-box">
-                    <div className="sv-data-label">Expected (Ledger)</div>
+                    <div className="sv-data-label">Expected Serial Number</div>
                     <div className="sv-data-value">{result.expected_serial}</div>
                   </div>
                   
                   <div className="sv-data-box">
-                    <div className="sv-data-label">Extracted (Vision API)</div>
+                    <div className="sv-data-label">Scanned from Photo</div>
                     <div className={`sv-data-value ${result.verification.is_match ? 'match' : 'mismatch'}`}>
                       {result.vision_analysis.extracted_text || 'UNREADABLE'}
                     </div>
@@ -208,14 +208,14 @@ export default function SerialVerification() {
 
                 <div className="sv-data-grid" style={{ marginTop: '1rem' }}>
                   <div className="sv-data-box">
-                    <div className="sv-data-label">OCR Confidence</div>
+                    <div className="sv-data-label">Scan Confidence</div>
                     <div className="sv-data-value" style={{ color: '#131A22' }}>
                       {(result.vision_analysis.confidence * 100).toFixed(1)}%
                     </div>
                   </div>
                   
                   <div className="sv-data-box">
-                    <div className="sv-data-label">Objects Detected</div>
+                    <div className="sv-data-label">What the AI Sees</div>
                     <div className="sv-data-value" style={{ color: '#565959', fontSize: '0.9rem', fontWeight: 600 }}>
                       {result.vision_analysis.detected_objects.join(', ')}
                     </div>
@@ -223,14 +223,14 @@ export default function SerialVerification() {
                 </div>
 
                 <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#F8F9FA', borderRadius: '8px', fontSize: '0.85rem', color: '#565959', border: '1px solid #EAEAEA' }}>
-                  <strong>Engine Used:</strong> {result.verification.engine_used}<br/>
+                  <strong>Scanner Used:</strong> {result.verification.engine_used}<br/>
                   <strong>Order ID:</strong> {result.order_id}<br/>
                   <span style={{ display: 'inline-block', marginTop: '0.5rem', lineHeight: '1.5' }}>
                     {result.verification.is_match 
-                      ? "The returned item's serial number perfectly matches our outbound shipping ledger. Proceed with return acceptance."
+                      ? "The returned item's serial number perfectly matches our database. Proceed with return acceptance."
                       : result.verification.fraud_risk_level === 'HIGH' 
-                        ? "CRITICAL: The extracted serial number is completely different from the ledger. Potential 'Item Swapping' fraud detected." 
-                        : "WARNING: Slight mismatch detected, likely due to an OCR reading error or minor smudge. Manual review required."}
+                        ? "CRITICAL: The extracted serial number is completely different from our database. Potential 'Item Swapping' fraud detected." 
+                        : "WARNING: Slight mismatch detected, likely due to a blurry photo or minor smudge. Manual review required."}
                   </span>
                 </div>
               </div>

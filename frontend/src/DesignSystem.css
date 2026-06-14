@@ -44,7 +44,9 @@
   padding: 2rem;
   font-family: 'Inter', -apple-system, sans-serif;
   max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .ds-panel {

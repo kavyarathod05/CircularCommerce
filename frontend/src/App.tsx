@@ -46,16 +46,11 @@ interface ListingRecord {
   grade: string
   escrowStatus: string
   status: 'available' | 'reserved' | 'sold' | 'disputed' | 'removed'
-  currentPrice?: number
-  discountApplied?: number
-  isFlashDeal?: boolean
-  recommendedSize?: string
-  certificateUrl?: string
   image?: string
 }
 
 function App() {
-  const [userRole, setUserRole] = useState<'buyer' | 'seller' | null>(null)
+  const [userRole, setUserRole] = useState<'buyer' | 'seller' | 'admin' | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
   const activeTab = (location.pathname.replace('/', '') || 'catalog') as any
@@ -467,7 +462,7 @@ function App() {
                 <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'result' ? '#FFF5E5' : 'transparent', color: activeTab === 'result' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'result' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('result')}>Return Status</button>
 
                 <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Logistics</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'logistics' ? '#FFF5E5' : 'transparent', color: activeTab === 'logistics' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'logistics' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('logistics')}>🛰️ Live Tracking</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'logistics' ? '#FFF5E5' : 'transparent', color: activeTab === 'logistics' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'logistics' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('logistics')}>📦 Track Orders</button>
 
                 <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Settings</div>
                 <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'account' ? '#FFF5E5' : 'transparent', color: activeTab === 'account' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'account' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('account')}>Your Account</button>
@@ -476,28 +471,31 @@ function App() {
             {userRole === 'seller' && (
               <>
                 <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Dashboard</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'admin' ? '#FFF5E5' : 'transparent', color: activeTab === 'admin' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'admin' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('admin')}>Seller Workspace</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'result' ? '#FFF5E5' : 'transparent', color: activeTab === 'result' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'result' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('result')}>Processing Logs</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'inventory' ? '#FFF5E5' : 'transparent', color: activeTab === 'inventory' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'inventory' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('inventory')}>📦 Unit Inventory</button>
-                
-                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Logistics</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'logistics' ? '#FFF5E5' : 'transparent', color: activeTab === 'logistics' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'logistics' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('logistics')}>🛰️ Fleet Telemetry</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'nsga2' ? '#FFF5E5' : 'transparent', color: activeTab === 'nsga2' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'nsga2' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('nsga2')}>🧬 NSGA-II Routing</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'routing' ? '#FFF5E5' : 'transparent', color: activeTab === 'routing' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'routing' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('routing')}>🌱 Sustainable Fleet</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'admin' ? '#FFF5E5' : 'transparent', color: activeTab === 'admin' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'admin' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('admin')}>Sell an Item</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'result' ? '#FFF5E5' : 'transparent', color: activeTab === 'result' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'result' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('result')}>Quality Checks</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'inventory' ? '#FFF5E5' : 'transparent', color: activeTab === 'inventory' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'inventory' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('inventory')}>My Inventory</button>
+              </>
+            )}
+            {userRole === 'admin' && (
+              <>
+                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Delivery Operations</div>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'logistics' ? '#FFF5E5' : 'transparent', color: activeTab === 'logistics' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'logistics' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('logistics')}>Live Delivery Map</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'nsga2' ? '#FFF5E5' : 'transparent', color: activeTab === 'nsga2' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'nsga2' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('nsga2')}>Route Optimization</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'routing' ? '#FFF5E5' : 'transparent', color: activeTab === 'routing' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'routing' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('routing')}>Green Deliveries</button>
 
-                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Security</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'fraud' ? '#FFF5E5' : 'transparent', color: activeTab === 'fraud' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'fraud' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('fraud')}>Fraud Investigations</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'serial' ? '#FFF5E5' : 'transparent', color: activeTab === 'serial' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'serial' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('serial')}>Serial Verification</button>
+                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Trust & Safety</div>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'fraud' ? '#FFF5E5' : 'transparent', color: activeTab === 'fraud' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'fraud' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('fraud')}>Fraud Monitor</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'serial' ? '#FFF5E5' : 'transparent', color: activeTab === 'serial' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'serial' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('serial')}>Authenticity Checks</button>
               </>
             )}
           </div>
           
           <div className="user-profile-btn" style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: '8px', backgroundColor: '#F8F9FA', cursor: 'pointer', border: '1px solid #EAEAEA' }} onClick={() => setUserRole(null)}>
             <div className="user-avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#131A22', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-              {userRole === 'buyer' ? 'B' : 'S'}
+              {userRole === 'buyer' ? 'B' : userRole === 'seller' ? 'S' : 'A'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#131A22' }}>{userRole === 'buyer' ? 'Buyer Persona' : 'Seller Persona'}</span>
+              <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#131A22' }}>{userRole === 'buyer' ? 'Buyer Persona' : userRole === 'seller' ? 'Seller Persona' : 'Admin Persona'}</span>
               <span style={{ fontSize: '0.75rem', color: '#879596' }}>Switch Role</span>
             </div>
           </div>
@@ -523,11 +521,19 @@ function App() {
               </button>
               <button 
                 className="btn-action" 
-                style={{ padding: '2.5rem', borderRadius: '12px', fontSize: '1.25rem', width: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', backgroundColor: '#131A22', border: '2px solid #131A22', color: '#FFFFFF', cursor: 'pointer', transition: 'transform 0.2s, boxShadow 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                style={{ padding: '2.5rem', borderRadius: '12px', fontSize: '1.25rem', width: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', backgroundColor: '#FFFFFF', border: '2px solid var(--amazon-orange, #FF9900)', color: '#131A22', cursor: 'pointer', transition: 'transform 0.2s, boxShadow 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
                 onClick={() => { setUserRole('seller'); setActiveTab('admin'); }}
               >
                 <span style={{ fontSize: '4rem' }}>📦</span>
                 <span style={{ fontWeight: 'bold' }}>I am a Seller</span>
+              </button>
+              <button 
+                className="btn-action" 
+                style={{ padding: '2.5rem', borderRadius: '12px', fontSize: '1.25rem', width: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', backgroundColor: '#131A22', border: '2px solid #131A22', color: '#FFFFFF', cursor: 'pointer', transition: 'transform 0.2s, boxShadow 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                onClick={() => { setUserRole('admin'); setActiveTab('logistics'); }}
+              >
+                <span style={{ fontSize: '4rem' }}>🛡️</span>
+                <span style={{ fontWeight: 'bold' }}>Amazon Admin</span>
               </button>
             </div>
           </section>
@@ -556,7 +562,8 @@ function App() {
                   <div key={idx} className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', backgroundColor: '#FFF', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA' }}>
                     <div style={{ height: '220px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: '8px', overflow: 'hidden' }}>
                       <img src={
-                        item.productId.includes('iPhone') || item.productId.includes('smartphone') ? 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500' :
+                        item.productId.includes('iPhone') || item.productId.includes('smartphone') ? 
+                          ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500', 'https://images.unsplash.com/photo-1598327105666-5b89351cb31b?w=500', 'https://images.unsplash.com/photo-1533228100845-08145b01de14?w=500'][idx % 3] :
                         item.productId.includes('Jacket') ? 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500' :
                         item.productId.includes('Hoodie') || item.productId.includes('Shirt') ? 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500' :
                         item.productId.includes('Jeans') ? 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500' :
@@ -1246,12 +1253,12 @@ function App() {
         )}
 
         {/* FRAUD INVESTIGATIONS VIEW */}
-        {userRole === 'seller' && activeTab === 'fraud' && (
+        {userRole === 'admin' && activeTab === 'fraud' && (
           <section className="view-section" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <h2 style={{ marginBottom: '1.5rem', fontSize: '1.8rem', color: '#131A22' }}>Fraud Investigations (SEFraudGNN)</h2>
+            <h2 style={{ marginBottom: '1.5rem', fontSize: '1.8rem', color: '#131A22' }}>Fraud Monitor</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(350px, 1fr)', gap: '2rem', alignItems: 'start' }}>
               <div className="panel" style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA' }}>
-                <h3 style={{ fontSize: '1.2rem', margin: '0 0 1.5rem 0', color: '#131A22' }}>Return Network Topology</h3>
+                <h3 style={{ fontSize: '1.2rem', margin: '0 0 1.5rem 0', color: '#131A22' }}>Suspicious Account Networks</h3>
                 <div style={{ height: '400px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #EAEAEA', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
                    {/* Mock graph visualization */}
                    <svg width="100%" height="100%" viewBox="0 0 400 400">
@@ -1436,22 +1443,22 @@ function App() {
         )}
 
         {/* LOGISTICS TELEMETRY VIEW */}
-        {userRole && activeTab === 'logistics' && (
-          <LogisticsTelemetry />
+        {(userRole === 'buyer' || userRole === 'admin') && activeTab === 'logistics' && (
+          <LogisticsTelemetry role={userRole} />
         )}
 
         {/* SUSTAINABLE FLEET OPTIMIZER VIEW */}
-        {userRole && activeTab === 'routing' && (
+        {userRole === 'admin' && activeTab === 'routing' && (
           <FleetOptimizer />
         )}
 
         {/* NSGA-II ROUTE OPTIMIZER VIEW */}
-        {userRole && activeTab === 'nsga2' && (
+        {userRole === 'admin' && activeTab === 'nsga2' && (
           <RouteOptimizer />
         )}
 
         {/* MULTIMODAL SERIAL VERIFICATION VIEW */}
-        {userRole && activeTab === 'serial' && (
+        {userRole === 'admin' && activeTab === 'serial' && (
           <SerialVerification />
         )}
 

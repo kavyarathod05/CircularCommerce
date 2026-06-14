@@ -13,6 +13,8 @@ from network_fraud import SEFraudGNN
 from size_recommendation import SizeRecommendationEngine
 from gemini_ai_integrations import GeminiAIIntegrations
 from vto_engine import VirtualTryOnEngine
+from nsga2_routing import NSGA2Router
+from fleet_optimizer import SustainableFleetOptimizer
 
 app = FastAPI(title="SecondLife Commerce - Naman ML Microservice")
 
@@ -33,6 +35,8 @@ fraud_model = SEFraudGNN()
 size_model = SizeRecommendationEngine()
 gemini_ai = GeminiAIIntegrations()
 vto_model = VirtualTryOnEngine()
+nsga2_router = NSGA2Router()
+fleet_opt = SustainableFleetOptimizer()
 
 # --- Request Models ---
 class DemandRequest(BaseModel):
@@ -382,7 +386,32 @@ def get_logistics_metrics():
 def get_logistics_alerts():
     return {"status": "success", "data": _logistics_engine.get_alerts()}
 @app.get("/api/v1/logistics/tick")
+def get_logistics_tick():
     events = _logistics_engine.tick()
+    return {"status": "success", "data": events}
+
+class RoutingRequest(BaseModel):
+    num_orders: int = 20
+    pop_size: int = 80
+    generations: int = 100
+
+class FleetRequest(BaseModel):
+    num_orders: int = 20
+    cost_weight: float = 0.6
+    emission_weight: float = 0.4
+    ga_generations: int = 15
+
+@app.post("/api/v1/routing/optimize")
+def optimize_routing(req: RoutingRequest):
+    points, depot = nsga2_router.generate_scenario(req.num_orders)
+    result = nsga2_router.optimize(points, depot, req.pop_size, req.generations)
+    return {"status": "success", "data": result}
+
+@app.post("/api/v1/fleet/optimize")
+def optimize_fleet(req: FleetRequest):
+    nodes, depot = fleet_opt.generate_scenario(req.num_orders)
+    result = fleet_opt.optimize(nodes, depot, req.cost_weight, req.emission_weight, req.ga_generations)
+    return {"status": "success", "data": result}
 
 # AWS Lambda Handler
 handler = Mangum(app)

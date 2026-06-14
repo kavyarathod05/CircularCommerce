@@ -25,16 +25,24 @@ const SEVERITY_COLORS: Record<string,string> = { high:"#C5221F", medium:"#FF9900
 
 type TabType = 'map' | 'fleet' | 'orders' | 'alerts';
 
-export default function LogisticsTelemetry() {
+export default function LogisticsTelemetry({ role = 'admin' }: { role?: 'buyer' | 'seller' | 'admin' }) {
   const { fleet, orders, alerts, metrics, connected, orderUpdates } = useLogisticsTelemetry();
-  const [tab, setTab] = useState<TabType>('map');
+  const [tab, setTab] = useState<TabType>(role === 'buyer' ? 'orders' : 'map');
   const [selectedVehicle, setSelectedVehicle] = useState<string|null>(null);
   const [orderFilter, setOrderFilter] = useState('all');
 
+  const displayOrders = useMemo(() => {
+    if (role === 'buyer') {
+      const activeOrders = orders.filter(o => o.status === 'out-for-delivery' || o.status === 'in-transit');
+      return activeOrders.length > 0 ? [activeOrders[0]] : orders.slice(0, 1);
+    }
+    return orders;
+  }, [orders, role]);
+
   const filteredOrders = useMemo(() => {
-    if (orderFilter === 'all') return orders;
-    return orders.filter(o => o.status === orderFilter);
-  }, [orders, orderFilter]);
+    if (orderFilter === 'all') return displayOrders;
+    return displayOrders.filter(o => o.status === orderFilter);
+  }, [displayOrders, orderFilter]);
 
   const selectedV = fleet.find(v => v.vehicleId === selectedVehicle);
 
@@ -44,8 +52,8 @@ export default function LogisticsTelemetry() {
       <div className="ds-header">
         <div className="ui-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 className="ds-title">Real-Time Logistics Telemetry</h2>
-            <p className="ds-subtitle">Full-duplex WebSocket • Fleetbase Logistics OS</p>
+            <h2 className="ds-title">{role === 'buyer' ? 'Track My Orders' : 'Real-Time Logistics Telemetry'}</h2>
+            <p className="ds-subtitle">{role === 'buyer' ? 'Live updates for your incoming deliveries' : 'Live GPS Tracking • Operations Command Center'}</p>
           </div>
           <div className={`lt-conn-badge ${connected ? 'lt-conn-live' : ''}`}>
             <span className="lt-conn-dot" /> {connected ? 'LIVE' : 'CONNECTING...'}
@@ -54,49 +62,53 @@ export default function LogisticsTelemetry() {
       </div>
 
       {/* KPI Strip */}
-      <div className="ds-kpi-grid">
-        <div className="ds-kpi-card" style={{ borderLeft: '4px solid var(--ds-accent)' }}>
-          <div className="ds-kpi-val">{metrics.fleetUtilization}%</div>
-          <div className="ds-kpi-label">Fleet Utilization</div>
+      {role === 'admin' && (
+        <div className="ds-kpi-grid">
+          <div className="ds-kpi-card" style={{ borderLeft: '4px solid var(--ds-accent)' }}>
+            <div className="ds-kpi-val">{metrics.fleetUtilization}%</div>
+            <div className="ds-kpi-label">Fleet Utilization</div>
+          </div>
+          <div className="ds-kpi-card">
+            <div className="ds-kpi-val">{metrics.activeVehicles} <span style={{fontSize:'1rem', color:'var(--ds-text-tertiary)'}}>/ {metrics.totalFleetSize}</span></div>
+            <div className="ds-kpi-label">Active Vehicles</div>
+          </div>
+          <div className="ds-kpi-card">
+            <div className="ds-kpi-val">{metrics.ordersInTransit}</div>
+            <div className="ds-kpi-label">In Transit</div>
+          </div>
+          <div className="ds-kpi-card">
+            <div className="ds-kpi-val" style={{color: 'var(--ds-success-text)'}}>{metrics.ordersDelivered}</div>
+            <div className="ds-kpi-label">Delivered</div>
+          </div>
+          <div className="ds-kpi-card">
+            <div className="ds-kpi-val">{metrics.avgETA} min</div>
+            <div className="ds-kpi-label">Avg ETA</div>
+          </div>
+          <div className="ds-kpi-card">
+            <div className="ds-kpi-val" style={{color: 'var(--ds-success-text)'}}>{metrics.onTimeRate}%</div>
+            <div className="ds-kpi-label">On-Time Rate</div>
+          </div>
+          <div className="ds-kpi-card">
+            <div className="ds-kpi-val">{metrics.avgSpeed_kmh} km/h</div>
+            <div className="ds-kpi-label">Avg Speed</div>
+          </div>
+          <div className="ds-kpi-card" style={{ borderLeft: '4px solid #007185' }}>
+            <div className="ds-kpi-val" style={{color: '#007185'}}>{metrics.totalCarbonSaved_kg} kg</div>
+            <div className="ds-kpi-label">CO₂ Saved</div>
+          </div>
         </div>
-        <div className="ds-kpi-card">
-          <div className="ds-kpi-val">{metrics.activeVehicles} <span style={{fontSize:'1rem', color:'var(--ds-text-tertiary)'}}>/ {metrics.totalFleetSize}</span></div>
-          <div className="ds-kpi-label">Active Vehicles</div>
-        </div>
-        <div className="ds-kpi-card">
-          <div className="ds-kpi-val">{metrics.ordersInTransit}</div>
-          <div className="ds-kpi-label">In Transit</div>
-        </div>
-        <div className="ds-kpi-card">
-          <div className="ds-kpi-val" style={{color: 'var(--ds-success-text)'}}>{metrics.ordersDelivered}</div>
-          <div className="ds-kpi-label">Delivered</div>
-        </div>
-        <div className="ds-kpi-card">
-          <div className="ds-kpi-val">{metrics.avgETA} min</div>
-          <div className="ds-kpi-label">Avg ETA</div>
-        </div>
-        <div className="ds-kpi-card">
-          <div className="ds-kpi-val" style={{color: 'var(--ds-success-text)'}}>{metrics.onTimeRate}%</div>
-          <div className="ds-kpi-label">On-Time Rate</div>
-        </div>
-        <div className="ds-kpi-card">
-          <div className="ds-kpi-val">{metrics.avgSpeed_kmh} km/h</div>
-          <div className="ds-kpi-label">Avg Speed</div>
-        </div>
-        <div className="ds-kpi-card" style={{ borderLeft: '4px solid #007185' }}>
-          <div className="ds-kpi-val" style={{color: '#007185'}}>{metrics.totalCarbonSaved_kg} kg</div>
-          <div className="ds-kpi-label">CO₂ Saved</div>
-        </div>
-      </div>
+      )}
 
       {/* Tab Nav */}
-      <div className="ds-filter-bar" style={{ padding: '0.5rem', marginTop: '1rem', marginBottom: '0' }}>
-        {(['map','fleet','orders','alerts'] as TabType[]).map(t => (
-          <button key={t} className={tab===t?'ds-btn-primary':'ds-btn-secondary'} onClick={()=>setTab(t)}>
-            {t==='map'?'🗺️ Live Map':t==='fleet'?`🚛 Fleet (${fleet.length})`:t==='orders'?`📦 Orders (${orders.length})`:`🚨 Alerts (${alerts.length})`}
-          </button>
-        ))}
-      </div>
+      {role === 'admin' && (
+        <div className="ds-filter-bar" style={{ padding: '0.5rem', marginTop: '1rem', marginBottom: '0' }}>
+          {(['map','fleet','orders','alerts'] as TabType[]).map(t => (
+            <button key={t} className={tab===t?'ds-btn-primary':'ds-btn-secondary'} onClick={()=>setTab(t)}>
+              {t==='map'?'🗺️ Live Map':t==='fleet'?`🚛 Fleet (${fleet.length})`:t==='orders'?`📦 Orders (${displayOrders.length})`:`🚨 Alerts (${alerts.length})`}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Tab Content */}
       <div className="ds-panel" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -109,14 +121,7 @@ export default function LogisticsTelemetry() {
   );
 }
 
-function KPI({label,value,sub,color,accent}:{label:string;value:any;sub?:string;color?:string;accent?:boolean}) {
-  return (
-    <div className={`lt-kpi ${accent?'lt-kpi-accent':''}`}>
-      <div className="lt-kpi-val" style={color?{color}:undefined}>{value}{sub && <span className="lt-kpi-sub">{sub}</span>}</div>
-      <div className="lt-kpi-label">{label}</div>
-    </div>
-  );
-}
+
 
 function MapView({fleet,orders,selected,onSelect,selectedV}:{fleet:FleetVehicle[];orders:LogisticsOrder[];selected:string|null;onSelect:(id:string|null)=>void;selectedV?:FleetVehicle}) {
   return (

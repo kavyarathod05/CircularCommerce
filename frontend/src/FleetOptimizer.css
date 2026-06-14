@@ -65,8 +65,8 @@
 .fo-step-sub { font-size: 0.75rem; color: #879596; margin-top: 0.2rem; }
 
 /* Main grid */
-.fo-main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; align-items: start; }
-@media(max-width:1000px) { .fo-main-grid { grid-template-columns: 1fr; } }
+.fo-main-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 1.5rem; align-items: start; }
+@media(max-width:1000px) { .fo-main-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* Card */
 .fo-card { background: #FFF; border: 1px solid #EAEAEA; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }

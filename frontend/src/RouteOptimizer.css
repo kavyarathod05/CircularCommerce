@@ -52,8 +52,8 @@
 .ro-kpi-green .ro-kpi-val { color: #137333; }
 
 /* Main content grid */
-.ro-main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; align-items: start; }
-@media(max-width:1000px) { .ro-main-grid { grid-template-columns: 1fr; } }
+.ro-main-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 1.5rem; align-items: start; }
+@media(max-width:1000px) { .ro-main-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* Pareto chart */
 .ro-pareto-card {
