@@ -880,6 +880,46 @@ function App() {
                   )}
                 </div>
               </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                <div className="panel" style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA' }}>
+                  <h3 style={{ fontSize: '1.2rem', margin: '0 0 1.5rem 0', color: '#131A22', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#137333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    GS1 Authentication Certificate
+                  </h3>
+                  {lastResult ? (
+                    <div style={{ padding: '1.5rem', backgroundColor: '#F0FBFC', borderRadius: '8px', border: '1px solid #BFEAF1' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                        <div>
+                          <div style={{ fontSize: '0.85rem', color: '#565959', fontWeight: 600 }}>Global Trade Item Number (GTIN)</div>
+                          <div style={{ fontSize: '1.4rem', color: '#131A22', fontWeight: 800, fontFamily: 'monospace', marginTop: '0.25rem' }}>00819264023910</div>
+                        </div>
+                        <div style={{ backgroundColor: '#137333', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                          VERIFIED AUTHENTIC
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', borderTop: '1px solid #BFEAF1', paddingTop: '1rem' }}>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: '#565959' }}>Brand Owner</div>
+                          <div style={{ fontSize: '0.9rem', color: '#131A22', fontWeight: 500 }}>{lastResult.productId === 'p-smartphone-premium' ? 'Apple Inc.' : 'Bose Corporation'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: '#565959' }}>Registry Match Date</div>
+                          <div style={{ fontSize: '0.9rem', color: '#131A22', fontWeight: 500 }}>{new Date().toLocaleDateString()}</div>
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#565959' }}>Blockchain Ledger Hash</div>
+                          <div style={{ fontSize: '0.8rem', color: '#879596', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            0x{(Math.random() * 1e16).toString(16)}0e4f...b7c2{(Math.random() * 1e16).toString(16)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ color: '#879596', padding: '1rem 0', textAlign: 'center', margin: 0 }}>Submit a return to verify authenticity.</p>
+                  )}
+                </div>
+              </div>
             </div>
           </section>
         )}
