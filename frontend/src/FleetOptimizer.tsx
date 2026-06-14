@@ -59,7 +59,7 @@ export default function FleetOptimizer() {
         <div className="fo-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h2 className="ds-title">Sustainable Fleet Optimizer</h2>
-            <p className="ds-subtitle">Smart AI-powered logistics planning for greener, cheaper deliveries</p>
+            <p className="ds-subtitle">MILP + Clarke-Wright Savings + Genetic Algorithm • OR-Tools CP-SAT Solver</p>
           </div>
           <div className={`fo-status fo-status-${status}`}><span className="fo-status-dot"/>{status==='idle'?'READY':status==='running'?'SOLVING...':'OPTIMIZED'}</div>
         </div>
@@ -79,7 +79,10 @@ export default function FleetOptimizer() {
             <span>💰 Cost ({(costWeight*100).toFixed(0)}%)</span>
           </div>
         </div>
-
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--ds-text-primary)' }}>GA Generations</label>
+          <input type="number" min={5} max={50} value={gaGens} onChange={e=>setGaGens(+e.target.value)} className="ds-input" style={{ width: '100px' }} />
+        </div>
         <button className="ds-btn-primary" onClick={run} disabled={status==='running'} style={{ height: '42px', padding: '0 2rem' }}>
           {status==='running'?<><span className="fo-spinner"/> Solving...</>:'🌱 Optimize Fleet'}
         </button>
@@ -104,7 +107,12 @@ export default function FleetOptimizer() {
           <div className="ds-kpi-card"><div className="ds-kpi-val">{k.green_compliance}/{k.green_compliance+k.green_violations}</div><div className="ds-kpi-label">Green Compliance</div></div>
         </div>
 
-
+        {/* Pipeline Steps */}
+        <div className="fo-pipeline">
+          <div className="fo-step"><span className="fo-step-num">1</span><div className="fo-step-title">Clarke & Wright Savings</div><div className="fo-step-val">{result.clarke_wright.savings_vs_naive}% saved</div><div className="fo-step-sub">{result.clarke_wright.routes_created} routes • {result.clarke_wright.total_distance_km} km</div></div>
+          <div className="fo-step"><span className="fo-step-num">2</span><div className="fo-step-title">OR-Tools MILP (CP-SAT)</div><div className="fo-step-val">Vehicle Assignment</div><div className="fo-step-sub">α={result.ga_optimized.genome.cost_weight} β={result.ga_optimized.genome.emission_weight}</div></div>
+          <div className="fo-step"><span className="fo-step-num">3</span><div className="fo-step-title">Genetic Algorithm</div><div className="fo-step-val">{result.ga_optimized.evolution_history.length} gens</div><div className="fo-step-sub">Fleet: {Object.entries(result.ga_optimized.genome.fleet_counts).filter(([,c])=>(c as number)>0).map(([t,c])=>`${t}:${c}`).join(', ')}</div></div>
+        </div>
 
         <div className="fo-main-grid">
           {/* Left column */}
@@ -174,7 +182,13 @@ export default function FleetOptimizer() {
               </div>
             </div>
 
-
+            {/* Evolution */}
+            {result.ga_optimized.evolution_history.length>0 && (
+              <div className="ds-panel" style={{marginTop:'1.5rem'}}>
+                <h3 className="ds-section-title">GA Evolution Convergence</h3>
+                <EvolutionChart history={result.ga_optimized.evolution_history}/>
+              </div>
+            )}
           </div>
 
           {/* Right column */}
@@ -246,13 +260,35 @@ export default function FleetOptimizer() {
       {!result && status==='idle' && (
         <div className="ds-empty-state">
           <div className="ds-empty-icon">🌱</div>
-          <h3 className="ds-empty-title">Smart Fleet Planner</h3>
+          <h3 className="ds-empty-title">Configure & Optimize Fleet</h3>
           <p className="ds-empty-text">
             Set the number of deliveries and the <strong>cost ↔ sustainability</strong> balance slider, then click <strong>"Optimize Fleet"</strong>.
-            Our AI will automatically assign the best vehicles (like EV pods and cargo bikes) to reduce carbon emissions while keeping costs low.
+            The engine runs Clarke & Wright savings, solves a MILP via OR-Tools, and evolves fleet composition with a Genetic Algorithm.
           </p>
         </div>
       )}
     </section>
+  );
+}
+
+function EvolutionChart({ history }: { history:EvoPt[] }) {
+  const maxC = Math.max(...history.map(h=>h.avg_combined));
+  const minC = Math.min(...history.map(h=>h.best_combined));
+  const range = maxC - minC || 1;
+  const avg = history.map((h,i) => `${(i/(history.length-1||1))*100},${100-((h.avg_combined-minC)/range)*90-5}`).join(' ');
+  const best = history.map((h,i) => `${(i/(history.length-1||1))*100},${100-((h.best_combined-minC)/range)*90-5}`).join(' ');
+  return (
+    <>
+      <div className="fo-evo-chart">
+        <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polyline points={avg} fill="none" stroke="#879596" strokeWidth="0.5" opacity="0.5"/>
+          <polyline points={best} fill="none" stroke="#137333" strokeWidth="0.8"/>
+        </svg>
+      </div>
+      <div style={{display:'flex',gap:'1.5rem',marginTop:'0.5rem',fontSize:'0.75rem',color:'#879596'}}>
+        <span><span style={{display:'inline-block',width:12,height:3,background:'#137333',borderRadius:1,marginRight:4,verticalAlign:'middle'}}/>Best Fitness</span>
+        <span><span style={{display:'inline-block',width:12,height:3,background:'#879596',borderRadius:1,marginRight:4,verticalAlign:'middle'}}/>Avg Population</span>
+      </div>
+    </>
   );
 }

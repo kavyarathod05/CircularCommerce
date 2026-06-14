@@ -47,9 +47,9 @@ export default function RouteOptimizer() {
   };
 
   const sel = useMemo(() => result?.pareto_front.find(s => s.solution_id === selectedSol) || null, [result, selectedSol]);
-  const knee = result?.knee_solution || null;
-  const bestV = result?.best_vehicles || null;
-  const bestC = result?.best_cost || null;
+  const knee = result?.knee_solution;
+  const bestV = result?.best_vehicles;
+  const bestC = result?.best_cost;
 
   // Compute bounds for map
   const bounds = useMemo(() => {
@@ -79,7 +79,7 @@ export default function RouteOptimizer() {
         <div className="ro-title-row">
           <div>
             <h2 className="ro-title">Multi-Objective Route Optimizer</h2>
-            <p className="ro-subtitle">Smart AI Routing • Finding the most efficient delivery paths</p>
+            <p className="ro-subtitle">NSGA-II Pareto Optimization • Minimize Vehicles + Cost Simultaneously</p>
           </div>
           <div className={`ro-status ro-status-${status}`}>
             <span className="ro-status-dot" />
@@ -94,22 +94,41 @@ export default function RouteOptimizer() {
           <label>Delivery Orders</label>
           <input type="number" min={5} max={60} value={numOrders} onChange={e=>setNumOrders(+e.target.value)} />
         </div>
-
+        <div className="ro-field">
+          <label>Population Size</label>
+          <input type="number" min={20} max={200} value={popSize} onChange={e=>setPopSize(+e.target.value)} />
+        </div>
+        <div className="ro-field">
+          <label>Generations</label>
+          <input type="number" min={10} max={500} value={generations} onChange={e=>setGenerations(+e.target.value)} />
+        </div>
         <button className="ro-run-btn" onClick={runOptimization} disabled={status==='running'}>
-          {status==='running' ? <><span className="ro-spinner"/> Calculating Best Routes...</> : '🚀 Optimize Routes'}
+          {status==='running' ? <><span className="ro-spinner"/> Running NSGA-II...</> : '🧬 Run Optimization'}
         </button>
       </div>
 
       {/* KPI Strip */}
       {result && knee && (
         <div className="ro-kpi-strip">
+          <div className="ro-kpi ro-kpi-accent">
+            <div className="ro-kpi-val">{pareto.length}</div>
+            <div className="ro-kpi-label">Pareto Solutions</div>
+          </div>
           <div className="ro-kpi">
             <div className="ro-kpi-val">{knee.vehicles_used}</div>
-            <div className="ro-kpi-label">Optimal Fleet Size</div>
+            <div className="ro-kpi-label">Vehicles (Knee)</div>
           </div>
           <div className="ro-kpi">
             <div className="ro-kpi-val">₹{knee.total_cost.toLocaleString()}</div>
-            <div className="ro-kpi-label">Total Cost</div>
+            <div className="ro-kpi-label">Cost (Knee)</div>
+          </div>
+          <div className="ro-kpi">
+            <div className="ro-kpi-val">{bestV?.vehicles_used ?? '-'}</div>
+            <div className="ro-kpi-label">Min Vehicles</div>
+          </div>
+          <div className="ro-kpi">
+            <div className="ro-kpi-val">₹{bestC?.total_cost.toLocaleString() ?? '-'}</div>
+            <div className="ro-kpi-label">Min Cost</div>
           </div>
           <div className="ro-kpi ro-kpi-green">
             <div className="ro-kpi-val">{knee.total_emissions_kg.toFixed(1)} kg</div>
@@ -119,15 +138,47 @@ export default function RouteOptimizer() {
             <div className="ro-kpi-val">{result.scenario.num_orders}</div>
             <div className="ro-kpi-label">Orders</div>
           </div>
-
+          <div className="ro-kpi">
+            <div className="ro-kpi-val">{result.config.generations}</div>
+            <div className="ro-kpi-label">Generations</div>
+          </div>
         </div>
       )}
 
       {/* Main content */}
       {result && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {sel && <RouteMap solution={sel} points={result.scenario.delivery_points} depot={{lat:result.scenario.depot_lat, lng:result.scenario.depot_lng, name:result.scenario.depot}} bounds={bounds} />}
-          {sel && <RouteTable solution={sel} />}
+        <div className="ro-main-grid">
+          {/* Left: Pareto chart + Map */}
+          <div>
+            <ParetoChart pareto={pareto} pBounds={pBounds} selected={selectedSol} onSelect={setSelectedSol} knee={knee} bestV={bestV} bestC={bestC} />
+            {sel && <RouteMap solution={sel} points={result.scenario.delivery_points} depot={{lat:result.scenario.depot_lat, lng:result.scenario.depot_lng, name:result.scenario.depot}} bounds={bounds} />}
+            {sel && <RouteTable solution={sel} />}
+            <EvolutionChart history={result.evolution_history} />
+          </div>
+          {/* Right: Solution cards */}
+          <div className="ro-solutions-panel">
+            <h3 style={{margin:'0 0 0.5rem 0',fontSize:'1rem',color:'#131A22'}}>Pareto-Optimal Solutions</h3>
+            {pareto.map(sol => (
+              <div key={sol.solution_id} className={`ro-sol-card ${selectedSol===sol.solution_id?'ro-sol-selected':''}`} onClick={()=>setSelectedSol(sol.solution_id)}>
+                {knee?.solution_id===sol.solution_id && <span className="ro-sol-badge ro-sol-badge-knee">★ KNEE</span>}
+                {bestV?.solution_id===sol.solution_id && knee?.solution_id!==sol.solution_id && <span className="ro-sol-badge ro-sol-badge-min-v">MIN VEHICLES</span>}
+                {bestC?.solution_id===sol.solution_id && knee?.solution_id!==sol.solution_id && <span className="ro-sol-badge ro-sol-badge-min-c">MIN COST</span>}
+                <div className="ro-sol-header">
+                  <span className="ro-sol-id">{sol.solution_id.toUpperCase()}</span>
+                  <div className="ro-sol-objs">
+                    <div className="ro-sol-obj"><span className="ro-sol-obj-val">{sol.vehicles_used}</span><span className="ro-sol-obj-label">Vehicles</span></div>
+                    <div className="ro-sol-obj"><span className="ro-sol-obj-val">₹{sol.total_cost.toLocaleString()}</span><span className="ro-sol-obj-label">Cost</span></div>
+                  </div>
+                </div>
+                <div className="ro-sol-routes">
+                  {sol.routes.map((r,i) => {
+                    const cls = r.vehicle_type==='bike'?'ro-route-pill-bike':r.vehicle_type==='van'?'ro-route-pill-van':r.vehicle_type==='truck'?'ro-route-pill-truck':'ro-route-pill-ev';
+                    return <span key={i} className={`ro-route-pill ${cls}`}>{VEHICLE_ICONS[r.vehicle_type]||'🚗'} {r.num_stops} stops • {r.distance_km}km</span>;
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -135,10 +186,10 @@ export default function RouteOptimizer() {
       {!result && status==='idle' && (
         <div style={{textAlign:'center',padding:'4rem 2rem',color:'#879596'}}>
           <div style={{fontSize:'4rem',marginBottom:'1rem'}}>🧬</div>
-          <h3 style={{color:'#131A22',fontWeight:800,fontSize:'1.3rem'}}>Smart Route Planner</h3>
+          <h3 style={{color:'#131A22',fontWeight:800,fontSize:'1.3rem'}}>Configure & Run NSGA-II</h3>
           <p style={{maxWidth:500,margin:'0.5rem auto',lineHeight:1.6}}>
-            Set the number of delivery orders above, then click <strong>"Optimize Routes"</strong>. 
-            Our AI will automatically figure out the absolute best delivery paths to get packages to customers faster, while using fewer vehicles and saving money.
+            Set the number of delivery orders and algorithm parameters above, then click <strong>"Run Optimization"</strong> to 
+            generate Pareto-optimal routing solutions that simultaneously minimize fleet size and operational cost.
           </p>
         </div>
       )}
@@ -160,7 +211,7 @@ function ParetoChart({ pareto, pBounds, selected, onSelect, knee, bestV, bestC }
 
   return (
     <div className="ro-pareto-card">
-      <h3 className="ro-pareto-title">Efficiency Curve — Vehicles vs. Cost</h3>
+      <h3 className="ro-pareto-title">Pareto Front — Vehicles vs. Cost</h3>
       <div className="ro-pareto-chart">
         <div className="ro-pareto-grid" />
         <svg className="ro-pareto-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -193,7 +244,7 @@ function ParetoChart({ pareto, pBounds, selected, onSelect, knee, bestV, bestC }
               <g key={s.solution_id} onClick={()=>onSelect(s.solution_id)} style={{cursor:'pointer'}}>
                 {isSel && <circle cx={cx} cy={cy} r="3.5" fill="none" stroke="#FF9900" strokeWidth="0.4" opacity="0.5" />}
                 <circle cx={cx} cy={cy} r={isSel?2:isKnee?1.8:1.2} fill={col} stroke={isSel?'#FFF':'none'} strokeWidth="0.3" />
-                {(isKnee||isBV||isBC) && <text x={cx} y={cy-3} textAnchor="middle" fill={col} fontSize="2" fontWeight="700">{isKnee?'★ Recommended':isBV?'Min-V':'Min-₹'}</text>}
+                {(isKnee||isBV||isBC) && <text x={cx} y={cy-3} textAnchor="middle" fill={col} fontSize="2" fontWeight="700">{isKnee?'★ Knee':isBV?'Min-V':'Min-₹'}</text>}
               </g>
             );
           })}
