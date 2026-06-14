@@ -1,0 +1,403 @@
+/* =====================================================
+   LOGIN PAGE — SecondLife Commerce
+   Single-column centered card. Site colors only.
+   --bg-app : #F8F9FB
+   --panel  : #FFFFFF
+   --border : #E5E7EB
+   --navy   : #131A22  (sidebar / brand)
+   --text   : #191C1E
+   --muted  : #576474
+   --accent : #FF9900  (Amazon orange)
+   --cta    : #FFD814  (Amazon yellow)
+   --font   : Inter, Amazon Ember, Arial
+===================================================== */
+
+/* ── Page shell ──────────────────────────────────── */
+.lp-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #F8F9FB;
+  font-family: 'Inter', 'Amazon Ember', Arial, sans-serif;
+  color: #191C1E;
+}
+
+/* ── Top bar ─────────────────────────────────────── */
+.lp-topbar {
+  height: 56px;
+  background: #131A22;
+  display: flex;
+  align-items: center;
+  padding: 0 2rem;
+  flex-shrink: 0;
+}
+
+.lp-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.lp-logo-icon {
+  width: 32px;
+  height: 32px;
+  background: #FF9900;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #131A22;
+  flex-shrink: 0;
+}
+
+.lp-logo-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.2px;
+}
+
+.lp-logo-accent {
+  color: #FF9900;
+  font-weight: 500;
+}
+
+/* ── Main centered area ──────────────────────────── */
+.lp-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+}
+
+/* ── Card ────────────────────────────────────────── */
+.lp-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 2.25rem 2rem;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+
+  /* Orange top accent stripe — matches site's .panel::before */
+  border-top: 3px solid #FF9900;
+}
+
+/* ── Card header ─────────────────────────────────── */
+.lp-card-header {
+  margin-bottom: 1.5rem;
+}
+
+.lp-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #131A22;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.25px;
+  line-height: 1.2;
+}
+
+.lp-subtitle {
+  font-size: 0.87rem;
+  color: #576474;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Mode tabs ───────────────────────────────────── */
+.lp-tabs {
+  display: flex;
+  border-bottom: 2px solid #E5E7EB;
+  margin-bottom: 1.4rem;
+}
+
+.lp-tab {
+  flex: 1;
+  padding: 0.55rem 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #576474;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+
+.lp-tab:hover {
+  color: #191C1E;
+}
+
+.lp-tab--active {
+  color: #131A22;
+  border-bottom-color: #FF9900;
+}
+
+/* ── Demo quick access ───────────────────────────── */
+.lp-demo-section {
+  margin-bottom: 1rem;
+}
+
+.lp-demo-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #879596;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.6rem;
+}
+
+.lp-demo-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.lp-demo-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.75rem;
+  background: #FAFBFC;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #191C1E;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.lp-demo-btn:hover:not(:disabled) {
+  border-color: #FF9900;
+  background: rgba(255, 153, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(255, 153, 0, 0.12);
+}
+
+.lp-demo-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lp-demo-icon {
+  color: #576474;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.lp-demo-label-text {
+  flex: 1;
+}
+
+/* ── Divider ─────────────────────────────────────── */
+.lp-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  font-size: 0.78rem;
+  color: #879596;
+}
+
+.lp-divider::before,
+.lp-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #E5E7EB;
+}
+
+.lp-divider span {
+  white-space: nowrap;
+}
+
+/* ── Form ────────────────────────────────────────── */
+.lp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.lp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.lp-field label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #191C1E;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lp-field input,
+.lp-field select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: #FFFFFF;
+  border: 1px solid #D5D9D9;
+  border-radius: 4px;
+  color: #191C1E;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) inset;
+}
+
+.lp-field input::placeholder {
+  color: #879596;
+}
+
+.lp-field input:focus,
+.lp-field select:focus {
+  border-color: #FF9900;
+  box-shadow: 0 0 0 3px rgba(255, 153, 0, 0.15);
+}
+
+.lp-field select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23576474' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  padding-right: 2.25rem;
+}
+
+/* ── Password field ──────────────────────────────── */
+.lp-pw-wrap {
+  position: relative;
+}
+
+.lp-pw-wrap input {
+  padding-right: 2.6rem;
+}
+
+.lp-pw-toggle {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #879596;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.lp-pw-toggle:hover {
+  color: #191C1E;
+}
+
+/* ── Error ───────────────────────────────────────── */
+.lp-error {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 0.8rem;
+  background: #FCE8E6;
+  border: 1px solid #FAD2CF;
+  border-radius: 4px;
+  color: #C5221F;
+  font-size: 0.83rem;
+  line-height: 1.4;
+}
+
+/* ── Submit button ───────────────────────────────── */
+.lp-submit {
+  width: 100%;
+  padding: 0.75rem;
+  background: #FFD814;
+  color: #0F1111;
+  border: 1px solid #FCD200;
+  border-radius: 20px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.lp-submit:hover:not(:disabled) {
+  background: #F7CA00;
+  box-shadow: 0 2px 8px rgba(255, 216, 20, 0.35);
+}
+
+.lp-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ── Switch mode link ────────────────────────────── */
+.lp-switch {
+  margin: 1.1rem 0 0;
+  text-align: center;
+  font-size: 0.84rem;
+  color: #576474;
+}
+
+.lp-link {
+  background: none;
+  border: none;
+  color: #007185;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.lp-link:hover {
+  color: #131A22;
+}
+
+/* ── Footer ──────────────────────────────────────── */
+.lp-footer {
+  padding: 1rem 2rem;
+  text-align: center;
+  font-size: 0.76rem;
+  color: #879596;
+  border-top: 1px solid #E5E7EB;
+  background: #FFFFFF;
+  flex-shrink: 0;
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 520px) {
+  .lp-card {
+    padding: 1.75rem 1.25rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .lp-main {
+    padding: 1rem 0;
+    align-items: flex-start;
+  }
+
+  .lp-demo-btn {
+    padding: 0.5rem 0.5rem;
+    font-size: 0.78rem;
+  }
+}

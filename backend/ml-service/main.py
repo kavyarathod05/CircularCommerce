@@ -2,12 +2,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import asyncio
-from fastapi import FastAPI, HTTPException, File, UploadFile, Form
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from mangum import Mangum
 import random
+
+# --- JWT Auth ---
+from auth import (
+    RegisterRequest, LoginRequest, TokenResponse,
+    register_user, login_user, get_current_user, get_current_user_optional, require_role,
+    _USER_STORE, _safe_user
+)
 
 # Import Naman's ML Engines
 from demand_engine import DemandEngine
@@ -31,7 +38,11 @@ app = FastAPI(title="SecondLife Commerce - Naman ML Microservice")
 from fastapi.staticfiles import StaticFiles
 import os
 
+from fastapi import APIRouter
+api_router = APIRouter(dependencies=[Depends(get_current_user)])
+
 app.add_middleware(
+
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
@@ -84,6 +95,35 @@ class VTORequest(BaseModel):
 class NovaProRequest(BaseModel):
     image_bytes_list: List[str]
 
+# --- Auth Endpoints ---
+
+@app.post("/auth/register", response_model=TokenResponse, tags=["Auth"])
+def auth_register(req: RegisterRequest):
+    """Create a new account and receive a JWT."""
+    return register_user(req)
+
+@app.post("/auth/login", response_model=TokenResponse, tags=["Auth"])
+def auth_login(req: LoginRequest):
+    """Login with email + password and receive a JWT."""
+    return login_user(req)
+
+@app.get("/auth/me", tags=["Auth"])
+def auth_me(current_user: Dict = Depends(get_current_user)):
+    """Return the currently authenticated user's profile."""
+    # Merge live store data (green_credits, co2) with token claims
+    stored = _USER_STORE.get(current_user["email"])
+    if stored:
+        return {"status": "success", "data": _safe_user(stored)}
+    return {"status": "success", "data": current_user}
+
+@app.get("/auth/users", tags=["Auth"])
+def list_users(current_user: Dict = Depends(require_role("admin"))):
+    """Admin-only: list all registered users."""
+    return {
+        "status": "success",
+        "data": [_safe_user(u) for u in _USER_STORE.values()]
+    }
+
 # --- API Endpoints ---
 
 class NegotiateRequest(BaseModel):
@@ -104,7 +144,7 @@ class TriageRequest(BaseModel):
     reason: str
     product_id: str
 
-@app.post("/api/v1/ml/negotiate")
+@api_router.post("/api/v1/ml/negotiate")
 def negotiate_return(req: NegotiateRequest):
     """Phase 6: Bedrock Agent Negotiation"""
     discount = 0.20 if req.defect_severity == "minor" else 0.40
@@ -112,7 +152,7 @@ def negotiate_return(req: NegotiateRequest):
     offer = f"We noticed a {req.defect_severity} defect. Would you accept a {int(discount*100)}% partial refund (₹{int(req.msrp*discount)}) and {green_credits} Green Credits to keep the item?"
     return {"status": "success", "data": {"offer_text": offer, "discount_amount": int(req.msrp*discount), "green_credits": green_credits}}
 
-@app.post("/api/v1/ml/inspect-video")
+@api_router.post("/api/v1/ml/inspect-video")
 def inspect_video(req: VideoInspectRequest):
     """Phase 6: Video Semantic Triage (Functional Engine)"""
     grades = ["Grade A", "Grade B", "Grade C"]
@@ -133,7 +173,7 @@ def inspect_video(req: VideoInspectRequest):
         
     return {"status": "success", "data": {"grade": grade, "summary": summary, "damages": bboxes}}
 
-@app.post("/api/v1/ml/triage")
+@api_router.post("/api/v1/ml/triage")
 def determine_triage(req: TriageRequest):
     """Core Algorithmic Disposition Engine"""
     condition_data = {"grade": req.grade, "reason": req.reason, "productId": req.product_id}
@@ -148,7 +188,7 @@ def determine_triage(req: TriageRequest):
         }
     }
 
-@app.post("/api/v1/ml/fraud-graphrag")
+@api_router.post("/api/v1/ml/fraud-graphrag")
 def get_fraud_graphrag(req: FraudGraphRAGRequest):
     """Return review: receipt tampering + linked-account signals"""
     receipt_url = "/static/demo-receipt.svg"
@@ -187,22 +227,22 @@ def get_fraud_graphrag(req: FraudGraphRAGRequest):
     }
 
 
-@app.post("/api/v1/ml/demand/rank")
+@api_router.post("/api/v1/ml/demand/rank")
 def rank_demand(req: DemandRequest):
     """Phase 2: Local Demand Engine Algorithm"""
     return {"status": "success", "data": demand_model.rank_buyers(req.product_category, req.product_price, req.user_geohash)}
 
-@app.post("/api/v1/ml/aws/inspect-condition")
+@api_router.post("/api/v1/ml/aws/inspect-condition")
 def inspect_condition(req: NovaProRequest):
     """Phase 4: Google Gemini Damage Assessment"""
     return {"status": "success", "data": gemini_ai.inspect_product_condition(req.image_bytes_list)}
 
-@app.get("/api/v1/ml/aws/liveness-session")
+@api_router.get("/api/v1/ml/aws/liveness-session")
 def get_liveness_session():
     """Phase 4: Amazon Rekognition Face Liveness"""
     return {"status": "success", "data": aws_ai.create_face_liveness_session()}
 
-@app.post("/api/v1/ml/vto/drape")
+@api_router.post("/api/v1/ml/vto/drape")
 def generate_vto(req: VTORequest):
     """Legacy JSON endpoint — delegates to orchestrator when possible."""
     import base64
@@ -218,7 +258,7 @@ def generate_vto(req: VTORequest):
         return {"status": "success", "data": vto_model.process_vto_draping(req.user_image_base64, req.clothing_sku)}
 
 
-@app.post("/api/vto/generate")
+@api_router.post("/api/vto/generate")
 async def vto_generate(
     photo: UploadFile = File(...),
     product_id: str = Form(...),
@@ -243,22 +283,22 @@ async def vto_generate(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/products/{product_id}")
+@api_router.get("/api/products/{product_id}")
 def get_product_vto_info(product_id: str):
     """Product image, category, and size chart for VTO UI."""
     return {"status": "success", "data": vto_orchestrator.get_product(product_id)}
 
-@app.post("/api/v1/ml/friction/evaluate")
+@api_router.post("/api/v1/ml/friction/evaluate")
 def evaluate_friction(req: FrictionRequest):
     """Phase 5: Predictive Friction / Return Probability"""
     return {"status": "success", "data": friction_model.evaluate_checkout(req.user_id, req.product_id, req.session_data)}
 
-@app.post("/api/v1/ml/pricing/dynamic")
+@api_router.post("/api/v1/ml/pricing/dynamic")
 def get_dynamic_price(req: PricingRequest):
     """Phase 5: GenAI Dynamic Pricing"""
     return {"status": "success", "data": pricing_model.calculate_current_price(req.product_id, req.original_price, req.hours_on_market, req.local_demand_score)}
 
-@app.get("/api/v1/ml/fraud/trust-score/{user_id}")
+@api_router.get("/api/v1/ml/fraud/trust-score/{user_id}")
 def get_trust_score(user_id: str):
     """Phase 5: SEFraud GNN Trust Score"""
     return {"status": "success", "data": fraud_model.evaluate_trust_score(user_id)}
@@ -350,7 +390,7 @@ def warm_catalog_cache():
         print(f"[Catalog] Pre-warm failed: {e}")
 
 
-@app.get("/catalog")
+@api_router.get("/catalog")
 def get_catalog():
     cached = cache_get_catalog()
     if cached:
@@ -360,7 +400,7 @@ def get_catalog():
     cache_set_catalog(formatted, ttl_seconds=3600)
     return formatted
 
-@app.get("/api/v1/gs1/certificate")
+@api_router.get("/api/v1/gs1/certificate")
 def get_gs1_certificate(product_id: str):
     registry = lookup_product(product_id)
     return {
@@ -376,7 +416,7 @@ def get_gs1_certificate(product_id: str):
         }
     }
 
-@app.post("/listing/{listing_id}/transition")
+@api_router.post("/listing/{listing_id}/transition")
 def transition_listing_state(listing_id: str, action: str = "advance"):
     """Real AWS DynamoDB state transitions for Escrow Lock/Release/Dispute"""
     try:
@@ -430,25 +470,46 @@ def transition_listing_state(listing_id: str, action: str = "advance"):
 
 
 
-@app.get("/seller/metrics")
-def get_seller_metrics(seller_id: str = "usr-12"):
+@api_router.get("/seller/metrics")
+def get_seller_metrics(
+    seller_id: str = "usr-12",
+    current_user: Optional[Dict] = Depends(get_current_user_optional)
+):
     return {
         "warehouse_avoidance_rate": 71.2,
         "co2_saved_kg": 855.4,
         "trees_planted": 40.7,
         "capital_recovery_value": 4350000,
-        "escrow_locked_funds": 164200
+        "escrow_locked_funds": 164200,
+        "authenticated_as": current_user.get("name") if current_user else None,
     }
 
-@app.get("/user/metrics")
-def get_user_metrics(user_id: str = "usr-12"):
+@api_router.get("/user/metrics")
+def get_user_metrics(
+    user_id: str = "usr-12",
+    current_user: Optional[Dict] = Depends(get_current_user_optional)
+):
+    # Use real data from user store if authenticated
+    if current_user:
+        stored = _USER_STORE.get(current_user["email"])
+        if stored:
+            return {
+                "user_id": stored["id"],
+                "name": stored["name"],
+                "email": stored["email"],
+                "co2_saved_kg": stored.get("co2_saved_kg", 22.4),
+                "trees_planted": round(stored.get("co2_saved_kg", 22.4) / 21.2, 2),
+                "green_credits": stored.get("green_credits", 500),
+                "role": stored["role"],
+            }
     return {
         "user_id": user_id,
         "co2_saved_kg": 22.4,
-        "trees_planted": 1.06
+        "trees_planted": 1.06,
+        "green_credits": 500,
     }
 
-@app.get("/dpp")
+@api_router.get("/dpp")
 def get_dpp(listing_id: str):
     registry = lookup_product("Bose QC Headphones")
     return {
@@ -472,7 +533,7 @@ class ListingUpdate(BaseModel):
     new_status: str
     buyer_id: str
 
-@app.put("/listing")
+@api_router.put("/listing")
 def update_listing(req: ListingUpdate):
     return {"status": "success", "message": f"Listing {req.listing_id} updated to {req.new_status}"}
 
@@ -480,7 +541,7 @@ class AIAssistRequest(BaseModel):
     order_id: str
     image_base64: str = None
 
-@app.post("/seller/ai-assist")
+@api_router.post("/seller/ai-assist")
 def ai_assist(req: AIAssistRequest):
     import time
     time.sleep(1.5) # Simulate AI processing delay
@@ -501,7 +562,7 @@ class CreateListingRequest(BaseModel):
     description: str
     orderId: str
 
-@app.post("/listing/create")
+@api_router.post("/listing/create")
 def create_listing(req: CreateListingRequest):
     try:
         import uuid
@@ -527,20 +588,20 @@ def create_listing(req: CreateListingRequest):
         return {"status": "error", "message": str(e)}
 from logistics_telemetry import LogisticsTelemetryEngine
 _logistics_engine = LogisticsTelemetryEngine(fleet_size=12, active_orders=24)
-@app.get("/api/v1/logistics/fleet")
+@api_router.get("/api/v1/logistics/fleet")
 def get_fleet():
     return {"status": "success", "data": _logistics_engine.get_fleet_snapshot()}
-@app.get("/api/v1/logistics/orders")
+@api_router.get("/api/v1/logistics/orders")
 def get_logistics_orders():
     return {"status": "success", "data": _logistics_engine.get_orders_snapshot()}
-@app.get("/api/v1/logistics/metrics")
+@api_router.get("/api/v1/logistics/metrics")
 def get_logistics_metrics():
     _logistics_engine.tick()  # advance sim on each poll
     return {"status": "success", "data": _logistics_engine.get_metrics()}
-@app.get("/api/v1/logistics/alerts")
+@api_router.get("/api/v1/logistics/alerts")
 def get_logistics_alerts():
     return {"status": "success", "data": _logistics_engine.get_alerts()}
-@app.get("/api/v1/logistics/tick")
+@api_router.get("/api/v1/logistics/tick")
 def get_logistics_tick():
     events = _logistics_engine.tick()
     return {"status": "success", "data": events}
@@ -556,19 +617,19 @@ class FleetRequest(BaseModel):
     emission_weight: float = 0.4
     ga_generations: int = 15
 
-@app.post("/api/v1/routing/optimize")
+@api_router.post("/api/v1/routing/optimize")
 def optimize_routing(req: RoutingRequest):
     points, depot = nsga2_router.generate_scenario(req.num_orders)
     result = nsga2_router.optimize(points, depot, req.pop_size, req.generations)
     return {"status": "success", "data": result}
 
-@app.post("/api/v1/fleet/optimize")
+@api_router.post("/api/v1/fleet/optimize")
 def optimize_fleet(req: FleetRequest):
     nodes, depot = fleet_opt.generate_scenario(req.num_orders)
     result = fleet_opt.optimize(nodes, depot, req.cost_weight, req.emission_weight, req.ga_generations)
     return {"status": "success", "data": result}
 
-@app.get("/api/v1/inventory/units")
+@api_router.get("/api/v1/inventory/units")
 def get_inventory_units():
     units = unit_inventory_model.get_all_units()
     return {"status": "success", "data": units}
@@ -584,7 +645,7 @@ class SerialVerifyRequest(BaseModel):
     image_b64: str
     user_claimed_sn: str = ""
 
-@app.post("/api/v1/inventory/units/{unit_id}/repair")
+@api_router.post("/api/v1/inventory/units/{unit_id}/repair")
 def repair_inventory_unit(unit_id: str, req: InventoryRepairRequest):
     updated = unit_inventory_model.update_unit_condition(
         unit_id, req.new_grade, req.new_status, req.repair_action or None, req.repair_cost
@@ -593,7 +654,7 @@ def repair_inventory_unit(unit_id: str, req: InventoryRepairRequest):
         return {"status": "error", "message": updated["error"]}
     return {"status": "success", "data": updated}
 
-@app.post("/api/v1/vision/verify-serial")
+@api_router.post("/api/v1/vision/verify-serial")
 def verify_serial_number(req: SerialVerifyRequest):
     result = serial_verification_model.verify_return(
         req.order_id, req.image_b64, req.user_claimed_sn or None
@@ -602,7 +663,7 @@ def verify_serial_number(req: SerialVerifyRequest):
         return {"status": "error", "message": result.get("message", "Verification failed")}
     return {"status": "success", "data": result}
 
-@app.get("/api/v1/demo/serial-sample")
+@api_router.get("/api/v1/demo/serial-sample")
 def get_serial_sample():
     return {
         "status": "success",
@@ -616,5 +677,7 @@ def get_serial_sample():
 
 # AWS Lambda Handler
 handler = Mangum(app)
+
+app.include_router(api_router)
 
 # Run locally using: uvicorn main:app --reload --port 8000

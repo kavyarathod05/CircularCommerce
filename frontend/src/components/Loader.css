@@ -1,0 +1,230 @@
+/* =========================================================
+   SecondLife Commerce — Loader Component Styles
+   Colors: #131A22 navy, #FF9900 orange, #F8F9FB bg, #E5E7EB border
+   ========================================================= */
+
+/* ── Page Loader ─────────────────────────────────────────── */
+.sl-page-loader {
+  position: fixed;
+  inset: 0;
+  background: #F8F9FB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.sl-page-loader__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/* Pulsing logo icon in orange box */
+.sl-logo-spin {
+  width: 56px;
+  height: 56px;
+  background: #131A22;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FF9900;
+  animation: sl-logo-pulse 1.6s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(255, 153, 0, 0.4);
+}
+
+@keyframes sl-logo-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 153, 0, 0.35); }
+  50%  { box-shadow: 0 0 0 14px rgba(255, 153, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 153, 0, 0); }
+}
+
+/* Animated progress bar */
+.sl-page-loader__track {
+  width: 200px;
+  height: 3px;
+  background: #E5E7EB;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.sl-page-loader__bar {
+  height: 100%;
+  background: #FF9900;
+  border-radius: 99px;
+  animation: sl-bar-slide 1.4s ease-in-out infinite;
+  transform-origin: left;
+}
+
+@keyframes sl-bar-slide {
+  0%   { transform: translateX(-100%) scaleX(0.4); }
+  50%  { transform: translateX(60%)   scaleX(0.6); }
+  100% { transform: translateX(200%)  scaleX(0.4); }
+}
+
+.sl-page-loader__label {
+  font-size: 0.85rem;
+  color: #576474;
+  font-family: 'Inter', 'Amazon Ember', Arial, sans-serif;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+/* ── Section Loader ──────────────────────────────────────── */
+.sl-section-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  background: #FAFBFC;
+  border: 1px dashed #E5E7EB;
+  border-radius: 8px;
+  padding: 3rem 2rem;
+  width: 100%;
+}
+
+/* Orbital ring animation */
+.sl-orbit {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+
+.sl-orbit__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2.5px solid #E5E7EB;
+  border-top-color: #FF9900;
+  animation: sl-orbit-spin 0.9s linear infinite;
+}
+
+.sl-orbit__dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #131A22;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes sl-orbit-spin {
+  to { transform: rotate(360deg); }
+}
+
+.sl-section-loader__label {
+  font-size: 0.85rem;
+  color: #576474;
+  font-family: 'Inter', 'Amazon Ember', Arial, sans-serif;
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Inline Spinner ──────────────────────────────────────── */
+.sl-inline-spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  border-top-color: currentColor;
+  animation: sl-orbit-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── Skeleton base + shimmer ─────────────────────────────── */
+.sl-skel {
+  background: #E5E7EB;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sl-skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.65) 45%,
+    rgba(255, 255, 255, 0.65) 55%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: sl-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes sl-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* ── Skeleton Card ───────────────────────────────────────── */
+.sl-skel-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sl-skel-img  { height: 200px; border-radius: 0; }
+.sl-skel-h3   { height: 18px; }
+.sl-skel-h4   { height: 14px; }
+.sl-skel-text { height: 12px; }
+.sl-skel-btn  { height: 38px; border-radius: 20px; margin-top: 0.25rem; }
+
+/* ── Skeleton Row ────────────────────────────────────────── */
+.sl-skel-row td {
+  border-bottom: 1px solid #E5E7EB;
+}
+
+/* ── Skeleton KPI ────────────────────────────────────────── */
+.sl-skel-kpi {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.sl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem 2rem;
+  background: #FAFBFC;
+  border: 1px dashed #E5E7EB;
+  border-radius: 8px;
+  text-align: center;
+  width: 100%;
+}
+
+.sl-empty__icon {
+  color: #879596;
+  margin-bottom: 0.5rem;
+}
+
+.sl-empty__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #191C1E;
+  margin: 0;
+}
+
+.sl-empty__message {
+  font-size: 0.87rem;
+  color: #576474;
+  margin: 0;
+  max-width: 360px;
+  line-height: 1.5;
+}

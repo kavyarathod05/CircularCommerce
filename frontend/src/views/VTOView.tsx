@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { SectionLoader, InlineSpinner } from '../components/Loader';
 
 type VtoResult = {
   tryon_image_url?: string;
@@ -276,15 +277,17 @@ export default function VTOView() {
 
         <div style={{ background: '#FFF', borderRadius: 12, padding: '1.5rem', border: '1px solid #EAEAEA', display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem' }}>3. Your preview</h3>
-          <button
+            <button
             onClick={runVTO}
             disabled={!userImage || !selectedSku || isGenerating}
             style={{
               width: '100%', padding: '0.85rem', marginBottom: '1rem', borderRadius: 8, fontWeight: 700, border: 'none', cursor: 'pointer',
               background: !userImage || !selectedSku ? '#F8F9FA' : '#FF9900', color: !userImage || !selectedSku ? '#879596' : '#FFF',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
             }}
           >
-            {isGenerating ? (statusMsg || 'Generating…') : 'Generate try-on'}
+            {isGenerating && <InlineSpinner size={16} color="#FFF" />}
+            {isGenerating ? statusMsg || 'Generating…' : 'Generate try-on'}
           </button>
           <div style={{ flex: 1, minHeight: 360, background: '#F8F9FA', borderRadius: 10, border: '1px solid #EAEAEA', overflow: 'hidden', position: 'relative' }}>
             {previewUrl ? (
@@ -292,14 +295,11 @@ export default function VTOView() {
                 <img src={previewUrl} alt="Try-on result" style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#F8F9FA' }} />
                 <FitScoreCard result={vtoResult!} />
               </>
+            ) : isGenerating ? (
+              <SectionLoader label={statusMsg || 'Building preview…'} height={360} />
             ) : (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#879596', padding: '1rem', textAlign: 'center' }}>
-                {isGenerating ? (
-                  <div>
-                    <div style={{ width: 36, height: 36, border: '3px solid #EAEAEA', borderTopColor: '#FF9900', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 0.75rem' }} />
-                    {statusMsg || 'Building preview…'}
-                  </div>
-                ) : 'Your try-on preview appears here'}
+                Your try-on preview appears here
               </div>
             )}
           </div>

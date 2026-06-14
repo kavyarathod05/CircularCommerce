@@ -1,6 +1,8 @@
 import { AppContext } from './context/AppContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
-import RoleSelection from './views/RoleSelection';
+import LoginPage from './views/LoginPage';
+import { PageLoader } from './components/Loader';
 import CatalogView from './views/CatalogView';
 import VTOView from './views/VTOView';
 import AccountView from './views/AccountView';
@@ -11,6 +13,7 @@ import PreventionView from './views/PreventionView';
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import './App.css'
+import './views/LoginPage.css'
 import LogisticsTelemetry from './LogisticsTelemetry'
 import OrderTrackingView from './views/OrderTrackingView'
 import ProcessingLogsView from './views/ProcessingLogsView'
@@ -72,13 +75,38 @@ const DEMO_CATALOG: ListingRecord[] = [
   { listingId: 'lst-demo-3', productId: 'iPhone 14 Pro Max', msrp: 95000, currentPrice: 76000, discountApplied: '20%', owner: 'Priya S. (Koramangala)', grade: 'Grade B', escrowStatus: 'N/A', status: 'available', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500' },
 ]
 
-function App() {
+function AppInner() {
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [userRole, setUserRole] = useState<'buyer' | 'seller' | 'admin' | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
   const activeTab = (location.pathname.replace('/', '') || 'catalog') as any
   const setActiveTab = (tab: string) => navigate('/' + tab)
-  
+
+  // Auto-sync role from JWT user when they log in
+  useEffect(() => {
+    if (user) {
+      const role = user.role as 'buyer' | 'seller' | 'admin'
+      setUserRole(role)
+      
+      const validTabs = {
+        buyer: ['catalog', 'vto', 'prevention', 'wizard', 'result', 'logistics', 'account'],
+        seller: ['admin', 'logs', 'logistics', 'fraud', 'serial', 'inventory'],
+        admin: ['fraud', 'serial', 'inventory', 'logs', 'logistics', 'nsga2', 'routing', 'workspace']
+      }
+      
+      const currentPath = location.pathname.replace('/', '')
+      const defaultTabs: Record<string, string> = { buyer: 'catalog', seller: 'admin', admin: 'fraud' }
+      
+      if (!currentPath || currentPath === 'login' || !validTabs[role].includes(currentPath)) {
+        navigate('/' + defaultTabs[role], { replace: true })
+      }
+    } else {
+      setUserRole(null)
+    }
+  }, [user, location.pathname, navigate])
+
+
   // Wizard States
   const [orderId, setOrderId] = useState('999-65432-1789')
   const [productId, setProductId] = useState('p-headphones-premium')
@@ -223,6 +251,8 @@ function App() {
       evaluateFriction(cartItems)
     }
   }, [userRole, activeTab, returnVelocity])
+
+
 
   const addToCart = (item: any) => {
     const newCart = [...cartItems, { id: item.listingId || item.productId, name: item.productId, size: 'M', price: item.msrp }]
@@ -493,7 +523,16 @@ function App() {
     }
   }
 
-  const contextValue = { userRole, setUserRole, activeTab, setActiveTab, orderId, setOrderId, productId, setProductId, msrp, setMsrp, reason, setReason, lat, setLat, lng, setLng, mediaUrl, setMediaUrl, selectedFile, setSelectedFile, setUploading, consoleLogs, setConsoleLogs, isEvaluating, setIsEvaluating, lastResult, setLastResult, listings, setListings, sellerMetrics, setSellerMetrics, userMetrics, setUserMetrics, dppData, setDppData, catalogItems, setCatalogItems, isCatalogLoading, setIsCatalogLoading, cartItems, setCartItems, returnVelocity, setReturnVelocity, showPreventionAlert, setShowPreventionAlert, frictionScore, setFrictionScore, evaluateFriction, addToCart, removeFromCart, handleFileChange, uploadFileToS3, getBase64, runTriageSimulation, toggleListingStatus };
+  const contextValue = { userRole, setUserRole, activeTab, setActiveTab, orderId, setOrderId, productId, setProductId, msrp, setMsrp, reason, setReason, lat, setLat, lng, setLng, mediaUrl, setMediaUrl, selectedFile, setSelectedFile, setUploading, consoleLogs, setConsoleLogs, isEvaluating, setIsEvaluating, lastResult, setLastResult, listings, setListings, sellerMetrics, setSellerMetrics, userMetrics, setUserMetrics, dppData, setDppData, catalogItems, setCatalogItems, isCatalogLoading, setIsCatalogLoading, cartItems, setCartItems, returnVelocity, setReturnVelocity, showPreventionAlert, setShowPreventionAlert, frictionScore, setFrictionScore, evaluateFriction, addToCart, removeFromCart, handleFileChange, uploadFileToS3, getBase64, runTriageSimulation, toggleListingStatus, logout };
+
+  // ── Render: gate on auth state ONLY in JSX (never as early returns) ────────
+  if (isLoading) {
+    return <PageLoader label="Loading SecondLife..." />
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />
+  }
 
   return (
     <AppContext.Provider value={contextValue}>
@@ -502,9 +541,6 @@ function App() {
         <Sidebar />
         {/* MAIN CONTENT CONTAINER */}
       <main style={{ flexGrow: 1, padding: '2rem 3rem', boxSizing: 'border-box', maxWidth: userRole ? 'calc(100vw - 280px)' : '100vw', overflowY: 'auto' }}>
-        
-        {/* ROLE SELECTION SCREEN */}
-        <RoleSelection />
         {/* CATALOG VIEW */}
         <CatalogView />
         {/* VTO VIEW */}
@@ -544,6 +580,15 @@ function App() {
       </main>
     </div>
     </AppContext.Provider>
+  )
+}
+
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   )
 }
 

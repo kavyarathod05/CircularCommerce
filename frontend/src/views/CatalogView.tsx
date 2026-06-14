@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { SkeletonCard, EmptyState } from '../components/Loader';
 
 const FALLBACK_IMAGE = (productId: string) => {
   const p = productId.toLowerCase();
@@ -25,15 +26,19 @@ export default function CatalogView() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
         {isCatalogLoading && items.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', gridColumn: '1 / -1', backgroundColor: '#F8F9FA', borderRadius: '12px', border: '1px dashed #D5D9D9' }}>
-            <div style={{ width: 32, height: 32, border: '3px solid #EAEAEA', borderTopColor: '#FF9900', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
-            <h3 style={{ color: '#131A22', marginBottom: '0.5rem' }}>Loading local catalog...</h3>
-            <p style={{ color: '#565959' }}>Served from Redis cache when available.</p>
-          </div>
+          // Skeleton shimmer — 6 placeholder cards
+          Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
         ) : items.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', gridColumn: '1 / -1', backgroundColor: '#FFFDF9', borderRadius: '12px', border: '1px dashed #FF9900' }}>
-            <h3 style={{ color: '#131A22' }}>No items nearby right now</h3>
-            <p style={{ color: '#565959' }}>Check back tomorrow — new returns are listed daily.</p>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <EmptyState
+              title="No items nearby right now"
+              message="Check back tomorrow — new returns are listed daily."
+              icon={
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+              }
+            />
           </div>
         ) : (
           items.map((item: any, idx: number) => {
