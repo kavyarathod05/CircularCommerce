@@ -1,0 +1,275 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SecondLife Commerce — ML Microservice + Real-Time Logistics Telemetry
+  Deploys the FastAPI ML service as a container Lambda behind HTTP API,
+  and the WebSocket telemetry layer via API Gateway WebSocket API.
+
+Parameters:
+  ECRImageUri:
+    Type: String
+    Description: ECR image URI for the ML service container (e.g., 123456789.dkr.ecr.us-east-1.amazonaws.com/secondlife-ml:latest)
+  TickRateMinutes:
+    Type: Number
+    Default: 1
+    Description: How often (in minutes) the telemetry broadcast fires
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Environment:
+      Variables:
+        WS_CONNECTIONS_TABLE: !Ref WsConnectionsTable
+
+Resources:
+  # ===========================================================================
+  # 1. ML REST API — Container Lambda behind HTTP API Gateway
+  # ===========================================================================
+  MLServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Ref ECRImageUri
+      Architectures:
+        - x86_64
+      MemorySize: 1024
+      Timeout: 60
+      Events:
+        CatchAll:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MLHttpApi
+            Path: /{proxy+}
+            Method: ANY
+        Root:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MLHttpApi
+            Path: /
+            Method: ANY
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: Listings
+        - DynamoDBCrudPolicy:
+            TableName: Orders
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - rekognition:DetectLabels
+                - rekognition:CreateFaceLivenessSession
+              Resource: "*"
+
+  MLHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: Prod
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Amz-Date
+          - X-Api-Key
+          - X-Amz-Security-Token
+        AllowOrigins:
+          - "*"
+
+  # ===========================================================================
+  # 2. WebSocket Telemetry — API Gateway WebSocket API + Lambda Handlers
+  # ===========================================================================
+
+  # DynamoDB table to track active WebSocket connections
+  WsConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: WsConnections
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # WebSocket API Gateway
+  TelemetryWebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: SecondLifeTelemetryWS
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.action
+      Description: Full-duplex WebSocket API for real-time logistics telemetry
+
+  # --- $connect Route ---
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TelemetryWebSocketApi
+      RouteKey: $connect
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${ConnectIntegration}"
+
+  ConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref TelemetryWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WsConnectFunction.Arn}/invocations"
+
+  # --- $disconnect Route ---
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TelemetryWebSocketApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${DisconnectIntegration}"
+
+  DisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref TelemetryWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WsDisconnectFunction.Arn}/invocations"
+
+  # --- $default Route (client messages) ---
+  DefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TelemetryWebSocketApi
+      RouteKey: $default
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${DefaultIntegration}"
+
+  DefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref TelemetryWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WsMessageFunction.Arn}/invocations"
+
+  # --- WebSocket Stage ---
+  TelemetryStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref TelemetryWebSocketApi
+      StageName: Prod
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 100
+        ThrottlingRateLimit: 50
+
+  # --- Lambda Functions for WebSocket ---
+  WsConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.10
+      Handler: ws_lambda_handlers.connect_handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WsConnectionsTable
+
+  WsDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.10
+      Handler: ws_lambda_handlers.disconnect_handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WsConnectionsTable
+
+  WsMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.10
+      Handler: ws_lambda_handlers.message_handler
+      CodeUri: .
+      Environment:
+        Variables:
+          WS_API_ENDPOINT: !Sub "https://${TelemetryWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WsConnectionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - execute-api:ManageConnections
+              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TelemetryWebSocketApi}/*"
+
+  # --- Scheduled Broadcast (EventBridge → Lambda) ---
+  BroadcastTickFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.10
+      Handler: ws_lambda_handlers.broadcast_tick
+      CodeUri: .
+      MemorySize: 256
+      Timeout: 30
+      Environment:
+        Variables:
+          WS_API_ENDPOINT: !Sub "https://${TelemetryWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+      Events:
+        ScheduledTick:
+          Type: Schedule
+          Properties:
+            Schedule: !Sub "rate(${TickRateMinutes} minute)"
+            Description: Broadcasts telemetry tick to all connected WebSocket clients
+            Enabled: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WsConnectionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - execute-api:ManageConnections
+              Resource: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TelemetryWebSocketApi}/*"
+
+  # --- Lambda Permissions for API Gateway WebSocket ---
+  ConnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WsConnectFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TelemetryWebSocketApi}/*/$connect"
+
+  DisconnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WsDisconnectFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TelemetryWebSocketApi}/*/$disconnect"
+
+  DefaultPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WsMessageFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TelemetryWebSocketApi}/*/$default"
+
+Outputs:
+  MLApiEndpoint:
+    Description: HTTP API endpoint for ML microservice (FastAPI via Mangum)
+    Value: !Sub "https://${MLHttpApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+  WebSocketEndpoint:
+    Description: WebSocket endpoint for real-time logistics telemetry
+    Value: !Sub "wss://${TelemetryWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+  WsConnectionsTableName:
+    Description: DynamoDB table tracking active WebSocket connections
+    Value: !Ref WsConnectionsTable

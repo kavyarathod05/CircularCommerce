@@ -1,6 +1,11 @@
 import numpy as np
 import boto3
-import xgboost as xgb
+try:
+    import xgboost as xgb
+    _HAS_XGB = True
+except Exception:
+    xgb = None
+    _HAS_XGB = False
 import os
 import pandas as pd
 from boto3.dynamodb.conditions import Key, Attr
@@ -17,14 +22,17 @@ class PredictiveFrictionEngine:
         self.orders_table = self.dynamodb.Table('OrdersTable')
         
         self.model_path = os.path.join(os.path.dirname(__file__), 'friction_model.json')
-        self.model = xgb.XGBClassifier()
-        try:
-            self.model.load_model(self.model_path)
-            # Force to False for the hackathon demo so we get highly reactive probability swings
-            self.model_loaded = False 
-        except Exception as e:
-            print(f"Warning: Failed to load XGBoost model from {self.model_path}: {e}")
-            self.model_loaded = False
+        self.model = None
+        self.model_loaded = False
+        if _HAS_XGB:
+            try:
+                self.model = xgb.XGBClassifier()
+                self.model.load_model(self.model_path)
+                # Force to False for the hackathon demo so we get highly reactive probability swings
+                self.model_loaded = False 
+            except Exception as e:
+                print(f"Warning: Failed to load XGBoost model from {self.model_path}: {e}")
+                self.model_loaded = False
 
     def evaluate_checkout(self, user_id, product_id, session_data):
         """

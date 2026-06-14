@@ -1,0 +1,294 @@
+/* =========================================================
+   COLLABCRM UNIFIED DESIGN SYSTEM
+   Strict Morphological Consistency across all modules.
+========================================================= */
+
+:root {
+  /* Unified Color Palette */
+  --ds-bg-app: #FDFDFD;
+  --ds-bg-panel: #FFFFFF;
+  --ds-bg-alt: #FAFBFC;
+  
+  --ds-border: #EAEAEA;
+  --ds-border-hover: #D5D9D9;
+  
+  --ds-text-primary: #131A22;
+  --ds-text-secondary: #565959;
+  --ds-text-tertiary: #879596;
+  
+  --ds-accent: #FF9900;
+  --ds-accent-hover: #F08804;
+  
+  --ds-success-bg: #E6F4EA;
+  --ds-success-text: #137333;
+  --ds-warning-bg: #FFF8E1;
+  --ds-warning-text: #B08D00;
+  --ds-error-bg: #FCE8E6;
+  --ds-error-text: #C5221F;
+  --ds-info-bg: #E8F0FE;
+  --ds-info-text: #1967D2;
+
+  --ds-radius-sm: 4px;
+  --ds-radius-md: 8px;
+  --ds-radius-lg: 12px;
+  
+  --ds-shadow-sm: 0 1px 3px rgba(0,0,0,0.02);
+  --ds-shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* 1. Layouts & Panels */
+.ds-module-root {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  font-family: 'Inter', -apple-system, sans-serif;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.ds-panel {
+  background: var(--ds-bg-panel);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--ds-shadow-sm);
+  transition: box-shadow 0.2s;
+}
+
+.ds-panel:hover {
+  box-shadow: var(--ds-shadow-md);
+}
+
+/* 2. Headers */
+.ds-header {
+  margin-bottom: 0.5rem;
+}
+
+.ds-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--ds-text-primary);
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.02em;
+}
+
+.ds-subtitle {
+  font-size: 0.95rem;
+  color: var(--ds-text-secondary);
+  margin: 0;
+}
+
+.ds-section-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ds-text-primary);
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 3. Controls & Filters */
+.ds-filter-bar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  background: var(--ds-bg-alt);
+  padding: 1rem;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-border);
+  margin-bottom: 1.5rem;
+}
+
+.ds-input, .ds-select {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--ds-border-hover);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-panel);
+  font-size: 0.9rem;
+  color: var(--ds-text-primary);
+  min-width: 150px;
+  transition: border-color 0.2s;
+}
+
+.ds-input:focus, .ds-select:focus {
+  outline: none;
+  border-color: var(--ds-accent);
+}
+
+.ds-btn-primary {
+  padding: 0.6rem 1.2rem;
+  background: var(--ds-accent);
+  color: #FFF;
+  border: none;
+  border-radius: var(--ds-radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ds-btn-primary:hover {
+  background: var(--ds-accent-hover);
+}
+
+.ds-btn-secondary {
+  padding: 0.6rem 1.2rem;
+  background: var(--ds-bg-panel);
+  color: var(--ds-text-primary);
+  border: 1px solid var(--ds-border-hover);
+  border-radius: var(--ds-radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ds-btn-secondary:hover {
+  background: var(--ds-bg-alt);
+  border-color: var(--ds-text-tertiary);
+}
+
+/* 4. Data Tables */
+.ds-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-panel);
+}
+
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.ds-table th {
+  padding: 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ds-text-tertiary);
+  background: var(--ds-bg-alt);
+  border-bottom: 2px solid var(--ds-border);
+}
+
+.ds-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--ds-border);
+  font-size: 0.95rem;
+  color: var(--ds-text-primary);
+  vertical-align: middle;
+}
+
+.ds-table tbody tr {
+  transition: background 0.15s;
+}
+
+.ds-table tbody tr:hover {
+  background: var(--ds-bg-alt);
+}
+
+.ds-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Interactive Rows */
+.ds-table-row-clickable {
+  cursor: pointer;
+}
+.ds-table-row-active {
+  background: #FFFDF9 !important;
+  box-shadow: inset 3px 0 0 var(--ds-accent);
+}
+
+/* 5. KPI Strip */
+.ds-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.ds-kpi-card {
+  background: var(--ds-bg-panel);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: var(--ds-shadow-sm);
+}
+
+.ds-kpi-val {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--ds-text-primary);
+  line-height: 1;
+}
+
+.ds-kpi-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* 6. Badges & Tags */
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ds-badge-success { background: var(--ds-success-bg); color: var(--ds-success-text); border: 1px solid #CEEAD6; }
+.ds-badge-warning { background: var(--ds-warning-bg); color: var(--ds-warning-text); border: 1px solid #FEEFC3; }
+.ds-badge-error   { background: var(--ds-error-bg); color: var(--ds-error-text); border: 1px solid #FAD2CF; }
+.ds-badge-info    { background: var(--ds-info-bg); color: var(--ds-info-text); border: 1px solid #D2E3FC; }
+
+/* 7. Empty States & Loading */
+.ds-empty-state {
+  padding: 4rem 2rem;
+  text-align: center;
+  background: var(--ds-bg-alt);
+  border-radius: var(--ds-radius-md);
+  border: 1px dashed var(--ds-border-hover);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ds-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.ds-empty-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ds-text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.ds-empty-text {
+  font-size: 0.95rem;
+  color: var(--ds-text-secondary);
+  max-width: 400px;
+  line-height: 1.5;
+  margin: 0;
+}

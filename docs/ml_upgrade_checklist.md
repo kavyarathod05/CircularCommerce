@@ -27,3 +27,24 @@ This checklist outlines the exact steps required to upgrade your current Python 
 - `[x]` **Review Open-Source:** Review the `microsoft/recommenders` GitHub repository.
 - `[x]` **Port Schemas:** Port their proven content-scoring schemas into your Python engine.
 - `[x]` **Refactor Engine:** Update the `demand_engine.py` to apply these advanced collaborative filtering formulas when querying wishlist affinities from DynamoDB, rather than relying on pure linear vector distances.
+
+## 5. Real-Time Logistics Telemetry
+**Goal:** Implement a full-duplex WebSocket architecture to track fleet and order statuses in real-time.
+- `[x]` **WebSocket Backend:** Built `logistics_ws_server.py` utilizing `python-socketio` to broadcast live logistics simulation ticks.
+- `[x]` **AWS API Gateway Integration:** Created `ws_lambda_handlers.py` to natively support AWS API Gateway WebSockets, with an EventBridge cron triggering broadcasts.
+- `[x]` **React Telemetry UI:** Developed a robust dashboard (`LogisticsTelemetry.tsx`) with dynamic maps, metric KPIs, and event logging that updates seamlessly via the custom `useLogisticsTelemetry` hook without refreshing.
+- `[x]` **Deployment:** Containerized and configured `deploy_aws.sh` and `template.yaml` for AWS SAM cloud deployment.
+
+## 6. Sustainable Fleet Optimization
+**Goal:** Formulate an intelligent routing system that balances financial delivery costs with environmental impact metrics (CO2, NOx).
+- `[x]` **Heuristic Seeding:** Implemented the Clarke & Wright savings heuristic algorithm to construct initial optimal delivery routes.
+- `[x]` **CP-SAT MILP Solving:** Leveraged Google's `OR-Tools` Mixed-Integer Linear Programming block to optimally assign fleet vehicles (Cargo Bikes, EVs, Vans, Trucks) based on route distances, capacity, and Green Zone restrictions.
+- `[x]` **Genetic Meta-Tuning:** Developed a Genetic Algorithm (GA) to evolve and trade off cost vs. emission objective weights (`α` and `β`) and fleet composition counts.
+- `[x]` **NSGA-II Engine:** Also maintained a secondary NSGA-II solver (`nsga2_routing.py`) focusing explicitly on Pareto-optimal tradeoffs between fleet size and cost.
+- `[x]` **Interactive Dashboard:** Shipped `FleetOptimizer.tsx` and `RouteOptimizer.tsx` to visualize Green Zones, track GA convergence charts, evaluate diesel baseline comparisons, and plot all non-dominated optimal paths.
+
+## 7. Unit-Level Inventory Tracking
+**Goal:** Architect the database to treat every item as unique, tracking its individual condition, pricing, and repair history to avoid losing residual value through bulk SKU tracking (TWICE Commerce architecture).
+- [x] **Unit Inventory Engine:** Implemented unit_inventory.py to assign unique unit_ids, maintain condition grades (A, B, C, D), track repair history, and dynamically calculate residual value based on depreciation.
+- [x] **API Integration:** Added REST endpoints in FastAPI (main.py) to expose individual unit data and process repair logging.
+- [x] **Interactive Dashboard:** Shipped UnitInventoryDashboard.tsx to display all individualized items, render their dynamic depreciation curves vs MSRP, and provide forms for sellers to log lifecycle actions.
