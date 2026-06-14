@@ -1,0 +1,117 @@
+/* ===== Sustainable Fleet Optimizer Dashboard ===== */
+.fo-root { max-width: 1500px; margin: 0 auto; animation: fadeIn 0.4s ease; }
+
+.fo-header { margin-bottom: 1.5rem; }
+.fo-title-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.fo-title { font-size: 1.8rem; font-weight: 800; color: #131A22; margin: 0; }
+.fo-subtitle { color: #879596; font-size: 0.85rem; margin-top: 0.25rem; }
+
+/* Controls */
+.fo-controls {
+  display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;
+  background: #FFF; border: 1px solid #EAEAEA; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;
+}
+.fo-field { display: flex; flex-direction: column; gap: 0.3rem; }
+.fo-field label { font-size: 0.72rem; font-weight: 700; color: #565959; text-transform: uppercase; letter-spacing: 0.5px; }
+.fo-field input, .fo-field select {
+  padding: 0.55rem 0.75rem; border: 1px solid #D5D9D9; border-radius: 8px; font-size: 0.9rem;
+  background: #F8F9FA; color: #131A22; min-width: 100px;
+}
+.fo-slider-wrap { min-width: 200px; }
+.fo-slider-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: #879596; margin-top: 2px; }
+.fo-slider { width: 100%; accent-color: #137333; }
+.fo-run-btn {
+  padding: 0.6rem 1.8rem; border: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
+  cursor: pointer; transition: all 0.25s;
+  background: linear-gradient(135deg, #137333, #1a9e44); color: #FFF; box-shadow: 0 2px 8px rgba(19,115,51,0.3);
+}
+.fo-run-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(19,115,51,0.4); }
+.fo-run-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* Status */
+.fo-status { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.9rem; border-radius: 100px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.8px; }
+.fo-status-idle { background: #F3F4F6; color: #879596; }
+.fo-status-running { background: #E6F4EA; color: #137333; }
+.fo-status-done { background: #E6F4EA; color: #137333; }
+.fo-status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.fo-status-running .fo-status-dot { background: #137333; animation: lt-pulse 1.2s infinite; }
+.fo-status-done .fo-status-dot { background: #137333; }
+.fo-status-idle .fo-status-dot { background: #879596; }
+
+/* KPI Strip */
+.fo-kpi-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+.fo-kpi {
+  background: #FFF; border: 1px solid #EAEAEA; border-radius: 10px; padding: 1rem;
+  text-align: center; transition: box-shadow 0.2s, transform 0.2s;
+}
+.fo-kpi:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); transform: translateY(-2px); }
+.fo-kpi-val { font-size: 1.5rem; font-weight: 800; color: #131A22; line-height: 1.2; }
+.fo-kpi-label { font-size: 0.72rem; color: #565959; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.3rem; font-weight: 600; }
+.fo-kpi-green { background: linear-gradient(135deg, #E6F4EA, #d4f0da); border-color: #CEEAD6; }
+.fo-kpi-green .fo-kpi-val { color: #137333; }
+.fo-kpi-accent { background: linear-gradient(135deg, #131A22, #1a2533); border-color: #131A22; }
+.fo-kpi-accent .fo-kpi-val { color: #FF9900; }
+.fo-kpi-accent .fo-kpi-label { color: #879596; }
+
+/* Pipeline Steps */
+.fo-pipeline { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.fo-step {
+  flex: 1; min-width: 200px; background: #FFF; border: 1px solid #EAEAEA; border-radius: 10px;
+  padding: 1rem; position: relative; overflow: hidden;
+}
+.fo-step-num { position: absolute; top: 8px; right: 10px; font-size: 2rem; font-weight: 900; color: rgba(0,0,0,0.04); }
+.fo-step-title { font-weight: 800; font-size: 0.85rem; color: #131A22; margin-bottom: 0.3rem; }
+.fo-step-val { font-size: 1.2rem; font-weight: 700; color: #007185; }
+.fo-step-sub { font-size: 0.75rem; color: #879596; margin-top: 0.2rem; }
+
+/* Main grid */
+.fo-main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; align-items: start; }
+@media(max-width:1000px) { .fo-main-grid { grid-template-columns: 1fr; } }
+
+/* Card */
+.fo-card { background: #FFF; border: 1px solid #EAEAEA; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+.fo-card-title { font-size: 1.1rem; font-weight: 800; color: #131A22; margin: 0 0 1rem 0; }
+
+/* Fleet composition chart */
+.fo-fleet-bars { display: flex; flex-direction: column; gap: 0.75rem; }
+.fo-fleet-bar-row { display: flex; align-items: center; gap: 0.75rem; }
+.fo-fleet-bar-label { min-width: 100px; font-size: 0.82rem; font-weight: 600; color: #131A22; }
+.fo-fleet-bar-track { flex: 1; height: 20px; background: #F0F2F2; border-radius: 10px; overflow: hidden; position: relative; }
+.fo-fleet-bar-fill { height: 100%; border-radius: 10px; transition: width 0.6s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 0.7rem; font-weight: 700; color: #FFF; }
+.fo-fleet-bar-stat { min-width: 60px; text-align: right; font-size: 0.8rem; color: #565959; }
+
+/* Route table */
+.fo-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.fo-table th {
+  padding: 0.75rem 0.5rem; text-align: left; background: #F8F9FA; color: #565959;
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+  border-bottom: 2px solid #EAEAEA;
+}
+.fo-table td { padding: 0.7rem 0.5rem; border-bottom: 1px solid #F0F2F2; color: #131A22; }
+.fo-table tr:hover { background: #FAFBFC; }
+.fo-green-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; background: #E6F4EA; color: #137333; }
+
+/* Map */
+.fo-map-container {
+  position: relative; background: #0a0f18; border-radius: 10px; overflow: hidden;
+  aspect-ratio: 16/10; border: 1px solid #1a2533;
+}
+.fo-map-grid {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(19,115,51,0.08) 1px, transparent 1px);
+  background-size: 20px 20px; pointer-events: none;
+}
+.fo-map-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; }
+
+/* Sustainability gauge */
+.fo-gauge { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.fo-gauge-ring { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+.fo-gauge-ring svg { transform: rotate(-90deg); }
+.fo-gauge-val { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #137333; }
+.fo-gauge-info { font-size: 0.85rem; color: #565959; line-height: 1.5; }
+
+/* Evolution chart */
+.fo-evo-chart { width: 100%; height: 100px; background: #F8F9FA; border-radius: 8px; overflow: hidden; position: relative; margin-top: 0.5rem; }
+
+/* Spinner */
+.fo-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(19,115,51,0.2); border-top-color: #137333; border-radius: 50%; animation: ro-spin 0.8s linear infinite; }

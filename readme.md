@@ -43,6 +43,9 @@ We built an end-to-end ML microservice architecture integrated with a modern Rea
   - Capital Recovery Value
   - Fraudulent Returns Blocked
 
+### 6. Unit-Level Inventory (TWICE Commerce Architecture)
+* **Individualized Residual Value Tracking:** Instead of treating second-hand/returned goods as bulk SKUs, our database architecture treats every item as unique. Each unit tracks its individual condition, dynamic pricing based on depreciation, and full lifecycle repair history.
+
 ---
 
 ## 🏗️ Technical Architecture

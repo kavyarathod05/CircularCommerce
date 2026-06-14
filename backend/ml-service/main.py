@@ -366,6 +366,23 @@ def create_listing(req: CreateListingRequest):
         return {"status": "success", "listingId": listing_id}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+from logistics_telemetry import LogisticsTelemetryEngine
+_logistics_engine = LogisticsTelemetryEngine(fleet_size=12, active_orders=24)
+@app.get("/api/v1/logistics/fleet")
+def get_fleet():
+    return {"status": "success", "data": _logistics_engine.get_fleet_snapshot()}
+@app.get("/api/v1/logistics/orders")
+def get_logistics_orders():
+    return {"status": "success", "data": _logistics_engine.get_orders_snapshot()}
+@app.get("/api/v1/logistics/metrics")
+def get_logistics_metrics():
+    _logistics_engine.tick()  # advance sim on each poll
+    return {"status": "success", "data": _logistics_engine.get_metrics()}
+@app.get("/api/v1/logistics/alerts")
+def get_logistics_alerts():
+    return {"status": "success", "data": _logistics_engine.get_alerts()}
+@app.get("/api/v1/logistics/tick")
+    events = _logistics_engine.tick()
 
 # AWS Lambda Handler
 handler = Mangum(app)
