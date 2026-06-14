@@ -1,82 +1,117 @@
+import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
+const FALLBACK_IMAGE = (productId: string) => {
+  const p = productId.toLowerCase();
+  if (p.includes('iphone') || p.includes('smartphone')) return 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500';
+  if (p.includes('hoodie') || p.includes('shirt')) return 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500';
+  if (p.includes('jeans')) return 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500';
+  if (p.includes('bose') || p.includes('headphone')) return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500';
+  return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500';
+};
+
 export default function CatalogView() {
-  const { userRole, activeTab, productId, msrp, catalogItems, isCatalogLoading, addToCart } = useAppContext();
+  const { userRole, activeTab, catalogItems, isCatalogLoading, addToCart } = useAppContext();
+  const [gs1Modal, setGs1Modal] = useState<any>(null);
+
+  if (!(userRole === 'buyer' && activeTab === 'catalog')) return null;
+
+  const items = catalogItems.slice(0, 6);
+
   return (
-    <>
-      {/* CATALOG VIEW */}
-        {userRole === 'buyer' && activeTab === 'catalog' && (
-          <section className="view-section" style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <h2 style={{ fontFamily: 'var(--brutalist-font, sans-serif)', marginBottom: '1.5rem', fontSize: '1.8rem', color: '#131A22' }}>Recommended For You</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
-              {isCatalogLoading ? (
-                <div style={{ padding: '4rem', textAlign: 'center', gridColumn: '1 / -1', backgroundColor: '#F8F9FA', borderRadius: '12px', border: '1px dashed #D5D9D9' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '1rem', animation: 'spin 1s linear infinite' }}>⏳</div>
-                  <h3 style={{ color: '#131A22', marginBottom: '0.5rem' }}>Curating Local Finds...</h3>
-                  <p style={{ color: '#565959', maxWidth: '400px', margin: '0 auto' }}>We are matching you with SecondLife items available in your immediate zip code to minimize delivery emissions.</p>
+    <section className="view-section" style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      <h2 style={{ marginBottom: '0.35rem', fontSize: '1.8rem', color: '#131A22' }}>Local Finds Near You</h2>
+      <p style={{ color: '#565959', marginBottom: '1.5rem' }}>Pre-owned items from sellers in Koramangala — fast pickup, lower emissions.</p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+        {isCatalogLoading && items.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', gridColumn: '1 / -1', backgroundColor: '#F8F9FA', borderRadius: '12px', border: '1px dashed #D5D9D9' }}>
+            <div style={{ width: 32, height: 32, border: '3px solid #EAEAEA', borderTopColor: '#FF9900', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
+            <h3 style={{ color: '#131A22', marginBottom: '0.5rem' }}>Loading local catalog...</h3>
+            <p style={{ color: '#565959' }}>Served from Redis cache when available.</p>
+          </div>
+        ) : items.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', gridColumn: '1 / -1', backgroundColor: '#FFFDF9', borderRadius: '12px', border: '1px dashed #FF9900' }}>
+            <h3 style={{ color: '#131A22' }}>No items nearby right now</h3>
+            <p style={{ color: '#565959' }}>Check back tomorrow — new returns are listed daily.</p>
+          </div>
+        ) : (
+          items.map((item: any, idx: number) => {
+            const img = item.image || FALLBACK_IMAGE(item.productId);
+            const gs1 = item.gs1;
+            return (
+              <div key={item.listingId || idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', backgroundColor: '#FFF', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA' }}>
+                <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
+                  <img src={img} alt={item.productId} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                  {gs1?.verified && (
+                    <button
+                      type="button"
+                      onClick={() => setGs1Modal({ ...gs1, productId: item.productId })}
+                      style={{
+                        position: 'absolute', top: 8, left: 8, display: 'flex', alignItems: 'center', gap: '0.35rem',
+                        background: 'rgba(255,255,255,0.95)', border: '1px solid #BFEAF1', borderRadius: '999px',
+                        padding: '0.3rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, color: '#007185', cursor: 'pointer',
+                      }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#137333', display: 'inline-block' }} />
+                      GS1 Verified
+                    </button>
+                  )}
                 </div>
-              ) : catalogItems.length === 0 ? (
-                <div style={{ padding: '4rem', textAlign: 'center', gridColumn: '1 / -1', backgroundColor: '#FFFDF9', borderRadius: '12px', border: '1px dashed #FF9900' }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🍃</div>
-                  <h3 style={{ color: '#131A22', marginBottom: '0.5rem' }}>No Local Items Found</h3>
-                  <p style={{ color: '#565959', maxWidth: '500px', margin: '0 auto', lineHeight: '1.5' }}>There are currently no peer-to-peer returned items available in your immediate radius. Expand your search area or check back tomorrow as new local returns are processed daily.</p>
-                  <button className="btn-action" style={{ marginTop: '1.5rem', padding: '0.75rem 1.5rem', borderRadius: '8px', border: '1px solid #D5D9D9', backgroundColor: '#FFF', fontWeight: 'bold', cursor: 'pointer' }}>Expand Search to 50km</button>
-                </div>
-              ) : (
-                catalogItems.map((item, idx) => (
-                  <div key={idx} className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', backgroundColor: '#FFF', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA' }}>
-                    <div style={{ height: '220px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA', borderRadius: '8px', overflow: 'hidden' }}>
-                      <img src={
-                        item.productId.includes('iPhone') || item.productId.includes('smartphone') ? 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500' :
-                        item.productId.includes('Jacket') ? 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500' :
-                        item.productId.includes('Hoodie') || item.productId.includes('Shirt') ? 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500' :
-                        item.productId.includes('Jeans') ? 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500' :
-                        item.productId.includes('Controller') ? 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=500' :
-                        item.productId.includes('iPad') ? 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500' :
-                        item.productId.includes('Keyboard') ? 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=500' :
-                        item.productId.includes('Echo') ? 'https://images.unsplash.com/photo-1543512214-318c7553f230?w=500' :
-                        item.productId.includes('Bottle') ? 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500' :
-                        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500'
-                      } alt={item.productId} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, padding: '0.5rem 0' }}>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#0F1111', margin: '0 0 0.5rem 0' }}>{item.productId}</h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                        <span style={{ fontSize: '1.4rem', color: '#B12704', fontWeight: 'bold' }}>₹{Math.floor(item.currentPrice || item.msrp * 0.9)}</span>
-                        <span style={{ fontSize: '0.85rem', color: '#565959', textDecoration: 'line-through' }}>₹{item.msrp}</span>
-                        {item.discountApplied && (
-                          <span style={{ fontSize: '0.75rem', color: '#B12704', fontWeight: 'bold', marginLeft: '0.5rem' }}>({item.discountApplied} OFF)</span>
-                        )}
-                      </div>
-                      
-                      {item.isFlashDeal && (
-                        <div style={{ fontSize: '0.75rem', color: '#B12704', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                          ⚡ Flash Deal (High Local Demand)
-                        </div>
-                      )}
-                      
-                      {item.recommendedSize && (
-                        <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: '#007185', backgroundColor: '#F0FBFC', padding: '0.25rem 0.5rem', borderRadius: '4px', display: 'inline-block', width: 'fit-content' }}>
-                          ✓ <b>AI Recommended Size: {item.recommendedSize}</b>
-                        </div>
-                      )}
-                      
-                      {item.certificateUrl && (
-                        <a href={item.certificateUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#007185', textDecoration: 'none', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                          View GS1 Authenticity Certificate
-                        </a>
-                      )}
-                      
-                      <p style={{ color: '#565959', fontSize: '0.85rem', flexGrow: 1, margin: '0.5rem 0' }}>Ships from {item.owner}</p>
-                      <button className="btn-action" style={{ padding: '0.75rem', fontSize: '0.95rem', borderRadius: '100px', backgroundColor: '#FFD814', border: '1px solid #FCD200', color: '#0F1111', cursor: 'pointer', fontWeight: '500', marginTop: 'auto' }} onClick={() => addToCart(item)}>Add to Cart</button>
-                    </div>
+                <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#0F1111', margin: '0 0 0.35rem' }}>{item.productId}</h3>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                    <span style={{ fontSize: '1.35rem', color: '#B12704', fontWeight: 'bold' }}>₹{(item.currentPrice || Math.round(item.msrp * 0.8)).toLocaleString()}</span>
+                    <span style={{ fontSize: '0.85rem', color: '#565959', textDecoration: 'line-through' }}>₹{item.msrp.toLocaleString()}</span>
+                    {item.discountApplied && (
+                      <span style={{ fontSize: '0.72rem', color: '#137333', fontWeight: 700 }}>{item.discountApplied} off</span>
+                    )}
                   </div>
-                ))
-              )}
-            </div>
-          </section>
+                  <div style={{ fontSize: '0.8rem', color: '#565959', marginBottom: '0.5rem' }}>
+                    {item.grade} · Ships from {item.owner}
+                  </div>
+                  {item.isFlashDeal && (
+                    <div style={{ fontSize: '0.75rem', color: '#B12704', marginBottom: '0.5rem', fontWeight: 600 }}>High demand nearby</div>
+                  )}
+                  <button
+                    style={{ marginTop: 'auto', padding: '0.7rem', fontSize: '0.95rem', borderRadius: '999px', backgroundColor: '#FFD814', border: '1px solid #FCD200', color: '#0F1111', cursor: 'pointer', fontWeight: 600 }}
+                    onClick={() => addToCart(item)}
+                  >
+                    Add to Cart
+                  </button>
+                </div>
+              </div>
+            );
+          })
         )}
-    </>
+      </div>
+
+      {gs1Modal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}
+          onClick={() => setGs1Modal(null)}
+        >
+          <div
+            style={{ background: '#FFF', borderRadius: 14, padding: '1.75rem', maxWidth: 420, width: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#E6F4EA', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#137333', fontWeight: 800 }}>✓</div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#131A22' }}>GS1 Authenticity Certificate</h3>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#565959' }}>{gs1Modal.productId}</p>
+              </div>
+            </div>
+            <div style={{ background: '#F0FBFC', border: '1px solid #BFEAF1', borderRadius: 10, padding: '1rem', fontSize: '0.9rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span style={{ color: '#565959' }}>Brand</span><strong>{gs1Modal.brand}</strong></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span style={{ color: '#565959' }}>GTIN</span><strong style={{ fontFamily: 'monospace' }}>{gs1Modal.gtin}</strong></div>
+              <div style={{ fontSize: '0.75rem', color: '#879596', fontFamily: 'monospace', wordBreak: 'break-all', marginTop: '0.5rem' }}>Ledger: {gs1Modal.ledgerHash}</div>
+            </div>
+            <p style={{ margin: '1rem 0 0', fontSize: '0.85rem', color: '#137333', fontWeight: 600 }}>Verified on GS1 Global Registry (demo)</p>
+            <button onClick={() => setGs1Modal(null)} style={{ marginTop: '1rem', width: '100%', padding: '0.65rem', borderRadius: 8, border: '1px solid #D5D9D9', background: '#FFF', fontWeight: 600, cursor: 'pointer' }}>Close</button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

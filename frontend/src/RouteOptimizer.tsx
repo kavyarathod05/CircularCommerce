@@ -78,8 +78,8 @@ export default function RouteOptimizer() {
       <div className="ro-header">
         <div className="ro-title-row">
           <div>
-            <h2 className="ro-title">Multi-Objective Route Optimizer</h2>
-            <p className="ro-subtitle">NSGA-II Pareto Optimization • Minimize Vehicles + Cost Simultaneously</p>
+            <h2 className="ro-title">Route Planning</h2>
+            <p className="ro-subtitle">Compare delivery plans by cost, vehicles needed, and emissions</p>
           </div>
           <div className={`ro-status ro-status-${status}`}>
             <span className="ro-status-dot" />
@@ -103,7 +103,7 @@ export default function RouteOptimizer() {
           <input type="number" min={10} max={500} value={generations} onChange={e=>setGenerations(+e.target.value)} />
         </div>
         <button className="ro-run-btn" onClick={runOptimization} disabled={status==='running'}>
-          {status==='running' ? <><span className="ro-spinner"/> Running NSGA-II...</> : '🧬 Run Optimization'}
+          {status==='running' ? <><span className="ro-spinner"/> Planning routes...</> : 'Plan routes'}
         </button>
       </div>
 
@@ -185,11 +185,9 @@ export default function RouteOptimizer() {
       {/* Empty state */}
       {!result && status==='idle' && (
         <div style={{textAlign:'center',padding:'4rem 2rem',color:'#879596'}}>
-          <div style={{fontSize:'4rem',marginBottom:'1rem'}}>🧬</div>
-          <h3 style={{color:'#131A22',fontWeight:800,fontSize:'1.3rem'}}>Configure & Run NSGA-II</h3>
+          <h3 style={{color:'#131A22',fontWeight:800,fontSize:'1.3rem'}}>Plan delivery routes</h3>
           <p style={{maxWidth:500,margin:'0.5rem auto',lineHeight:1.6}}>
-            Set the number of delivery orders and algorithm parameters above, then click <strong>"Run Optimization"</strong> to 
-            generate Pareto-optimal routing solutions that simultaneously minimize fleet size and operational cost.
+            Set the number of orders and click <strong>Plan routes</strong> to compare delivery options by cost and fleet size.
           </p>
         </div>
       )}

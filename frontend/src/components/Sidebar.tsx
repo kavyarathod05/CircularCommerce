@@ -1,23 +1,77 @@
 import { useAppContext } from '../context/AppContext';
 
-export default function Sidebar() {
-  const { userRole, setUserRole, activeTab, setActiveTab } = useAppContext();
+type NavItem = { tab: string; label: string };
+
+function NavButton({ tab, label, activeTab, setActiveTab }: NavItem & { activeTab: string; setActiveTab: (t: string) => void }) {
+  const active = activeTab === tab;
+  return (
+    <button
+      style={{
+        textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none',
+        backgroundColor: active ? '#FFF5E5' : 'transparent',
+        color: active ? 'var(--amazon-orange, #FF9900)' : '#131A22',
+        fontWeight: active ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s',
+      }}
+      onClick={() => setActiveTab(tab)}
+    >
+      {label}
+    </button>
+  );
+}
+
+function NavSection({ title, items, activeTab, setActiveTab }: { title: string; items: NavItem[]; activeTab: string; setActiveTab: (t: string) => void }) {
   return (
     <>
-      {/* SIDEBAR NAVIGATION - Fixed Design Issues */}
+      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>{title}</div>
+      {items.map(item => (
+        <NavButton key={item.tab} {...item} activeTab={activeTab} setActiveTab={setActiveTab} />
+      ))}
+    </>
+  );
+}
+
+export default function Sidebar() {
+  const { userRole, setUserRole, activeTab, setActiveTab } = useAppContext();
+
+  const buyerNav: NavItem[] = [
+    { tab: 'catalog', label: 'Browse Catalog' },
+    { tab: 'vto', label: 'Try Before You Buy' },
+    { tab: 'prevention', label: 'Cart & Checkout' },
+  ];
+  const buyerOrders: NavItem[] = [
+    { tab: 'wizard', label: 'Start a Return' },
+    { tab: 'result', label: 'Return Status' },
+    { tab: 'logistics', label: 'Track Delivery' },
+  ];
+  const sellerNav: NavItem[] = [
+    { tab: 'admin', label: 'My Listings' },
+    { tab: 'logs', label: 'Return Activity' },
+  ];
+  const sellerOps: NavItem[] = [
+    { tab: 'logistics', label: 'Deliveries' },
+    { tab: 'fraud', label: 'Return Reviews' },
+    { tab: 'serial', label: 'Package Checks' },
+  ];
+  const adminNav: NavItem[] = [
+    { tab: 'fraud', label: 'Fraud Center' },
+    { tab: 'serial', label: 'Package Verification' },
+    { tab: 'inventory', label: 'Inventory' },
+    { tab: 'logs', label: 'Processing Center' },
+  ];
+  const adminOps: NavItem[] = [
+    { tab: 'logistics', label: 'Fleet Operations' },
+    { tab: 'nsga2', label: 'Route Planning' },
+    { tab: 'routing', label: 'Fleet Planning' },
+    { tab: 'workspace', label: 'Operations Workspace' },
+  ];
+
+  return (
+    <>
       {userRole && (
-        <div className="sidebar" style={{ 
-          width: '280px', 
-          minWidth: '280px', 
-          backgroundColor: '#FFFFFF', 
-          borderRight: '1px solid #E7E7E7', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          height: '100vh', 
-          position: 'sticky', 
-          top: 0, 
-          padding: '1.5rem', 
-          boxSizing: 'border-box' 
+        <div className="sidebar" style={{
+          width: '280px', minWidth: '280px', backgroundColor: '#FFFFFF', borderRight: '1px solid #E7E7E7',
+          display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0,
+          padding: '1.5rem', boxSizing: 'border-box', overflow: 'hidden',
         }}>
           <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
             <div className="logo-box" style={{ padding: '0.5rem', backgroundColor: '#F3F4F6', borderRadius: '8px', display: 'flex' }}>
@@ -32,51 +86,37 @@ export default function Sidebar() {
             </h1>
           </div>
 
-          <div className="nav-menu" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexGrow: 1, overflowY: 'auto' }}>
+          <div className="nav-menu" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexGrow: 1, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {userRole === 'buyer' && (
               <>
-                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Shopping</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'catalog' ? '#FFF5E5' : 'transparent', color: activeTab === 'catalog' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'catalog' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('catalog')}>Browse Catalog</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'vto' ? '#FFF5E5' : 'transparent', color: activeTab === 'vto' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'vto' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('vto')}>Virtual Try-On</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'prevention' ? '#FFF5E5' : 'transparent', color: activeTab === 'prevention' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'prevention' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('prevention')}>Your Cart</button>
-                
-                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Returns</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'wizard' ? '#FFF5E5' : 'transparent', color: activeTab === 'wizard' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'wizard' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('wizard')}>Start a Return</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'result' ? '#FFF5E5' : 'transparent', color: activeTab === 'result' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'result' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('result')}>Return Status</button>
-
-                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Logistics</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'logistics' ? '#FFF5E5' : 'transparent', color: activeTab === 'logistics' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'logistics' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('logistics')}>🛰️ Live Tracking</button>
-
-                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Settings</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'account' ? '#FFF5E5' : 'transparent', color: activeTab === 'account' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'account' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('account')}>Your Account</button>
+                <NavSection title="Shop" items={buyerNav} activeTab={activeTab} setActiveTab={setActiveTab} />
+                <NavSection title="Orders" items={buyerOrders} activeTab={activeTab} setActiveTab={setActiveTab} />
+                <NavSection title="Account" items={[{ tab: 'account', label: 'Your Account' }]} activeTab={activeTab} setActiveTab={setActiveTab} />
               </>
             )}
             {userRole === 'seller' && (
               <>
-                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Dashboard</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'admin' ? '#FFF5E5' : 'transparent', color: activeTab === 'admin' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'admin' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('admin')}>Seller Workspace</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'result' ? '#FFF5E5' : 'transparent', color: activeTab === 'result' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'result' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('result')}>Processing Logs</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'inventory' ? '#FFF5E5' : 'transparent', color: activeTab === 'inventory' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'inventory' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('inventory')}>📦 Unit Inventory</button>
-                
-                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Logistics</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'logistics' ? '#FFF5E5' : 'transparent', color: activeTab === 'logistics' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'logistics' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('logistics')}>🛰️ Fleet Telemetry</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'nsga2' ? '#FFF5E5' : 'transparent', color: activeTab === 'nsga2' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'nsga2' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('nsga2')}>🧬 NSGA-II Routing</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'routing' ? '#FFF5E5' : 'transparent', color: activeTab === 'routing' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'routing' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('routing')}>🌱 Sustainable Fleet</button>
-
-                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Security</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'fraud' ? '#FFF5E5' : 'transparent', color: activeTab === 'fraud' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'fraud' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('fraud')}>Fraud Investigations</button>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'serial' ? '#FFF5E5' : 'transparent', color: activeTab === 'serial' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'serial' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('serial')}>Serial Verification</button>
+                <NavSection title="Store" items={sellerNav} activeTab={activeTab} setActiveTab={setActiveTab} />
+                <NavSection title="Operations" items={sellerOps} activeTab={activeTab} setActiveTab={setActiveTab} />
+              </>
+            )}
+            {userRole === 'admin' && (
+              <>
+                <NavSection title="Trust & Safety" items={adminNav} activeTab={activeTab} setActiveTab={setActiveTab} />
+                <NavSection title="Logistics" items={adminOps} activeTab={activeTab} setActiveTab={setActiveTab} />
               </>
             )}
           </div>
-          
+
           <div className="user-profile-btn" style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: '8px', backgroundColor: '#F8F9FA', cursor: 'pointer', border: '1px solid #EAEAEA' }} onClick={() => setUserRole(null)}>
             <div className="user-avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#131A22', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-              {userRole === 'buyer' ? 'B' : 'S'}
+              {userRole === 'buyer' ? 'B' : userRole === 'admin' ? 'A' : 'S'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#131A22' }}>{userRole === 'buyer' ? 'Buyer Persona' : 'Seller Persona'}</span>
-              <span style={{ fontSize: '0.75rem', color: '#879596' }}>Switch Role</span>
+              <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#131A22' }}>
+                {userRole === 'buyer' ? 'Buyer' : userRole === 'admin' ? 'Admin' : 'Seller'}
+              </span>
+              <span style={{ fontSize: '0.75rem', color: '#879596' }}>Switch role</span>
             </div>
           </div>
         </div>

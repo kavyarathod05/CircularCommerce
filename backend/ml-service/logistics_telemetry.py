@@ -68,12 +68,13 @@ class LogisticsTelemetryEngine:
         for i in range(count):
             hub = random.choice(hub_keys)
             base_lat, base_lng = CITY_HUBS[hub]
+            driver = "Rahul K." if i == 0 else random.choice(["Priya S.", "Amit T.", "Neha G.", "Vikram R.", "Sunita M.", "Raj P.", "Divya N.", "Karan B.", "Meera J.", "Arjun D.", "Pooja L."])
             self.fleet.append({
                 "vehicleId": f"VH-{1000 + i}",
-                "type": random.choice(VEHICLE_TYPES),
-                "status": random.choice(["idle", "en-route", "returning", "en-route", "en-route"]),
-                "driverId": f"DRV-{random.randint(100, 999)}",
-                "driverName": random.choice(["Rahul K.", "Priya S.", "Amit T.", "Neha G.", "Vikram R.", "Sunita M.", "Raj P.", "Divya N.", "Karan B.", "Meera J.", "Arjun D.", "Pooja L."]),
+                "type": "bike" if i == 0 else random.choice(VEHICLE_TYPES),
+                "status": "en-route" if i == 0 else random.choice(["idle", "en-route", "returning", "en-route", "en-route"]),
+                "driverId": f"DRV-{100 + i}",
+                "driverName": driver,
                 "hub": hub,
                 "lat": base_lat + random.uniform(-0.03, 0.03),
                 "lng": base_lng + random.uniform(-0.03, 0.03),
@@ -89,8 +90,31 @@ class LogisticsTelemetryEngine:
             })
 
     def _init_orders(self, count: int):
+        demo_vehicle = self.fleet[0]["vehicleId"] if self.fleet else "VH-1000"
+        demo_lat, demo_lng = CITY_HUBS["hub-koramangala"]
+        self.orders.append({
+            "orderId": "ORD-DEMO-BUYER",
+            "productName": "Bose QC Headphones",
+            "status": "out-for-delivery",
+            "progress": 88,
+            "originHub": "hub-indiranagar",
+            "destinationHub": "hub-koramangala",
+            "originLat": CITY_HUBS["hub-indiranagar"][0],
+            "originLng": CITY_HUBS["hub-indiranagar"][1],
+            "destLat": demo_lat + 0.004,
+            "destLng": demo_lng + 0.003,
+            "vehicleId": demo_vehicle,
+            "eta_minutes": 18,
+            "customerName": "You",
+            "pathway": "hyperlocal-p2p",
+            "carbonSaved_kg": 12.4,
+            "createdAt": (datetime.utcnow() - timedelta(minutes=45)).isoformat() + "Z",
+            "updatedAt": datetime.utcnow().isoformat() + "Z",
+            "isDemoBuyerOrder": True,
+        })
+
         statuses_weighted = ["in-transit"] * 6 + ["out-for-delivery"] * 4 + ["picked-up"] * 3 + ["pending"] * 2 + ["delivered"] * 3
-        for i in range(count):
+        for i in range(max(0, count - 1)):
             origin_hub = random.choice(list(CITY_HUBS.keys()))
             dest_hub = random.choice([h for h in CITY_HUBS.keys() if h != origin_hub])
             o_lat, o_lng = CITY_HUBS[origin_hub]
@@ -168,8 +192,8 @@ class LogisticsTelemetryEngine:
                     progress_map = {"pending": 0, "picked-up": 15, "in-transit": 50, "out-for-delivery": 85, "delivered": 100}
                     o["progress"] = progress_map.get(next_status, o["progress"] + 10)
                     o["updatedAt"] = datetime.utcnow().isoformat() + "Z"
-                    if next_status == "in-transit":
-                        o["vehicleId"] = random.choice(self.fleet)["vehicleId"]
+                    if next_status == "in-transit" and not o.get("vehicleId"):
+                        o["vehicleId"] = self.fleet[0]["vehicleId"] if self.fleet else random.choice(self.fleet)["vehicleId"]
                     if next_status == "delivered":
                         o["eta_minutes"] = 0
                         o["progress"] = 100

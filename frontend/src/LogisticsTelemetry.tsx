@@ -44,8 +44,8 @@ export default function LogisticsTelemetry() {
       <div className="ds-header">
         <div className="ui-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 className="ds-title">Real-Time Logistics Telemetry</h2>
-            <p className="ds-subtitle">Full-duplex WebSocket • Fleetbase Logistics OS</p>
+            <h2 className="ds-title">Fleet Operations</h2>
+            <p className="ds-subtitle">Live delivery map, orders, and hub alerts</p>
           </div>
           <div className={`lt-conn-badge ${connected ? 'lt-conn-live' : ''}`}>
             <span className="lt-conn-dot" /> {connected ? 'LIVE' : 'CONNECTING...'}

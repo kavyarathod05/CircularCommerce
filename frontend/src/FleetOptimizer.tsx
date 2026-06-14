@@ -58,8 +58,8 @@ export default function FleetOptimizer() {
       <div className="ds-header">
         <div className="fo-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 className="ds-title">Sustainable Fleet Optimizer</h2>
-            <p className="ds-subtitle">MILP + Clarke-Wright Savings + Genetic Algorithm • OR-Tools CP-SAT Solver</p>
+            <h2 className="ds-title">Fleet Planning</h2>
+            <p className="ds-subtitle">Plan greener delivery routes and vehicle mix for your hub</p>
           </div>
           <div className={`fo-status fo-status-${status}`}><span className="fo-status-dot"/>{status==='idle'?'READY':status==='running'?'SOLVING...':'OPTIMIZED'}</div>
         </div>
@@ -75,8 +75,8 @@ export default function FleetOptimizer() {
           <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--ds-text-primary)' }}>Objective Balance</label>
           <input type="range" className="fo-slider" min={0} max={100} value={costWeight*100} onChange={e=>setCostWeight(+e.target.value/100)}/>
           <div className="fo-slider-labels" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--ds-text-secondary)', fontWeight: 600 }}>
-            <span style={{ color: '#137333' }}>🌍 Green ({((1-costWeight)*100).toFixed(0)}%)</span>
-            <span>💰 Cost ({(costWeight*100).toFixed(0)}%)</span>
+            <span style={{ color: '#137333' }}>Green focus ({((1-costWeight)*100).toFixed(0)}%)</span>
+            <span>Cost focus ({(costWeight*100).toFixed(0)}%)</span>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -84,7 +84,7 @@ export default function FleetOptimizer() {
           <input type="number" min={5} max={50} value={gaGens} onChange={e=>setGaGens(+e.target.value)} className="ds-input" style={{ width: '100px' }} />
         </div>
         <button className="ds-btn-primary" onClick={run} disabled={status==='running'} style={{ height: '42px', padding: '0 2rem' }}>
-          {status==='running'?<><span className="fo-spinner"/> Solving...</>:'🌱 Optimize Fleet'}
+          {status==='running'?<><span className="fo-spinner"/> Solving...</>:'Plan fleet'}
         </button>
       </div>
 
@@ -109,9 +109,9 @@ export default function FleetOptimizer() {
 
         {/* Pipeline Steps */}
         <div className="fo-pipeline">
-          <div className="fo-step"><span className="fo-step-num">1</span><div className="fo-step-title">Clarke & Wright Savings</div><div className="fo-step-val">{result.clarke_wright.savings_vs_naive}% saved</div><div className="fo-step-sub">{result.clarke_wright.routes_created} routes • {result.clarke_wright.total_distance_km} km</div></div>
-          <div className="fo-step"><span className="fo-step-num">2</span><div className="fo-step-title">OR-Tools MILP (CP-SAT)</div><div className="fo-step-val">Vehicle Assignment</div><div className="fo-step-sub">α={result.ga_optimized.genome.cost_weight} β={result.ga_optimized.genome.emission_weight}</div></div>
-          <div className="fo-step"><span className="fo-step-num">3</span><div className="fo-step-title">Genetic Algorithm</div><div className="fo-step-val">{result.ga_optimized.evolution_history.length} gens</div><div className="fo-step-sub">Fleet: {Object.entries(result.ga_optimized.genome.fleet_counts).filter(([,c])=>(c as number)>0).map(([t,c])=>`${t}:${c}`).join(', ')}</div></div>
+          <div className="fo-step"><span className="fo-step-num">1</span><div className="fo-step-title">Route grouping</div><div className="fo-step-val">{result.clarke_wright.savings_vs_naive}% saved</div><div className="fo-step-sub">{result.clarke_wright.routes_created} routes • {result.clarke_wright.total_distance_km} km</div></div>
+          <div className="fo-step"><span className="fo-step-num">2</span><div className="fo-step-title">Vehicle assignment</div><div className="fo-step-val">Balanced plan</div><div className="fo-step-sub">Cost weight {result.ga_optimized.genome.cost_weight} · Green weight {result.ga_optimized.genome.emission_weight}</div></div>
+          <div className="fo-step"><span className="fo-step-num">3</span><div className="fo-step-title">Fleet mix</div><div className="fo-step-val">{result.ga_optimized.evolution_history.length} iterations</div><div className="fo-step-sub">Fleet: {Object.entries(result.ga_optimized.genome.fleet_counts).filter(([,c])=>(c as number)>0).map(([t,c])=>`${t}:${c}`).join(', ')}</div></div>
         </div>
 
         <div className="fo-main-grid">
@@ -259,11 +259,10 @@ export default function FleetOptimizer() {
       {/* Empty state */}
       {!result && status==='idle' && (
         <div className="ds-empty-state">
-          <div className="ds-empty-icon">🌱</div>
-          <h3 className="ds-empty-title">Configure & Optimize Fleet</h3>
+          <div className="ds-empty-icon" style={{ fontSize: '2rem', color: '#137333' }}>+</div>
+          <h3 className="ds-empty-title">Plan your delivery fleet</h3>
           <p className="ds-empty-text">
-            Set the number of deliveries and the <strong>cost ↔ sustainability</strong> balance slider, then click <strong>"Optimize Fleet"</strong>.
-            The engine runs Clarke & Wright savings, solves a MILP via OR-Tools, and evolves fleet composition with a Genetic Algorithm.
+            Set delivery volume and balance cost vs sustainability, then click <strong>Plan fleet</strong>.
           </p>
         </div>
       )}

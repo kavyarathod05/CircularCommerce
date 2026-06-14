@@ -3,7 +3,7 @@ import urllib.parse
 import json
 import base64
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://18.212.212.69"
 
 def make_request(method, endpoint, payload=None):
     url = f"{BASE_URL}{endpoint}"

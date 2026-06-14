@@ -1,4 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from dotenv import load_dotenv
+load_dotenv()
+
+import asyncio
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
@@ -15,9 +19,11 @@ from gemini_ai_integrations import GeminiAIIntegrations
 from aws_ai_integrations import AWSAIIntegrations
 from hf_ai_integrations import HuggingFaceIntegrations
 from vto_engine import VirtualTryOnEngine
+from vto_orchestrator import VTOOrchestrator
 from nsga2_routing import NSGA2Router
 from fleet_optimizer import SustainableFleetOptimizer
 from unit_inventory import UnitInventoryEngine
+from serial_verification import SerialVerificationEngine
 
 app = FastAPI(title="SecondLife Commerce - Naman ML Microservice")
 
@@ -34,7 +40,9 @@ app.add_middleware(
 )
 
 os.makedirs("vto-storage", exist_ok=True)
+os.makedirs("static", exist_ok=True)
 app.mount("/vto-storage", StaticFiles(directory="vto-storage"), name="vto-storage")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize Models
 demand_model = DemandEngine()
@@ -46,9 +54,11 @@ gemini_ai = GeminiAIIntegrations()
 aws_ai = AWSAIIntegrations()
 hf_ai = HuggingFaceIntegrations()
 vto_model = VirtualTryOnEngine()
+vto_orchestrator = VTOOrchestrator()
 nsga2_router = NSGA2Router()
 fleet_opt = SustainableFleetOptimizer()
 unit_inventory_model = UnitInventoryEngine()
+serial_verification_model = SerialVerificationEngine()
 
 # --- Request Models ---
 class DemandRequest(BaseModel):
@@ -140,13 +150,39 @@ def determine_triage(req: TriageRequest):
 
 @app.post("/api/v1/ml/fraud-graphrag")
 def get_fraud_graphrag(req: FraudGraphRAGRequest):
-    """Phase 6: GraphRAG & ELA Fraud Defense"""
+    """Return review: receipt tampering + linked-account signals"""
+    receipt_url = "/static/demo-receipt.svg"
     return {
-        "status": "success", 
+        "status": "success",
         "data": {
-            "graphrag_summary": "This return request is highly anomalous. The user's device fingerprint is strongly connected to a cluster of 40 accounts that initiated empty-box returns last month.",
-            "ela_heatmap_url": "https://images.unsplash.com/photo-1614064641913-6b71f30165c6?w=500",
-            "tampering_probability": 0.98
+            "graphrag_summary": (
+                f"Return for {req.user_id} matches a pattern seen in 40 linked accounts: "
+                "same device fingerprint, repeated receipt edits on the purchase date, and empty-box claims within 48 hours."
+            ),
+            "receipt_image_url": receipt_url,
+            "ela_regions": [
+                {"label": "Purchase date", "x_pct": 55, "y_pct": 61, "w_pct": 30, "h_pct": 5, "severity": "high"},
+                {"label": "Store stamp", "x_pct": 7, "y_pct": 63, "w_pct": 28, "h_pct": 5, "severity": "medium"},
+                {"label": "Total paid", "x_pct": 7, "y_pct": 78, "w_pct": 85, "h_pct": 5, "severity": "high"},
+            ],
+            "connected_accounts": 40,
+            "tampering_probability": 0.98,
+            "recommended_action": "Hold refund and request in-store receipt verification",
+            "network_nodes": [
+                {"id": "target", "label": req.user_id, "type": "customer", "risk": "high"},
+                {"id": "device", "label": "Shared device", "type": "device", "risk": "medium"},
+                {"id": "address", "label": "Same address", "type": "address", "risk": "medium"},
+                {"id": "ring", "label": "Return ring", "type": "group", "risk": "high"},
+                {"id": "acct1", "label": "acct-91", "type": "account", "risk": "high"},
+                {"id": "acct2", "label": "acct-44", "type": "account", "risk": "high"},
+            ],
+            "network_edges": [
+                {"from": "target", "to": "device"},
+                {"from": "target", "to": "address"},
+                {"from": "target", "to": "ring"},
+                {"from": "ring", "to": "acct1"},
+                {"from": "ring", "to": "acct2"},
+            ],
         }
     }
 
@@ -168,8 +204,49 @@ def get_liveness_session():
 
 @app.post("/api/v1/ml/vto/drape")
 def generate_vto(req: VTORequest):
-    """Phase 5: Virtual Try-On Engine (Diffusion-GAN)"""
-    return {"status": "success", "data": vto_model.process_vto_draping(req.user_image_base64, req.clothing_sku)}
+    """Legacy JSON endpoint — delegates to orchestrator when possible."""
+    import base64
+    try:
+        raw = req.user_image_base64
+        if "," in raw:
+            photo_bytes = base64.b64decode(raw.split(",", 1)[1])
+        else:
+            photo_bytes = base64.b64decode(raw)
+        data = vto_orchestrator.generate(photo_bytes, req.clothing_sku)
+        return {"status": "success", "data": data}
+    except Exception as e:
+        return {"status": "success", "data": vto_model.process_vto_draping(req.user_image_base64, req.clothing_sku)}
+
+
+@app.post("/api/vto/generate")
+async def vto_generate(
+    photo: UploadFile = File(...),
+    product_id: str = Form(...),
+    height_cm: float = Form(170.0),
+    target_size: str = Form("M"),
+):
+    """
+    Full VTO pipeline (architecture guide):
+    upload photo → pose/body estimate → fit score → IDM-VTON or local overlay.
+    """
+    try:
+        photo_bytes = await photo.read()
+        if not photo_bytes:
+            raise HTTPException(status_code=400, detail="Empty photo upload")
+        data = await asyncio.to_thread(
+            vto_orchestrator.generate, photo_bytes, product_id, height_cm, target_size
+        )
+        return {"status": "success", "data": data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/products/{product_id}")
+def get_product_vto_info(product_id: str):
+    """Product image, category, and size chart for VTO UI."""
+    return {"status": "success", "data": vto_orchestrator.get_product(product_id)}
 
 @app.post("/api/v1/ml/friction/evaluate")
 def evaluate_friction(req: FrictionRequest):
@@ -193,53 +270,111 @@ def health_check():
 # --- Local Fallback Endpoints for Frontend (replaces Go Serverless temporarily) ---
 import datetime
 import boto3
+from catalog_cache import get_catalog as cache_get_catalog, set_catalog as cache_set_catalog
+from product_registry import lookup_product, PRODUCT_REGISTRY
 
-@app.get("/catalog")
-def get_catalog():
-    try:
-        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-        listings = dynamodb.Table('SecondLife_Listings')
-        response = listings.scan()
-        items = response.get('Items', [])
-    except Exception as e:
-        print("Failed to fetch from DynamoDB:", e)
-        items = []
-
-    # Format the items for the frontend
+def _build_catalog_items(items):
     formatted = []
     for item in items:
         product_id = item.get("name", "Unknown Product")
         msrp = float(item.get("msrp", 0))
         listing_id = item.get("listingId", "")
-        
-        # 1. Dynamic Pricing Engine
-        pricing_data = pricing_model.calculate_current_price(
-            product_id=product_id, 
-            original_price=msrp, 
-            hours_on_market=48, 
-            local_demand_score=0.8
-        )
-        
-        # 2. Demand Engine
-        category = 'apparel' if any(x in product_id for x in ['Shirt', 'Jacket', 'Jeans', 'Hoodie', 'T-Shirt']) else 'electronics'
-        demand_data = demand_model.rank_buyers(category, pricing_data['current_price'], "dr5r")
-        is_flash_deal = any(d.get('compound_score', 0) > 0.5 for d in demand_data) if demand_data else True
-            
+        registry = lookup_product(product_id)
+        discount_pct = float(item.get("discount", 0.2))
+        current_price = round(msrp * (1 - discount_pct))
+        is_flash_deal = bool(item.get("isFlashDeal", listing_id == "lst-demo-1"))
         formatted.append({
             "listingId": listing_id,
             "productId": product_id,
             "msrp": msrp,
-            "currentPrice": pricing_data['current_price'],
-            "discountApplied": float(item.get("discount", pricing_data['discount_applied'])),
+            "currentPrice": current_price,
+            "discountApplied": f"{int(discount_pct * 100)}%",
             "isFlashDeal": is_flash_deal,
-            "certificateUrl": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-            "owner": "Local Seller",
+            "certificateUrl": f"/api/v1/gs1/certificate?product_id={product_id.replace(' ', '%20')}",
+            "gs1": {
+                "gtin": registry["gtin"],
+                "brand": registry["brand"],
+                "ledgerHash": registry["ledger_hash"],
+                "verified": True,
+            },
+            "owner": item.get("owner", "Local Seller"),
             "grade": item.get("condition", "Grade B"),
             "escrowStatus": item.get("escrowStatus", "N/A"),
             "status": item.get("status", "available"),
-            "image": item.get("image", "")
+            "image": item.get("image") or registry.get("image", ""),
         })
     return formatted
+
+def _demo_catalog():
+    demo = []
+    for listing_id, product_id, msrp, grade in [
+        ("lst-demo-1", "Bose QC Headphones", 7900, "Grade B"),
+        ("lst-demo-2", "Essentials Cotton Hoodie", 2999, "Grade A"),
+        ("lst-demo-3", "iPhone 14 Pro Max", 95000, "Grade B"),
+    ]:
+        demo.append({
+            "listingId": listing_id,
+            "name": product_id,
+            "msrp": msrp,
+            "condition": grade,
+            "owner": "Priya S. (Koramangala)",
+            "escrowStatus": "N/A",
+            "status": "available",
+            "discount": 0.2,
+            "image": lookup_product(product_id).get("image", ""),
+        })
+    return _build_catalog_items(demo)
+
+def _load_catalog_from_source():
+    use_dynamo = os.getenv("USE_DYNAMODB_CATALOG", "0") == "1"
+    if use_dynamo:
+        try:
+            dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+            listings = dynamodb.Table('SecondLife_Listings')
+            response = listings.scan()
+            items = response.get('Items', [])
+            if items:
+                return _build_catalog_items(items)
+        except Exception as e:
+            print("Failed to fetch from DynamoDB:", e)
+    return _demo_catalog()
+
+
+@app.on_event("startup")
+def warm_catalog_cache():
+    try:
+        formatted = _load_catalog_from_source()
+        cache_set_catalog(formatted, ttl_seconds=3600)
+        print(f"[Catalog] Pre-warmed cache with {len(formatted)} items")
+    except Exception as e:
+        print(f"[Catalog] Pre-warm failed: {e}")
+
+
+@app.get("/catalog")
+def get_catalog():
+    cached = cache_get_catalog()
+    if cached:
+        return cached
+
+    formatted = _load_catalog_from_source()
+    cache_set_catalog(formatted, ttl_seconds=3600)
+    return formatted
+
+@app.get("/api/v1/gs1/certificate")
+def get_gs1_certificate(product_id: str):
+    registry = lookup_product(product_id)
+    return {
+        "status": "success",
+        "data": {
+            "product_id": product_id,
+            "gtin": registry["gtin"],
+            "brand": registry["brand"],
+            "ledger_hash": registry["ledger_hash"],
+            "verified": True,
+            "registry": "GS1 Global Registry (demo)",
+            "verified_at": datetime.datetime.utcnow().isoformat() + "Z",
+        }
+    }
 
 @app.post("/listing/{listing_id}/transition")
 def transition_listing_state(listing_id: str, action: str = "advance"):
@@ -315,12 +450,20 @@ def get_user_metrics(user_id: str = "usr-12"):
 
 @app.get("/dpp")
 def get_dpp(listing_id: str):
+    registry = lookup_product("Bose QC Headphones")
     return {
         "listing_id": listing_id,
+        "gs1": {
+            "gtin": registry["gtin"],
+            "brand": registry["brand"],
+            "ledger_hash": registry["ledger_hash"],
+            "verified": True,
+        },
         "dpp_history": [
             {"action": "Manufactured", "timestamp": "2026-08-01T10:00:00Z", "owner": "Factory A, Vietnam"},
-            {"action": "Purchased", "timestamp": "2026-10-12T14:30:00Z", "owner": "Amazon Fulfillment"},
-            {"action": "Returned", "timestamp": datetime.datetime.utcnow().isoformat() + "Z", "owner": "usr-12"}
+            {"action": "First Sale", "timestamp": "2026-10-12T14:30:00Z", "owner": "Original Buyer"},
+            {"action": "Returned & Graded", "timestamp": datetime.datetime.utcnow().isoformat() + "Z", "owner": "usr-12"},
+            {"action": "Listed Locally", "timestamp": datetime.datetime.utcnow().isoformat() + "Z", "owner": "Local Seller"},
         ]
     }
 
@@ -429,6 +572,47 @@ def optimize_fleet(req: FleetRequest):
 def get_inventory_units():
     units = unit_inventory_model.get_all_units()
     return {"status": "success", "data": units}
+
+class InventoryRepairRequest(BaseModel):
+    new_grade: str
+    new_status: str
+    repair_action: str = ""
+    repair_cost: float = 0
+
+class SerialVerifyRequest(BaseModel):
+    order_id: str
+    image_b64: str
+    user_claimed_sn: str = ""
+
+@app.post("/api/v1/inventory/units/{unit_id}/repair")
+def repair_inventory_unit(unit_id: str, req: InventoryRepairRequest):
+    updated = unit_inventory_model.update_unit_condition(
+        unit_id, req.new_grade, req.new_status, req.repair_action or None, req.repair_cost
+    )
+    if updated.get("error"):
+        return {"status": "error", "message": updated["error"]}
+    return {"status": "success", "data": updated}
+
+@app.post("/api/v1/vision/verify-serial")
+def verify_serial_number(req: SerialVerifyRequest):
+    result = serial_verification_model.verify_return(
+        req.order_id, req.image_b64, req.user_claimed_sn or None
+    )
+    if result.get("status") == "error":
+        return {"status": "error", "message": result.get("message", "Verification failed")}
+    return {"status": "success", "data": result}
+
+@app.get("/api/v1/demo/serial-sample")
+def get_serial_sample():
+    return {
+        "status": "success",
+        "data": {
+            "order_id": "ORD-001",
+            "expected_serial": "SN-984A-B72C-11",
+            "sample_image_url": "/static/demo-package-label.svg",
+            "description": "Product box label with serial number for demo verification",
+        }
+    }
 
 # AWS Lambda Handler
 handler = Mangum(app)

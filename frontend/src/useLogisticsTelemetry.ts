@@ -55,11 +55,64 @@ export function useLogisticsTelemetry() {
   // Detect if the WS URL is an AWS API Gateway WebSocket endpoint (wss://)
   const isAwsWs = wsUrl.startsWith('wss://');
 
+  const loadInitialSnapshot = useCallback(async () => {
+    try {
+      const [fleetRes, ordRes, metricsRes, alertsRes] = await Promise.all([
+        fetch(`${mlApiUrl}/api/v1/logistics/fleet`),
+        fetch(`${mlApiUrl}/api/v1/logistics/orders`),
+        fetch(`${mlApiUrl}/api/v1/logistics/metrics`),
+        fetch(`${mlApiUrl}/api/v1/logistics/alerts`),
+      ]);
+      const [fleetJson, ordJson, metricsJson, alertsJson] = await Promise.all([
+        fleetRes.json(), ordRes.json(), metricsRes.json(), alertsRes.json(),
+      ]);
+      if (fleetJson.status === 'success') setFleet(fleetJson.data);
+      if (ordJson.status === 'success') setOrders(ordJson.data);
+      if (metricsJson.status === 'success') setMetrics(metricsJson.data);
+      if (alertsJson.status === 'success') setAlerts(alertsJson.data);
+      setConnected(true);
+    } catch (e) {
+      console.error('[Telemetry] Initial snapshot failed', e);
+    }
+  }, [mlApiUrl]);
+
   // Try WebSocket first, fall back to REST polling
   useEffect(() => {
     let socket: any = null;
     let nativeWs: WebSocket | null = null;
     let destroyed = false;
+    let pollingStarted = false;
+
+    function startPolling() {
+      if (wsMode.current || destroyed || pollingStarted) return;
+      pollingStarted = true;
+      setConnected(true);
+      console.log('[Telemetry] REST polling mode');
+
+      const poll = async () => {
+        try {
+          const res = await fetch(`${mlApiUrl}/api/v1/logistics/tick`);
+          const json = await res.json();
+          if (json.status === 'success' && json.data) {
+            const d = json.data;
+            if (d.fleet_positions) setFleet(d.fleet_positions);
+            if (d.metrics) setMetrics(d.metrics);
+            if (d.order_updates?.length) {
+              setOrderUpdates(prev => [...d.order_updates, ...prev].slice(0, 50));
+            }
+            if (d.alerts?.length) {
+              setAlerts(prev => [...d.alerts, ...prev].slice(0, 30));
+            }
+          }
+          const ordRes = await fetch(`${mlApiUrl}/api/v1/logistics/orders`);
+          const ordJson = await ordRes.json();
+          if (ordJson.status === 'success') setOrders(ordJson.data);
+        } catch (e) { console.error('[Telemetry] Poll error', e); }
+      };
+
+      poll();
+      intervalRef.current = setInterval(poll, 2500);
+    }
 
     // ---- Strategy A: AWS API Gateway WebSocket (native WebSocket) ----
     function tryAwsWebSocket() {
@@ -157,42 +210,26 @@ export function useLogisticsTelemetry() {
     }
 
     // ---- Strategy C: REST Polling Fallback ----
-    function startPolling() {
-      if (wsMode.current || destroyed) return;
-      setConnected(true);
-      console.log('[Telemetry] REST polling mode');
-
-      const poll = async () => {
-        try {
-          const res = await fetch(`${mlApiUrl}/api/v1/logistics/tick`);
-          const json = await res.json();
-          if (json.status === 'success' && json.data) {
-            const d = json.data;
-            if (d.fleet_positions) setFleet(d.fleet_positions);
-            if (d.metrics) setMetrics(d.metrics);
-            if (d.order_updates?.length) {
-              setOrderUpdates(prev => [...d.order_updates, ...prev].slice(0, 50));
-            }
-            if (d.alerts?.length) {
-              setAlerts(prev => [...d.alerts, ...prev].slice(0, 30));
-            }
-          }
-          // Fetch full orders list
-          const ordRes = await fetch(`${mlApiUrl}/api/v1/logistics/orders`);
-          const ordJson = await ordRes.json();
-          if (ordJson.status === 'success') setOrders(ordJson.data);
-        } catch (e) { console.error('[Telemetry] Poll error', e); }
-      };
-
-      poll();
-      intervalRef.current = setInterval(poll, 2500);
-    }
+    // (startPolling defined above)
 
     // ---- Connect ----
+    loadInitialSnapshot();
+
     if (isAwsWs) {
       tryAwsWebSocket();
     } else {
       trySocketIO();
+      // If Socket.IO is unavailable, don't wait for multiple retries before showing live updates
+      const fallbackTimer = setTimeout(() => {
+        if (!destroyed && !wsMode.current) startPolling();
+      }, 3000);
+      return () => {
+        destroyed = true;
+        clearTimeout(fallbackTimer);
+        socket?.disconnect();
+        nativeWs?.close();
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      };
     }
 
     return () => {
@@ -201,7 +238,7 @@ export function useLogisticsTelemetry() {
       nativeWs?.close();
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [loadInitialSnapshot, isAwsWs, mlApiUrl, wsUrl]);
 
   return { fleet, orders, alerts, metrics, connected, orderUpdates };
 }
