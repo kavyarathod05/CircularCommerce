@@ -18,12 +18,12 @@ class AWSAIIntegrations:
             self.bedrock_runtime = None
             self.rekognition = None
 
-    def inspect_product_condition_nova_pro(self, image_bytes_list):
+    def inspect_product_condition_llama(self, image_bytes_list):
         """
-        Damage Assessment: Integrate Amazon Bedrock (Claude 3 Haiku) for Condition Grading
+        Damage Assessment: Integrate Amazon Bedrock (Meta Llama 4 Maverick) for Condition Grading
         Maps grades to eBay standard taxonomies.
         """
-        print("Invoking Anthropic Claude 3 Haiku for Multimodal Damage Assessment...")
+        print("Invoking Meta Llama 4 Maverick for Multimodal Damage Assessment...")
         try:
             if not getattr(self, 'bedrock_runtime', None):
                 raise Exception("Bedrock Runtime client is not initialized")
@@ -72,7 +72,7 @@ class AWSAIIntegrations:
             ]
             
             response = self.bedrock_runtime.converse(
-                modelId="anthropic.claude-3-haiku-20240307-v1:0",
+                modelId="meta.llama4-maverick-17b-instruct-v1:0",
                 messages=messages
             )
             
@@ -84,7 +84,7 @@ class AWSAIIntegrations:
             
         except Exception as e:
             print("\n" + "="*50)
-            print("❌ AWS BEDROCK INTEGRATION ERROR")
+            print("X AWS BEDROCK INTEGRATION ERROR")
             print("="*50)
             print("The AWS Bedrock API failed to process the request.")
             print("System Action: Activating High-Fidelity Mock Engine for precise defect highlighting...")
@@ -118,6 +118,61 @@ class AWSAIIntegrations:
             print("\n[AI ENGINE LOG] Generated High-Fidelity Mock Assessment:")
             print(json.dumps(mock_response, indent=2))
             return mock_response
+
+    def determine_disposition_agent(self, condition_data, msrp):
+        """
+        AI-Driven Disposition Logic (Agent reasoning)
+        Takes the visual grade JSON and business context to decide routing.
+        """
+        print("Invoking Bedrock Agent (Llama 4 Maverick) for Disposition Routing...")
+        try:
+            if not getattr(self, 'bedrock_runtime', None):
+                raise Exception("Bedrock Runtime client is not initialized")
+                
+            prompt = (
+                "You are a reverse logistics routing agent. Based on the product's condition and MSRP, "
+                "determine the optimal disposition pathway. \n\n"
+                "Rules:\n"
+                "1. If condition grade is 'A' (New/Flawless) -> Output 'resell' or 'premium'\n"
+                "2. If condition has cosmetic damage (Grade B) and repair is profitable (cost < 30% margin) -> Output 'refurbish' or 'hyperlocal-p2p' (if fit/defective reason)\n"
+                "3. If condition is severe (Grade C/D) and MSRP < 10000 -> Output 'recycle'\n"
+                "4. If condition is severe (Grade C/D) and MSRP > 10000 -> Output 'refurbish'\n\n"
+                f"Item MSRP: {msrp}\n"
+                f"Condition Data: {json.dumps(condition_data)}\n\n"
+                "Respond strictly with a JSON object containing keys: 'pathway' (string: one of premium, resell, refurbish, recycle, hyperlocal-p2p, locker-dropoff), 'reasoning' (string explaining why)."
+            )
+            
+            messages = [{"role": "user", "content": [{"text": prompt}]}]
+            
+            response = self.bedrock_runtime.converse(
+                modelId="meta.llama4-maverick-17b-instruct-v1:0",
+                messages=messages
+            )
+            
+            res_text = response['output']['message']['content'][0]['text']
+            json_match = re.search(r'\{.*\}', res_text, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group(0))
+            return json.loads(res_text)
+            
+        except Exception as e:
+            print(f"AWS Bedrock Disposition Agent failed: {e}. Falling back to rule engine.")
+            grade = condition_data.get('grade', 'C').upper()
+            pathway = 'hyperlocal-p2p'
+            if msrp < 5000:
+                pathway = 'locker-dropoff'
+            else:
+                if 'C' in grade or 'D' in grade:
+                    pathway = 'refurbish' if msrp > 10000 else 'recycle'
+                elif 'B' in grade:
+                    pathway = 'refurbish'
+                else:
+                    pathway = 'premium'
+            
+            return {
+                "pathway": pathway,
+                "reasoning": f"Fallback Rule Engine: Routed to {pathway} based on Grade {grade} and MSRP {msrp}"
+            }
 
     def verify_product_embeddings(self, returned_image_bytes, original_sku_id):
         """
@@ -168,8 +223,8 @@ class AWSAIIntegrations:
 
 if __name__ == "__main__":
     ai_client = AWSAIIntegrations()
-    print("\n--- 1. Nova Pro Assessment ---")
-    print(json.dumps(ai_client.inspect_product_condition_nova_pro(["dGVzdA=="]), indent=2))
+    print("\n--- 1. Llama 4 Maverick Assessment ---")
+    print(json.dumps(ai_client.inspect_product_condition_llama(["dGVzdA=="]), indent=2))
     print("\n--- 2. Product Verification (Nova Embeddings) ---")
     print(ai_client.verify_product_embeddings("dGVzdA==", "SKU-9874-AX"))
     print("\n--- 3. Rekognition Image Tampering ---")

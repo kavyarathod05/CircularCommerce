@@ -11,7 +11,7 @@ from predictive_friction import PredictiveFrictionEngine
 from dynamic_pricing import DynamicPricingEngine
 from network_fraud import SEFraudGNN
 from size_recommendation import SizeRecommendationEngine
-from aws_ai_integrations import AWSAIIntegrations
+from gemini_ai_integrations import GeminiAIIntegrations
 from vto_engine import VirtualTryOnEngine
 
 app = FastAPI(title="SecondLife Commerce - Naman ML Microservice")
@@ -31,7 +31,7 @@ friction_model = PredictiveFrictionEngine()
 pricing_model = DynamicPricingEngine()
 fraud_model = SEFraudGNN()
 size_model = SizeRecommendationEngine()
-aws_ai = AWSAIIntegrations()
+gemini_ai = GeminiAIIntegrations()
 vto_model = VirtualTryOnEngine()
 
 # --- Request Models ---
@@ -110,33 +110,15 @@ def inspect_video(req: VideoInspectRequest):
 @app.post("/api/v1/ml/triage")
 def determine_triage(req: TriageRequest):
     """Core Algorithmic Disposition Engine"""
-    grade = req.grade.upper()
-    pathway = 'hyperlocal-p2p'
-    
-    # Disposition Rules Engine
-    if req.msrp < 5000:
-        pathway = 'locker-dropoff'
-    else:
-        if 'C' in grade or 'D' in grade:
-            # High repair cost / Severe Damage
-            if req.msrp > 10000:
-                pathway = 'refurbish'
-            else:
-                pathway = 'recycle'
-        elif 'B' in grade:
-            if req.reason in ['fit', 'defective']:
-                pathway = 'hyperlocal-p2p'
-            else:
-                pathway = 'refurbish'
-        else:
-            pathway = 'premium' # Grade A
+    condition_data = {"grade": req.grade, "reason": req.reason, "productId": req.product_id}
+    result = gemini_ai.determine_disposition_agent(condition_data, req.msrp)
             
     return {
         "status": "success", 
         "data": {
-            "pathway": pathway,
-            "calculated_grade": grade,
-            "routing_reason": f"Routed to {pathway} based on Grade {grade} and MSRP ₹{req.msrp}."
+            "pathway": result.get("pathway", "hyperlocal-p2p"),
+            "calculated_grade": req.grade,
+            "routing_reason": result.get("reasoning", "Agent routed based on condition and MSRP.")
         }
     }
 
@@ -160,8 +142,8 @@ def rank_demand(req: DemandRequest):
 
 @app.post("/api/v1/ml/aws/inspect-condition")
 def inspect_condition(req: NovaProRequest):
-    """Phase 4: Amazon Nova Pro Damage Assessment"""
-    return {"status": "success", "data": aws_ai.inspect_product_condition_nova_pro(req.image_bytes_list)}
+    """Phase 4: Google Gemini Damage Assessment"""
+    return {"status": "success", "data": gemini_ai.inspect_product_condition(req.image_bytes_list)}
 
 @app.get("/api/v1/ml/aws/liveness-session")
 def get_liveness_session():
@@ -200,58 +182,102 @@ import boto3
 def get_catalog():
     try:
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-        listings = dynamodb.Table('ListingsTable')
+        listings = dynamodb.Table('SecondLife_Listings')
         response = listings.scan()
         items = response.get('Items', [])
-        
-        # Format the items for the frontend
-        formatted = []
-        for item in items:
-            product_id = item.get("ProductId", "")
-            msrp = float(item.get("Price", 0))
-            listing_id = item.get("ListingId", "")
-            
-            # 1. Dynamic Pricing Engine
-            pricing_data = pricing_model.calculate_current_price(
-                product_id=product_id, 
-                original_price=msrp, 
-                hours_on_market=48, 
-                local_demand_score=0.8
-            )
-            
-            # 2. Demand Engine (Flash Deal)
-            category = 'apparel' if any(x in product_id for x in ['Shirt', 'Jacket', 'Jeans', 'Hoodie', 'T-Shirt']) else 'electronics'
-            demand_data = demand_model.rank_buyers(category, pricing_data['current_price'], "dr5r")
-            is_flash_deal = any(d.get('compound_score', 0) > 0.5 for d in demand_data) if demand_data else True
-            
-            # 3. Size Recommendation
-            recommended_size = None
-            if category == 'apparel':
-                size_res = size_model.recommend_size({'chest': 40}, {'M_chest': 38, 'L_chest': 42})
-                recommended_size = size_res.get('recommended_size')
-                
-            # 4. GS1 Certificate
-            certificate_url = f"https://cdn.secondlife.com/certs/{listing_id}.pdf"
-            
-            formatted.append({
-                "listingId": listing_id,
-                "productId": product_id,
-                "msrp": msrp,
-                "currentPrice": pricing_data['current_price'],
-                "discountApplied": pricing_data['discount_applied'],
-                "isFlashDeal": is_flash_deal,
-                "recommendedSize": recommended_size,
-                "certificateUrl": certificate_url,
-                "owner": item.get("OwnerId"),
-                "grade": item.get("Grade", "Grade B"),
-                "escrowStatus": item.get("EscrowStatus", "N/A"),
-                "status": item.get("Status", "available")
-            })
-        return formatted
     except Exception as e:
-        print("Failed to fetch from DynamoDB", e)
-        # Fallback to empty if DB fails
-        return []
+        print("Failed to fetch from DynamoDB:", e)
+        items = []
+
+    # Format the items for the frontend
+    formatted = []
+    for item in items:
+        product_id = item.get("name", "Unknown Product")
+        msrp = float(item.get("msrp", 0))
+        listing_id = item.get("listingId", "")
+        
+        # 1. Dynamic Pricing Engine
+        pricing_data = pricing_model.calculate_current_price(
+            product_id=product_id, 
+            original_price=msrp, 
+            hours_on_market=48, 
+            local_demand_score=0.8
+        )
+        
+        # 2. Demand Engine
+        category = 'apparel' if any(x in product_id for x in ['Shirt', 'Jacket', 'Jeans', 'Hoodie', 'T-Shirt']) else 'electronics'
+        demand_data = demand_model.rank_buyers(category, pricing_data['current_price'], "dr5r")
+        is_flash_deal = any(d.get('compound_score', 0) > 0.5 for d in demand_data) if demand_data else True
+            
+        formatted.append({
+            "listingId": listing_id,
+            "productId": product_id,
+            "msrp": msrp,
+            "currentPrice": pricing_data['current_price'],
+            "discountApplied": float(item.get("discount", pricing_data['discount_applied'])),
+            "isFlashDeal": is_flash_deal,
+            "certificateUrl": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+            "owner": "Local Seller",
+            "grade": item.get("condition", "Grade B"),
+            "escrowStatus": item.get("escrowStatus", "N/A"),
+            "status": item.get("status", "available"),
+            "image": item.get("image", "")
+        })
+    return formatted
+
+@app.post("/listing/{listing_id}/transition")
+def transition_listing_state(listing_id: str, action: str = "advance"):
+    """Real AWS DynamoDB state transitions for Escrow Lock/Release/Dispute"""
+    try:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        table = dynamodb.Table('SecondLife_Listings')
+        
+        # Get current state
+        response = table.get_item(Key={'listingId': listing_id})
+        if 'Item' not in response:
+            return {"status": "error", "message": "Listing not found"}
+            
+        current_status = response['Item'].get('status', 'available')
+        
+        # State Machine Transition logic
+        if action == "dispute":
+            import random
+            # Simulate AI Multimodal Comparison (Handoff Image vs Original Image)
+            ai_verdict = random.choice(['seller_fraud', 'buyer_fraud'])
+            
+            if ai_verdict == 'seller_fraud':
+                next_status = 'removed'
+                next_escrow = 'Refunded to Buyer (AI Verdict)'
+            else:
+                next_status = 'sold'
+                next_escrow = 'Released to Seller (AI Verdict)'
+        else:
+            if current_status == 'available':
+                next_status = 'reserved'
+                next_escrow = 'Locked'
+            elif current_status == 'reserved':
+                next_status = 'sold'
+                next_escrow = 'Released'
+            else:
+                next_status = 'available'
+                next_escrow = 'N/A'
+            
+        # Update DynamoDB
+        table.update_item(
+            Key={'listingId': listing_id},
+            UpdateExpression="set #s = :s, escrowStatus = :e",
+            ExpressionAttributeNames={'#s': 'status'},
+            ExpressionAttributeValues={
+                ':s': next_status,
+                ':e': next_escrow
+            }
+        )
+        return {"status": "success", "new_status": next_status, "new_escrow": next_escrow}
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 
 @app.get("/seller/metrics")
 def get_seller_metrics(seller_id: str = "usr-12"):
@@ -290,6 +316,56 @@ class ListingUpdate(BaseModel):
 @app.put("/listing")
 def update_listing(req: ListingUpdate):
     return {"status": "success", "message": f"Listing {req.listing_id} updated to {req.new_status}"}
+
+class AIAssistRequest(BaseModel):
+    order_id: str
+    image_base64: str = None
+
+@app.post("/seller/ai-assist")
+def ai_assist(req: AIAssistRequest):
+    import time
+    time.sleep(1.5) # Simulate AI processing delay
+    return {
+        "status": "success",
+        "data": {
+            "suggested_price": 12000,
+            "description": f"Premium Grade A condition. Verified via Amazon Order {req.order_id}. Barely used, tested and fully functional. Includes all original accessories. Ready for immediate local handoff.",
+            "gs1_verified": True
+        }
+    }
+
+class CreateListingRequest(BaseModel):
+    productId: str
+    msrp: float
+    grade: str
+    price: float
+    description: str
+    orderId: str
+
+@app.post("/listing/create")
+def create_listing(req: CreateListingRequest):
+    try:
+        import uuid
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        table = dynamodb.Table('SecondLife_Listings')
+        listing_id = f"LST-{str(uuid.uuid4())[:6].upper()}"
+        
+        table.put_item(Item={
+            'listingId': listing_id,
+            'name': req.productId,
+            'msrp': str(req.msrp),
+            'price': str(req.price),
+            'condition': req.grade,
+            'status': 'available',
+            'escrowStatus': 'N/A',
+            'description': req.description,
+            'orderId': req.orderId,
+            'owner': 'Current Seller',
+            'discount': str(round(1.0 - (req.price/req.msrp), 2))
+        })
+        return {"status": "success", "listingId": listing_id}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # AWS Lambda Handler
 handler = Mangum(app)

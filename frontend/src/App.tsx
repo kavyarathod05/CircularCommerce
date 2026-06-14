@@ -34,7 +34,13 @@ interface ListingRecord {
   owner: string
   grade: string
   escrowStatus: string
-  status: 'available' | 'reserved' | 'sold'
+  status: 'available' | 'reserved' | 'sold' | 'disputed' | 'removed'
+  currentPrice?: number
+  discountApplied?: number
+  isFlashDeal?: boolean
+  recommendedSize?: string
+  certificateUrl?: string
+  image?: string
 }
 
 function App() {
@@ -68,6 +74,67 @@ function App() {
   const [userMetrics, setUserMetrics] = useState<any>(null)
   const [dppData, setDppData] = useState<any>(null)
   const [catalogItems, setCatalogItems] = useState<ListingRecord[]>([])
+
+  // AI Seller Features State
+  const [sellerSubTab, setSellerSubTab] = useState<'inventory' | 'studio'>('inventory')
+  const [newListingOrderId, setNewListingOrderId] = useState('')
+  const [newListingAiState, setNewListingAiState] = useState<'idle' | 'assessing' | 'done'>('idle')
+  const [newListingDescription, setNewListingDescription] = useState('')
+  const [newListingPrice, setNewListingPrice] = useState<number | null>(null)
+  
+  const handleAiAutoList = async () => {
+    if (!newListingOrderId) return
+    setNewListingAiState('assessing')
+    try {
+      const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
+      const resp = await fetch(`${mlApiUrl}/seller/ai-assist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: newListingOrderId })
+      })
+      const result = await resp.json()
+      if (result.status === 'success') {
+        setNewListingPrice(result.data.suggested_price)
+        setNewListingDescription(result.data.description)
+        setNewListingAiState('done')
+      }
+    } catch (e) {
+      console.error(e)
+      setNewListingAiState('idle')
+    }
+  }
+
+  const publishNewListing = async () => {
+    try {
+      const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
+      const resp = await fetch(`${mlApiUrl}/listing/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: 'p-headphones-premium',
+          msrp: 14999,
+          grade: 'Grade A',
+          price: newListingPrice || 12000,
+          description: newListingDescription,
+          orderId: newListingOrderId
+        })
+      })
+      const result = await resp.json()
+      if (result.status === 'success') {
+        const catResp = await fetch(`${mlApiUrl}/catalog`)
+        const data = await catResp.json()
+        setListings(Array.isArray(data) ? data : [])
+        
+        setNewListingOrderId('')
+        setNewListingAiState('idle')
+        setNewListingDescription('')
+        setNewListingPrice(null)
+        setSellerSubTab('inventory')
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   useEffect(() => {
     const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
@@ -320,39 +387,28 @@ function App() {
     }
   }
 
-  const toggleListingStatus = async (id: string) => {
-    const list = listings.find(l => l.listingId === id)
-    if (!list) return
-    let nextStatus: 'available' | 'reserved' | 'sold' = 'available'
-    let nextEscrow = list.escrowStatus
-    if (list.status === 'available') {
-      nextStatus = 'reserved'
-      nextEscrow = 'Locked (₹' + (list.msrp * 0.75) + ')'
-    } else if (list.status === 'reserved') {
-      nextStatus = 'sold'
-      nextEscrow = 'Released'
-    } else {
-      nextStatus = 'available'
-      nextEscrow = 'N/A'
-    }
-
+  const toggleListingStatus = async (id: string, action: string = 'advance') => {
     try {
       const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
-      await fetch(`${mlApiUrl}/listing`, {
-        method: 'PUT',
+      const resp = await fetch(`${mlApiUrl}/listing/${id}/transition?action=${action}`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listing_id: id, new_status: nextStatus, buyer_id: 'usr-buyer-demo' })
       })
+      const data = await resp.json()
+      
+      if (data.status === 'success') {
+        setListings(prev => prev.map(l => {
+          if (l.listingId === id) {
+            return { ...l, status: data.new_status, escrowStatus: data.new_escrow }
+          }
+          return l
+        }))
+      } else {
+        console.error("API Transition Failed:", data.message)
+      }
     } catch (e) {
       console.error("Failed to transition listing state", e)
     }
-
-    setListings(prev => prev.map(l => {
-      if (l.listingId === id) {
-        return { ...l, status: nextStatus, escrowStatus: nextEscrow }
-      }
-      return l
-    }))
   }
 
   return (
@@ -857,21 +913,42 @@ function App() {
                         </div>
                       )}
                       
-                      <div style={{ padding: '1rem', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #EAEAEA', fontSize: '0.85rem' }}>
-                        <div style={{ marginBottom: '0.5rem', color: '#565959' }}>
-                          {lastResult.pathway === 'locker-dropoff' ? (
-                            <span><b>Routing:</b> Locker Dropoff (Amazon Locker - Metro Hub, {lastResult.transit_distance_km ? lastResult.transit_distance_km.toFixed(1) : '1.4'} km).</span>
-                          ) : (
-                            <span><b>Routing:</b> Hyperlocal P2P Match (Matched to {lastResult.matched_buyer?.listing_id ? 'Buyer-Local' : 'buyer-alpha'}, {lastResult.transit_distance_km ? lastResult.transit_distance_km.toFixed(1) : '3.2'} km). Escrow Locked.</span>
-                          )}
+                      <div style={{ padding: '1.25rem', backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px solid #EAEAEA', fontSize: '0.85rem', marginTop: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                          <div>
+                            <h4 style={{ margin: '0 0 0.25rem 0', color: '#879596', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>Live Routing</h4>
+                            <div style={{ fontSize: '1rem', fontWeight: '600', color: '#131A22' }}>
+                              {lastResult.pathway === 'locker-dropoff' ? 'Amazon Locker Dropoff' : 'Hyperlocal P2P Match'}
+                            </div>
+                          </div>
+                          <span style={{ backgroundColor: '#FFFDF9', color: 'var(--amazon-orange, #FF9900)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', border: '1px solid #FFEED6' }}>
+                            {lastResult.pathway === 'locker-dropoff' ? 'Local Hub' : 'Escrow Locked'}
+                          </span>
                         </div>
-                        <div style={{ height: '100px', backgroundColor: '#E9E9E9', borderRadius: '4px', position: 'relative', overflow: 'hidden' }}>
-                           {/* Simplified mock map */}
-                           <svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
-                            <path d={lastResult.pathway === 'locker-dropoff' ? "M 20,50 Q 100,20 280,50" : "M 20,50 Q 150,90 280,50"} stroke="#007185" strokeWidth="3" strokeDasharray="5,5" fill="none" />
-                            <circle cx="20" cy="50" r="6" fill="#131A22" />
-                            <circle cx="280" cy="50" r="6" fill="#FF9900" />
-                           </svg>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative', padding: '0.5rem 0' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#F8F9FA', border: '1px solid #D5D9D9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>📦</div>
+                            <span style={{ fontSize: '0.7rem', color: '#565959', fontWeight: '500' }}>You</span>
+                          </div>
+                          
+                          <div style={{ flexGrow: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ position: 'absolute', width: '100%', height: '2px', backgroundColor: '#EAEAEA', borderRadius: '2px' }}></div>
+                            <div style={{ position: 'absolute', width: '50%', height: '2px', backgroundColor: 'var(--amazon-orange, #FF9900)', left: 0, top: '50%', transform: 'translateY(-50%)', borderRadius: '2px' }}></div>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#FFF', border: '2px solid var(--amazon-orange, #FF9900)', zIndex: 2 }}></div>
+                            <span style={{ position: 'absolute', top: '-20px', fontSize: '0.75rem', color: '#565959', fontWeight: 'bold', backgroundColor: '#FFF', padding: '0 4px' }}>
+                              {lastResult.transit_distance_km ? lastResult.transit_distance_km.toFixed(1) : (lastResult.pathway === 'locker-dropoff' ? '1.4' : '3.2')} km
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#FFFDF9', border: '1px solid #FFEED6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
+                              {lastResult.pathway === 'locker-dropoff' ? '🏢' : '👤'}
+                            </div>
+                            <span style={{ fontSize: '0.7rem', color: '#131A22', fontWeight: 'bold' }}>
+                              {lastResult.pathway === 'locker-dropoff' ? 'Metro Hub' : (lastResult.matched_buyer?.listing_id ? 'Buyer-Local' : 'Buyer-Alpha')}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -927,7 +1004,13 @@ function App() {
         {/* SELLER DASHBOARD VIEW */}
         {userRole === 'seller' && activeTab === 'admin' && (
           <section className="view-section" style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <h2 style={{ marginBottom: '1.5rem', fontSize: '1.8rem', color: '#131A22' }}>Seller Central Dashboard</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.8rem', margin: 0, color: '#131A22' }}>Seller Central Dashboard</h2>
+              <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: '#F8F9FA', padding: '0.25rem', borderRadius: '8px', border: '1px solid #EAEAEA' }}>
+                <button onClick={() => setSellerSubTab('inventory')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem', backgroundColor: sellerSubTab === 'inventory' ? '#FFF' : 'transparent', color: sellerSubTab === 'inventory' ? '#131A22' : '#565959', boxShadow: sellerSubTab === 'inventory' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Inventory Management</button>
+                <button onClick={() => setSellerSubTab('studio')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem', backgroundColor: sellerSubTab === 'studio' ? '#FFF' : 'transparent', color: sellerSubTab === 'studio' ? '#131A22' : '#565959', boxShadow: sellerSubTab === 'studio' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>AI Creation Studio</button>
+              </div>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
               <div style={{ backgroundColor: '#FFF', padding: '1.5rem', borderRadius: '12px', border: '1px solid #EAEAEA', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                 <div style={{ fontSize: '0.85rem', color: '#565959', marginBottom: '0.5rem', fontWeight: '600' }}>Warehouse Avoidance Rate</div>
@@ -945,67 +1028,240 @@ function App() {
                 <div style={{ fontSize: '0.8rem', color: '#137333', marginTop: '0.5rem', fontWeight: 'bold' }}>✓ 82.6% Recovery Rate</div>
               </div>
               <div style={{ backgroundColor: '#FFF', padding: '1.5rem', borderRadius: '12px', border: '1px solid #EAEAEA', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <div style={{ fontSize: '0.85rem', color: '#565959', marginBottom: '0.5rem', fontWeight: '600' }}>Escrow Locked Funds</div>
+                <div style={{ fontSize: '0.85rem', color: '#565959', marginBottom: '0.5rem', fontWeight: '600' }}>Safe-Hold Locked Funds</div>
                 <div style={{ fontSize: '2rem', fontWeight: '800', color: '#131A22' }}>₹{sellerMetrics?.escrow_locked_funds ? sellerMetrics.escrow_locked_funds.toLocaleString() : '145,200'}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--amazon-orange, #FF9900)', marginTop: '0.5rem', fontWeight: 'bold' }}>Live from MatchesTable</div>
               </div>
             </div>
 
-            <div className="panel" style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA', overflowX: 'auto' }}>
-              <h3 style={{ fontSize: '1.2rem', margin: '0 0 1.5rem 0', color: '#131A22' }}>Active SecondLife Listings & Escrow States</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #EAEAEA', color: '#565959' }}>
-                    <th style={{ padding: '1rem 0.5rem' }}>Listing ID</th>
-                    <th style={{ padding: '1rem 0.5rem' }}>Product</th>
-                    <th style={{ padding: '1rem 0.5rem' }}>MSRP Value</th>
-                    <th style={{ padding: '1rem 0.5rem' }}>Current Owner</th>
-                    <th style={{ padding: '1rem 0.5rem' }}>Item Condition</th>
-                    <th style={{ padding: '1rem 0.5rem' }}>Escrow status</th>
-                    <th style={{ padding: '1rem 0.5rem' }}>Listing status</th>
-                    <th style={{ padding: '1rem 0.5rem' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {listings.map(list => (
-                    <tr key={list.listingId} style={{ borderBottom: '1px solid #F0F2F2' }}>
-                      <td style={{ padding: '1rem 0.5rem', fontWeight: 'bold', color: '#131A22' }}>{list.listingId}</td>
-                      <td style={{ padding: '1rem 0.5rem', color: '#565959' }}>{list.productId}</td>
-                      <td style={{ padding: '1rem 0.5rem', fontWeight: 'bold' }}>₹{list.msrp}</td>
-                      <td style={{ padding: '1rem 0.5rem', color: '#565959' }}>{list.owner}</td>
-                      <td style={{ padding: '1rem 0.5rem' }}>
-                        <span style={{ fontWeight: 'bold', color: list.grade.includes('A') ? '#137333' : list.grade.includes('B') ? '#B08D00' : '#C5221F' }}>
-                          {list.grade}
-                        </span>
-                      </td>
-                      <td style={{ padding: '1rem 0.5rem', color: '#565959' }}>{list.escrowStatus}</td>
-                      <td style={{ padding: '1rem 0.5rem' }}>
-                        <span style={{ 
-                          padding: '0.25rem 0.75rem', 
-                          borderRadius: '20px', 
-                          fontSize: '0.8rem', 
-                          fontWeight: 'bold',
-                          backgroundColor: list.status === 'available' ? '#E6F4EA' : list.status === 'reserved' ? '#FFF8E1' : '#F3F4F6',
-                          color: list.status === 'available' ? '#137333' : list.status === 'reserved' ? '#B08D00' : '#565959'
-                        }}>
-                          {list.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td style={{ padding: '1rem 0.5rem' }}>
+            {sellerSubTab === 'studio' && (
+            <div className="panel" style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA', marginBottom: '2rem', animation: 'fadeIn 0.3s' }}>
+              <h3 style={{ fontSize: '1.2rem', margin: '0 0 1.5rem 0', color: '#131A22', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ color: '#137333' }}>✨</span> Create New Listing (AI Assisted)
+              </h3>
+              <div style={{ display: 'flex', gap: '2rem' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: '#565959', marginBottom: '0.5rem', fontWeight: 'bold' }}>Original Amazon Order ID</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input 
+                        type="text" 
+                        value={newListingOrderId}
+                        onChange={(e) => setNewListingOrderId(e.target.value)}
+                        placeholder="e.g. 114-1234567-8901234" 
+                        style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: '1px solid #D5D9D9', fontSize: '0.9rem' }} 
+                      />
+                      {newListingOrderId && (
+                        <div style={{ backgroundColor: '#E7F4E4', color: '#137333', padding: '0 1rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold', border: '1px solid #C3E6CB', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> GS1 Verified
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', color: '#565959', marginBottom: '0.5rem', fontWeight: 'bold' }}>Visual Condition Proof</label>
+                    <div style={{ border: '1px dashed #D5D9D9', borderRadius: '8px', padding: '1.5rem', textAlign: 'center', backgroundColor: '#F8F9FA', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '1.5rem' }}>📷</span>
+                      <div style={{ fontSize: '0.85rem', color: '#565959', marginTop: '0.5rem', fontWeight: '500' }}>Click to upload return photo</div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleAiAutoList}
+                    disabled={!newListingOrderId || newListingAiState === 'assessing'}
+                    style={{ width: '100%', padding: '0.8rem', backgroundColor: '#131A22', color: '#FFF', border: 'none', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold', cursor: (!newListingOrderId || newListingAiState === 'assessing') ? 'not-allowed' : 'pointer', opacity: (!newListingOrderId || newListingAiState === 'assessing') ? 0.7 : 1 }}
+                  >
+                    {newListingAiState === 'assessing' ? '✨ AI Multimodal Assessment...' : '✨ 1-Click Auto-List via GenAI'}
+                  </button>
+                </div>
+                
+                {newListingAiState !== 'idle' && (
+                  <div style={{ flex: 1, backgroundColor: '#F8F9FA', borderRadius: '12px', padding: '1.5rem', border: '1px solid #EAEAEA' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#565959', marginBottom: '1rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GenAI Draft</div>
+                    {newListingAiState === 'assessing' ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '150px', color: '#879596' }}>Scanning image and analyzing data...</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.5s' }}>
+                        <div style={{ backgroundColor: '#FFFDF9', padding: '1rem', borderRadius: '8px', border: '1px solid #FFEED6' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--amazon-orange, #FF9900)', fontWeight: 'bold', marginBottom: '0.25rem' }}>AI Dynamic Pricing Suggestion</div>
+                          <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#131A22' }}>₹{newListingPrice?.toLocaleString()}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#565959', marginTop: '0.25rem' }}>Based on visual Grade A analysis. 95% chance to sell in 24 hrs.</div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', color: '#565959', marginBottom: '0.5rem', fontWeight: 'bold' }}>Optimized Description</label>
+                          <textarea 
+                            value={newListingDescription} 
+                            onChange={(e) => setNewListingDescription(e.target.value)}
+                            style={{ width: '100%', height: '80px', padding: '0.75rem', borderRadius: '8px', border: '1px solid #D5D9D9', fontSize: '0.85rem', resize: 'none', boxSizing: 'border-box' }}
+                          />
+                        </div>
                         <button 
-                          style={{ padding: '0.4rem 0.8rem', backgroundColor: '#FFF', border: '1px solid #D5D9D9', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', color: '#0F1111', fontWeight: '600' }} 
-                          onClick={() => toggleListingStatus(list.listingId)}
+                          onClick={publishNewListing}
+                          style={{ width: '100%', padding: '0.8rem', backgroundColor: '#FFD814', color: '#0F1111', border: '1px solid #FCD200', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 2px 5px rgba(213,217,217,0.5)' }}
                         >
-                          Transition State
+                          Publish Listing
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {listings.length === 0 && (
-                     <tr><td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#879596' }}>No active listings to display.</td></tr>
-                  )}
-                </tbody>
-              </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            )}
+
+            {sellerSubTab === 'inventory' && (
+            <div className="panel" style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA', overflowX: 'auto', animation: 'fadeIn 0.3s' }}>
+              <h3 style={{ fontSize: '1.2rem', margin: '0 0 1.5rem 0', color: '#131A22' }}>Active SecondLife Listings & Safe-Hold States</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                {listings.map(list => (
+                  <div key={list.listingId} style={{ 
+                    backgroundColor: '#FFF', 
+                    borderRadius: '12px', 
+                    border: '1px solid #EAEAEA', 
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)', 
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)'; }}
+                  >
+                    <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #EAEAEA', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8F9FA' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <span style={{ fontWeight: '800', color: '#131A22', fontSize: '1.1rem' }}>{list.listingId}</span>
+                        <span style={{ backgroundColor: '#E7F4E4', color: '#137333', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', border: '1px solid #C3E6CB', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> GS1 Verified</span>
+                      </div>
+                      <span style={{ 
+                        padding: '0.3rem 0.8rem', 
+                        borderRadius: '20px', 
+                        fontSize: '0.75rem', 
+                        fontWeight: 'bold',
+                        backgroundColor: list.status === 'available' ? '#E7F4E4' : list.status === 'reserved' ? '#FEF8E3' : (list.status === 'removed' || list.status === 'disputed') ? '#FCE8E6' : '#F0F2F2',
+                        color: list.status === 'available' ? '#0F7516' : list.status === 'reserved' ? '#8A5D19' : (list.status === 'removed' || list.status === 'disputed') ? '#C5221F' : '#565959'
+                      }}>
+                        {list.status.toUpperCase()}
+                      </span>
+                    </div>
+                    
+                    <div style={{ padding: '1.5rem', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.8rem', color: '#565959', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.25rem', fontWeight: 'bold' }}>Product</div>
+                        <div style={{ fontSize: '1.1rem', color: '#131A22', fontWeight: '600' }}>{list.productId}</div>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: '#879596', marginBottom: '0.2rem' }}>MSRP Value</div>
+                          <div style={{ fontWeight: 'bold', color: '#131A22', fontSize: '1.1rem' }}>₹{list.msrp}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: '#879596', marginBottom: '0.2rem' }}>Item Condition</div>
+                          <div style={{ fontWeight: '900', color: list.grade.includes('A') ? '#137333' : list.grade.includes('B') ? '#B08D00' : '#C5221F' }}>{list.grade}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ backgroundColor: '#F0F2F2', padding: '0.8rem 1rem', borderRadius: '8px', borderLeft: `4px solid ${list.escrowStatus.includes('Locked') || list.escrowStatus.includes('Held') ? 'var(--amazon-orange, #FF9900)' : list.escrowStatus.includes('Released') || list.escrowStatus.includes('Refunded') ? '#137333' : '#879596'}` }}>
+                        <div style={{ fontSize: '0.75rem', color: '#565959', marginBottom: '0.2rem', fontWeight: '600' }}>Amazon Safe-Hold Contract</div>
+                        <div style={{ fontWeight: 'bold', color: '#131A22', fontSize: '0.9rem' }}>{list.escrowStatus}</div>
+                      </div>
+                      
+                      {list.status === 'reserved' && (
+                        <div style={{ backgroundColor: '#FFFDF9', padding: '0.8rem 1rem', borderRadius: '8px', border: '1px solid #FFEED6' }}>
+                          <div style={{ fontSize: '0.75rem', color: '#565959', marginBottom: '0.2rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><span>🛡️</span> Matched Buyer Trust Score</div>
+                          <div style={{ fontWeight: 'bold', color: '#131A22', fontSize: '0.9rem' }}>92/100 (Low Risk)</div>
+                          <div style={{ fontSize: '0.7rem', color: '#879596', marginTop: '0.2rem' }}>SEFraudGNN pre-handoff check passed</div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #EAEAEA', display: 'flex', gap: '0.75rem', backgroundColor: '#FFF' }}>
+                      <button 
+                        style={{ flex: 1, padding: '0.6rem', backgroundColor: '#FFD814', border: '1px solid #FCD200', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', color: '#0F1111', fontWeight: '600', transition: 'background-color 0.2s', boxShadow: '0 2px 5px rgba(213,217,217,0.5)' }} 
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F7CA00'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFD814'}
+                        onClick={() => toggleListingStatus(list.listingId, 'advance')}
+                      >
+                        Advance Safe-Hold State
+                      </button>
+                      
+                      {list.status === 'reserved' && (
+                        <button 
+                          style={{ flex: 1, padding: '0.6rem', backgroundColor: '#FFF', border: '1px solid #C5221F', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', color: '#C5221F', fontWeight: 'bold', transition: 'background-color 0.2s', boxShadow: '0 2px 5px rgba(213,217,217,0.5)' }} 
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FCE8E6'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFF'}
+                          onClick={() => toggleListingStatus(list.listingId, 'dispute')}
+                        >
+                          Dispute Item
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                
+                {listings.length === 0 && (
+                  <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', backgroundColor: '#F8F9FA', borderRadius: '12px', border: '1px dashed #D5D9D9' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📋</div>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#131A22' }}>No Active Listings</h4>
+                    <p style={{ margin: 0, color: '#565959' }}>There are currently no items in the Safe-Hold system.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            )}
+          </section>
+        )}
+
+        {/* FRAUD INVESTIGATIONS VIEW */}
+        {userRole === 'seller' && activeTab === 'fraud' && (
+          <section className="view-section" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <h2 style={{ marginBottom: '1.5rem', fontSize: '1.8rem', color: '#131A22' }}>Fraud Investigations (SEFraudGNN)</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(350px, 1fr)', gap: '2rem', alignItems: 'start' }}>
+              <div className="panel" style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA' }}>
+                <h3 style={{ fontSize: '1.2rem', margin: '0 0 1.5rem 0', color: '#131A22' }}>Return Network Topology</h3>
+                <div style={{ height: '400px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #EAEAEA', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                   {/* Mock graph visualization */}
+                   <svg width="100%" height="100%" viewBox="0 0 400 400">
+                     <circle cx="200" cy="200" r="150" stroke="#EAEAEA" strokeWidth="1" fill="none" strokeDasharray="5,5" />
+                     
+                     <line x1="200" y1="200" x2="100" y2="100" stroke="#FF9900" strokeWidth="2" />
+                     <line x1="200" y1="200" x2="300" y2="100" stroke="#EAEAEA" strokeWidth="2" />
+                     <line x1="200" y1="200" x2="200" y2="320" stroke="#C5221F" strokeWidth="3" />
+                     <line x1="200" y1="320" x2="120" y2="280" stroke="#C5221F" strokeWidth="2" />
+                     <line x1="200" y1="320" x2="280" y2="280" stroke="#C5221F" strokeWidth="2" />
+                     
+                     <circle cx="100" cy="100" r="15" fill="#007185" />
+                     <circle cx="300" cy="100" r="15" fill="#007185" />
+                     <circle cx="200" cy="200" r="25" fill="#131A22" />
+                     <circle cx="200" cy="320" r="20" fill="#C5221F" />
+                     <circle cx="120" cy="280" r="12" fill="#FF9900" />
+                     <circle cx="280" cy="280" r="12" fill="#FF9900" />
+                     
+                     <text x="180" y="195" fill="#FFF" fontSize="10">Target</text>
+                     <text x="180" y="315" fill="#FFF" fontSize="10">Ring</text>
+                   </svg>
+                   <div style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: '#FFF', padding: '0.5rem', borderRadius: '4px', border: '1px solid #EAEAEA', fontSize: '0.75rem' }}>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}><div style={{ width: '10px', height: '10px', backgroundColor: '#C5221F', borderRadius: '50%' }}></div> High Risk Node</div>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><div style={{ width: '10px', height: '10px', backgroundColor: '#FF9900', borderRadius: '50%' }}></div> Suspicious Link</div>
+                   </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                <div className="panel" style={{ backgroundColor: '#FFF', borderRadius: '12px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA' }}>
+                  <h3 style={{ fontSize: '1.2rem', margin: '0 0 1rem 0', color: '#131A22', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ color: '#C5221F' }}>⚠️</span> Flagged Return Rings
+                  </h3>
+                  <div style={{ padding: '1rem', backgroundColor: '#FCE8E6', borderRadius: '8px', border: '1px solid #FAD2CF', marginBottom: '1rem' }}>
+                    <div style={{ fontWeight: 'bold', color: '#C5221F', marginBottom: '0.25rem' }}>Cluster ID: #FR-8821</div>
+                    <div style={{ fontSize: '0.85rem', color: '#131A22' }}><b>Risk Score: 94/100</b> - Coordinated Wardrobing Pattern. 3 users returning identical designer apparel after 48 hours to the same locker network.</div>
+                    <button className="btn-action" style={{ marginTop: '0.75rem', padding: '0.5rem 1rem', backgroundColor: '#FFF', color: '#C5221F', border: '1px solid #C5221F', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>Halt Escrow Refunds</button>
+                  </div>
+                  <div style={{ padding: '1rem', backgroundColor: '#FFFDF9', borderRadius: '8px', border: '1px solid #FFEED6' }}>
+                    <div style={{ fontWeight: 'bold', color: 'var(--amazon-orange, #FF9900)', marginBottom: '0.25rem' }}>Cluster ID: #FR-1044</div>
+                    <div style={{ fontSize: '0.85rem', color: '#131A22' }}><b>Risk Score: 76/100</b> - Geographic Anomaly. IP location mismatch with locker dropoff location across multiple high-value electronics returns.</div>
+                    <button className="btn-action" style={{ marginTop: '0.75rem', padding: '0.5rem 1rem', backgroundColor: '#FFF', color: 'var(--amazon-orange, #FF9900)', border: '1px solid var(--amazon-orange, #FF9900)', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>Require Manual Review</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         )}
