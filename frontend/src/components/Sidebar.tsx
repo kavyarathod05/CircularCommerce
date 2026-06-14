@@ -1,4 +1,5 @@
 import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 type NavItem = { tab: string; label: string };
 
@@ -31,7 +32,12 @@ function NavSection({ title, items, activeTab, setActiveTab }: { title: string; 
 }
 
 export default function Sidebar() {
-  const { userRole, setUserRole, activeTab, setActiveTab } = useAppContext();
+  const { userRole, activeTab, setActiveTab } = useAppContext();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
 
   const buyerNav: NavItem[] = [
     { tab: 'catalog', label: 'Browse Catalog' },
@@ -108,16 +114,24 @@ export default function Sidebar() {
             )}
           </div>
 
-          <div className="user-profile-btn" style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: '8px', backgroundColor: '#F8F9FA', cursor: 'pointer', border: '1px solid #EAEAEA' }} onClick={() => setUserRole(null)}>
-            <div className="user-avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#131A22', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-              {userRole === 'buyer' ? 'B' : userRole === 'admin' ? 'A' : 'S'}
+          <div
+            className="user-profile-btn"
+            style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: '8px', backgroundColor: '#F8F9FA', cursor: 'pointer', border: '1px solid #EAEAEA' }}
+            onClick={handleLogout}
+            title="Sign out"
+          >
+            <div className="user-avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#131A22', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>
+              {user?.name?.[0]?.toUpperCase() || (userRole === 'buyer' ? 'B' : userRole === 'admin' ? 'A' : 'S')}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#131A22' }}>
-                {userRole === 'buyer' ? 'Buyer' : userRole === 'admin' ? 'Admin' : 'Seller'}
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#131A22', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user?.name || (userRole === 'buyer' ? 'Buyer' : userRole === 'admin' ? 'Admin' : 'Seller')}
               </span>
-              <span style={{ fontSize: '0.75rem', color: '#879596' }}>Switch role</span>
+              <span style={{ fontSize: '0.72rem', color: '#879596', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user?.email || 'Sign out'}
+              </span>
             </div>
+            <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#879596', flexShrink: 0 }}>↩</span>
           </div>
         </div>
       )}

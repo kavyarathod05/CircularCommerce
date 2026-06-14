@@ -1,4 +1,5 @@
 import { useAppContext } from '../context/AppContext';
+import { SkeletonKPI, SkeletonCard } from '../components/Loader';
 
 const DEMO_LISTINGS = [
   { listingId: 'lst-demo-1', productId: 'Bose QC Headphones', msrp: 6320, owner: 'You', grade: 'Grade B', escrowStatus: 'N/A', status: 'available', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200' },
@@ -22,7 +23,10 @@ export default function SellerDashboardView() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
-        {[
+        {!sellerMetrics ? (
+          // Shimmer KPI tiles while metrics load
+          Array.from({ length: 3 }).map((_, i) => <SkeletonKPI key={i} />)
+        ) : [
           { label: 'Active listings', value: displayListings.length },
           { label: 'Sold this month', value: 2 },
           { label: 'CO₂ saved', value: `${sellerMetrics?.co2_saved_kg?.toFixed?.(0) || 18} kg` },
@@ -35,7 +39,10 @@ export default function SellerDashboardView() {
       </div>
 
       <div style={{ display: 'grid', gap: '1rem' }}>
-        {displayListings.map(list => (
+        {displayListings.length === 0 ? (
+          // Shimmer listing cards
+          Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
+        ) : displayListings.map(list => (
           <div key={list.listingId} style={{ background: '#FFF', border: '1px solid #EAEAEA', borderRadius: '12px', padding: '1.25rem', display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr) auto', gap: '1rem', alignItems: 'center' }}>
             <div style={{ width: 72, height: 72, borderRadius: 8, overflow: 'hidden', background: '#F8F9FA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {(list as any).image && <img src={(list as any).image} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
