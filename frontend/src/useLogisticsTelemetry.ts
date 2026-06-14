@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 export interface FleetVehicle {
   vehicleId: string; type: string; status: string; driverId: string; driverName: string;

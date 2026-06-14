@@ -19,6 +19,9 @@ from fleet_optimizer import SustainableFleetOptimizer
 app = FastAPI(title="SecondLife Commerce - Naman ML Microservice")
 
 # Enable CORS for local dev testing
+from fastapi.staticfiles import StaticFiles
+import os
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,6 +30,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+os.makedirs("vto-storage", exist_ok=True)
+app.mount("/vto-storage", StaticFiles(directory="vto-storage"), name="vto-storage")
+
 # Initialize Models
 demand_model = DemandEngine()
 friction_model = PredictiveFrictionEngine()
@@ -34,6 +40,8 @@ pricing_model = DynamicPricingEngine()
 fraud_model = SEFraudGNN()
 size_model = SizeRecommendationEngine()
 gemini_ai = GeminiAIIntegrations()
+aws_ai = AWSAIIntegrations()
+hf_ai = HuggingFaceIntegrations()
 vto_model = VirtualTryOnEngine()
 nsga2_router = NSGA2Router()
 fleet_opt = SustainableFleetOptimizer()
