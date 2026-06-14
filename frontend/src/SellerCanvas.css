@@ -1,0 +1,427 @@
+/* ===== Seller Canvas: Notion & Webflow Style ===== */
+.canvas-root {
+  display: flex;
+  position: relative;
+  height: calc(100vh - 120px);
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: #FDFDFD;
+}
+
+/* Canvas Area */
+.canvas-area {
+  flex-grow: 1;
+  padding: 3rem 4rem;
+  overflow-y: auto;
+  transition: padding-right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.canvas-shrunk {
+  padding-right: 360px; /* Make room for the side panel */
+}
+
+.canvas-header {
+  margin-bottom: 3rem;
+  max-width: 800px;
+}
+
+.canvas-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #131A22;
+  margin: 0;
+  border: none;
+  outline: none;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.canvas-title:focus {
+  border-bottom: 2px solid #EAEAEA;
+}
+
+.canvas-subtitle {
+  color: #879596;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* Blocks */
+.canvas-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 800px;
+}
+
+.canvas-block {
+  background: #FFF;
+  border: 1px solid #EAEAEA;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.canvas-block:hover {
+  border-color: #D5D9D9;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transform: translateY(-1px);
+}
+
+.block-active {
+  border-color: var(--amazon-orange, #FF9900);
+  box-shadow: 0 0 0 2px rgba(255, 153, 0, 0.1);
+}
+
+.block-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.block-icon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+}
+
+.block-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #131A22;
+  flex-grow: 1;
+}
+
+.block-actions {
+  display: flex;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.canvas-block:hover .block-actions {
+  opacity: 1;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: #879596;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.icon-btn:hover {
+  background: #F3F4F6;
+  color: #131A22;
+}
+
+.block-preview p {
+  margin: 0 0 1rem 0;
+  color: #565959;
+  font-size: 0.95rem;
+}
+
+.block-insight {
+  font-size: 0.8rem;
+  color: #007185;
+  font-weight: 600;
+}
+
+/* Placeholder / Add Block */
+.block-placeholder {
+  border: 1px dashed #D5D9D9;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #879596;
+  box-shadow: none;
+}
+
+.block-placeholder:hover {
+  background: #FAFBFC;
+  border-color: #879596;
+  color: #565959;
+}
+
+.placeholder-text {
+  font-weight: 500;
+}
+
+/* Notion Command Menu */
+.command-menu-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 99;
+}
+
+.command-menu {
+  position: absolute;
+  z-index: 100;
+  background: #FFF;
+  border: 1px solid #EAEAEA;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  width: 320px;
+  overflow: hidden;
+  animation: slideDown 0.15s ease-out;
+}
+
+.cmd-header {
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #879596;
+  text-transform: uppercase;
+  background: #FAFBFC;
+  border-bottom: 1px solid #EAEAEA;
+}
+
+.cmd-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #F0F2F2;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.cmd-item:last-child {
+  border-bottom: none;
+}
+
+.cmd-item:hover {
+  background: #F8F9FA;
+}
+
+.cmd-icon {
+  background: #FFF;
+  border: 1px solid #EAEAEA;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  font-size: 1.1rem;
+}
+
+.cmd-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.cmd-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #131A22;
+}
+
+.cmd-desc {
+  font-size: 0.75rem;
+  color: #565959;
+  margin-top: 0.1rem;
+}
+
+/* Webflow Progressive Disclosure Panel */
+.settings-panel {
+  position: absolute;
+  right: -360px;
+  top: 0;
+  bottom: 0;
+  width: 340px;
+  background: #FFF;
+  border-left: 1px solid #EAEAEA;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.03);
+  transition: right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.panel-open {
+  right: 0;
+}
+
+.panel-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panel-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #EAEAEA;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #131A22;
+}
+
+.close-panel {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  color: #879596;
+  cursor: pointer;
+}
+
+.close-panel:hover {
+  color: #131A22;
+}
+
+.panel-body {
+  padding: 1.5rem;
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #131A22;
+}
+
+.ui-select, .ui-input {
+  padding: 0.6rem;
+  border: 1px solid #D5D9D9;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #FFF;
+  color: #131A22;
+}
+
+.input-with-suffix {
+  display: flex;
+  align-items: center;
+  border: 1px solid #D5D9D9;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.input-with-suffix .ui-input {
+  border: none;
+  border-radius: 0;
+  flex-grow: 1;
+}
+
+.input-with-suffix span {
+  padding: 0 1rem;
+  background: #FAFBFC;
+  color: #565959;
+  font-size: 0.9rem;
+  border-left: 1px solid #D5D9D9;
+}
+
+.help-text {
+  font-size: 0.75rem;
+  color: #879596;
+  margin: 0;
+}
+
+.row-group {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.row-group label {
+  font-weight: 500;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.ui-range {
+  width: 100%;
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #879596;
+  text-transform: uppercase;
+}
+
+.alert-box {
+  background: #FFFDF9;
+  border: 1px solid #FAD2CF;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.alert-box p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #131A22;
+}
+
+.action-btn {
+  background: #F3F4F6;
+  color: #131A22;
+  border: 1px solid #D5D9D9;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.action-btn:hover {
+  background: #EAEAEA;
+}
+
+.panel-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #EAEAEA;
+  background: #FAFBFC;
+}
+
+.save-btn {
+  width: 100%;
+  background: var(--amazon-orange, #FF9900);
+  color: #FFF;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.save-btn:hover {
+  background: #F08804;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

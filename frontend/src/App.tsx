@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import './App.css'
+import LogisticsTelemetry from './LogisticsTelemetry'
+import RouteOptimizer from './RouteOptimizer'
+import UnitInventoryDashboard from './UnitInventoryDashboard'
+import FleetOptimizer from './FleetOptimizer'
+import SerialVerification from './SerialVerification'
+import SellerCanvas from './SellerCanvas'
 
 interface DefectBBox {
   label: string
@@ -31,10 +37,15 @@ interface ListingRecord {
   listingId: string
   productId: string
   msrp: number
+  currentPrice?: number
+  discountApplied?: string | number
+  isFlashDeal?: boolean
+  recommendedSize?: string | null
+  certificateUrl?: string
   owner: string
   grade: string
   escrowStatus: string
-  status: 'available' | 'reserved' | 'sold'
+  status: 'available' | 'reserved' | 'sold' | string
 }
 
 function App() {
@@ -68,14 +79,16 @@ function App() {
   const [userMetrics, setUserMetrics] = useState<any>(null)
   const [dppData, setDppData] = useState<any>(null)
   const [catalogItems, setCatalogItems] = useState<ListingRecord[]>([])
+  const [isCatalogLoading, setIsCatalogLoading] = useState(true)
 
   useEffect(() => {
     const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
     if (activeTab === 'catalog') {
+      setIsCatalogLoading(true)
       fetch(`${mlApiUrl}/catalog`)
         .then(res => res.json())
-        .then(data => setCatalogItems(Array.isArray(data) ? data : []))
-        .catch(err => console.error("Catalog fetch failed", err))
+        .then(data => { setCatalogItems(Array.isArray(data) ? data : []); setIsCatalogLoading(false) })
+        .catch(err => { console.error("Catalog fetch failed", err); setIsCatalogLoading(false) })
     } else if (activeTab === 'admin') {
       fetch(`${mlApiUrl}/seller/metrics?seller_id=usr-12`)
         .then(res => res.json())
@@ -396,7 +409,10 @@ function App() {
                 <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Returns</div>
                 <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'wizard' ? '#FFF5E5' : 'transparent', color: activeTab === 'wizard' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'wizard' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('wizard')}>Start a Return</button>
                 <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'result' ? '#FFF5E5' : 'transparent', color: activeTab === 'result' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'result' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('result')}>Return Status</button>
-                
+
+                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Logistics</div>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'logistics' ? '#FFF5E5' : 'transparent', color: activeTab === 'logistics' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'logistics' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('logistics')}>🛰️ Live Tracking</button>
+
                 <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Settings</div>
                 <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'account' ? '#FFF5E5' : 'transparent', color: activeTab === 'account' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'account' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('account')}>Your Account</button>
               </>
@@ -404,11 +420,18 @@ function App() {
             {userRole === 'seller' && (
               <>
                 <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Dashboard</div>
-                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'admin' ? '#FFF5E5' : 'transparent', color: activeTab === 'admin' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'admin' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('admin')}>Seller Central</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'admin' ? '#FFF5E5' : 'transparent', color: activeTab === 'admin' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'admin' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('admin')}>Seller Workspace</button>
                 <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'result' ? '#FFF5E5' : 'transparent', color: activeTab === 'result' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'result' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('result')}>Processing Logs</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'inventory' ? '#FFF5E5' : 'transparent', color: activeTab === 'inventory' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'inventory' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('inventory')}>📦 Unit Inventory</button>
                 
+                <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Logistics</div>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'logistics' ? '#FFF5E5' : 'transparent', color: activeTab === 'logistics' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'logistics' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('logistics')}>🛰️ Fleet Telemetry</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'nsga2' ? '#FFF5E5' : 'transparent', color: activeTab === 'nsga2' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'nsga2' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('nsga2')}>🧬 NSGA-II Routing</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'routing' ? '#FFF5E5' : 'transparent', color: activeTab === 'routing' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'routing' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('routing')}>🌱 Sustainable Fleet</button>
+
                 <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#879596', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1rem', marginBottom: '0.25rem' }}>Security</div>
                 <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'fraud' ? '#FFF5E5' : 'transparent', color: activeTab === 'fraud' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'fraud' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('fraud')}>Fraud Investigations</button>
+                <button style={{ textAlign: 'left', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: activeTab === 'serial' ? '#FFF5E5' : 'transparent', color: activeTab === 'serial' ? 'var(--amazon-orange, #FF9900)' : '#131A22', fontWeight: activeTab === 'serial' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }} onClick={() => setActiveTab('serial')}>Serial Verification</button>
               </>
             )}
           </div>
@@ -459,8 +482,19 @@ function App() {
           <section className="view-section" style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <h2 style={{ fontFamily: 'var(--brutalist-font, sans-serif)', marginBottom: '1.5rem', fontSize: '1.8rem', color: '#131A22' }}>Recommended For You</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem' }}>
-              {catalogItems.length === 0 ? (
-                <p style={{ color: '#879596' }}>Loading catalog or no items available...</p>
+              {isCatalogLoading ? (
+                <div style={{ padding: '4rem', textAlign: 'center', gridColumn: '1 / -1', backgroundColor: '#F8F9FA', borderRadius: '12px', border: '1px dashed #D5D9D9' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '1rem', animation: 'spin 1s linear infinite' }}>⏳</div>
+                  <h3 style={{ color: '#131A22', marginBottom: '0.5rem' }}>Curating Local Finds...</h3>
+                  <p style={{ color: '#565959', maxWidth: '400px', margin: '0 auto' }}>We are matching you with SecondLife items available in your immediate zip code to minimize delivery emissions.</p>
+                </div>
+              ) : catalogItems.length === 0 ? (
+                <div style={{ padding: '4rem', textAlign: 'center', gridColumn: '1 / -1', backgroundColor: '#FFFDF9', borderRadius: '12px', border: '1px dashed #FF9900' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🍃</div>
+                  <h3 style={{ color: '#131A22', marginBottom: '0.5rem' }}>No Local Items Found</h3>
+                  <p style={{ color: '#565959', maxWidth: '500px', margin: '0 auto', lineHeight: '1.5' }}>There are currently no peer-to-peer returned items available in your immediate radius. Expand your search area or check back tomorrow as new local returns are processed daily.</p>
+                  <button className="btn-action" style={{ marginTop: '1.5rem', padding: '0.75rem 1.5rem', borderRadius: '8px', border: '1px solid #D5D9D9', backgroundColor: '#FFF', fontWeight: 'bold', cursor: 'pointer' }}>Expand Search to 50km</button>
+                </div>
               ) : (
                 catalogItems.map((item, idx) => (
                   <div key={idx} className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', backgroundColor: '#FFF', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #EAEAEA' }}>
@@ -1002,7 +1036,11 @@ function App() {
                     </tr>
                   ))}
                   {listings.length === 0 && (
-                     <tr><td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#879596' }}>No active listings to display.</td></tr>
+                     <tr><td colSpan={8} style={{ padding: '3rem 2rem', textAlign: 'center', backgroundColor: '#FAFBFC' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem', opacity: 0.5 }}>📦</div>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#131A22', fontSize: '1.1rem' }}>No Active Listings</h4>
+                        <p style={{ color: '#565959', fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto' }}>You currently have no processed returns available in your local marketplace. As returns are approved by the AI triage, they will automatically appear here for local buyers.</p>
+                     </td></tr>
                   )}
                 </tbody>
               </table>
@@ -1019,7 +1057,12 @@ function App() {
                 <h3 style={{ fontSize: '1.2rem', margin: '0 0 1.5rem 0', color: '#131A22' }}>Your Shopping Cart</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {cartItems.length === 0 ? (
-                    <p style={{ color: '#879596', padding: '2rem 0', textAlign: 'center' }}>Your cart is empty.</p>
+                    <div style={{ padding: '3rem 2rem', textAlign: 'center', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px dashed #D5D9D9' }}>
+                      <div style={{ fontSize: '2.5rem', marginBottom: '1rem', opacity: 0.6 }}>🛒</div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: '#131A22', fontSize: '1.1rem' }}>Your Cart is Empty</h4>
+                      <p style={{ color: '#565959', fontSize: '0.9rem', lineHeight: '1.5', margin: '0 auto', maxWidth: '300px' }}>You haven't added any items yet. Browse our local catalog to find sustainable, peer-to-peer returns in your area.</p>
+                      <button className="btn-action" onClick={() => setActiveTab('catalog')} style={{ marginTop: '1.5rem', padding: '0.75rem 1.5rem', borderRadius: '20px', border: '1px solid var(--amazon-orange, #FF9900)', backgroundColor: '#FFF', color: 'var(--amazon-orange, #FF9900)', fontWeight: 'bold', cursor: 'pointer' }}>Browse Catalog</button>
+                    </div>
                   ) : (
                     cartItems.map((item, idx) => (
                       <div key={idx} style={{ padding: '1.5rem', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #EAEAEA' }}>
@@ -1138,6 +1181,36 @@ function App() {
               </div>
             </div>
           </section>
+        )}
+
+        {/* LOGISTICS TELEMETRY VIEW */}
+        {userRole && activeTab === 'logistics' && (
+          <LogisticsTelemetry />
+        )}
+
+        {/* SUSTAINABLE FLEET OPTIMIZER VIEW */}
+        {userRole && activeTab === 'routing' && (
+          <FleetOptimizer />
+        )}
+
+        {/* NSGA-II ROUTE OPTIMIZER VIEW */}
+        {userRole && activeTab === 'nsga2' && (
+          <RouteOptimizer />
+        )}
+
+        {/* MULTIMODAL SERIAL VERIFICATION VIEW */}
+        {userRole && activeTab === 'serial' && (
+          <SerialVerification />
+        )}
+
+        {/* UNIT INVENTORY DASHBOARD */}
+        {userRole === 'seller' && activeTab === 'inventory' && (
+          <UnitInventoryDashboard />
+        )}
+
+        {/* MODULAR SELLER CANVAS */}
+        {userRole === 'seller' && activeTab === 'admin' && (
+          <SellerCanvas />
         )}
       </main>
     </div>
