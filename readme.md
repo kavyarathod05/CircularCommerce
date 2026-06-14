@@ -59,3 +59,13 @@ We built an end-to-end ML microservice architecture integrated with a modern Rea
 
 ## 💡 Impact
 By decentralizing the return process and moving from a **Warehouse-Centric** model to a **Hyperlocal Peer-to-Peer** model guided by AI, SecondLife Commerce reduces return logistics costs by up to 68% and drastically lowers the carbon footprint of e-commerce.
+
+---
+
+## 📚 Documentation Index
+Detailed documentation for the project has been organized into the `docs/` directory:
+
+1. **[Product & Strategy](docs/01_product_and_strategy/)**
+2. **[Architecture & Design](docs/02_architecture_and_design/)**: Includes Workflow mappings, Scaling Feasibility, and UI/UX Implementation plans.
+3. **[Features & Modules](docs/03_features_and_modules/)**: Detailed breakdowns of ML models, Frontend API Mapping, and Functionality Audits.
+4. **[Hackathon Execution](docs/04_hackathon_and_execution/)**: Feature Status trackers, Team Checklists, and Workflow Demo scripts.
