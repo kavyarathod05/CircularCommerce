@@ -243,57 +243,92 @@ export default function VTOView() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: previewUrl ? 'repeat(2, 1fr)' : '400px 1fr', gap: '2rem' }}>
+        {/* Left Panel: Upload Controls & Original Image */}
         <div style={{ background: '#FFF', borderRadius: 12, padding: '1.5rem', border: '1px solid #D5D9D9' }}>
-          <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 600 }}>Your Photo</h3>
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-            {!isCameraOn ? (
-              <button onClick={startCamera} style={{ flex: 1, padding: '0.65rem', background: '#131A22', color: '#FFF', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>Use Camera</button>
-            ) : (
-              <button onClick={capturePhoto} style={{ flex: 1, padding: '0.65rem', background: '#C7511F', color: '#FFF', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>Capture</button>
-            )}
-            <label style={{ flex: 1, padding: '0.65rem', background: '#FFF', border: '1px solid #D5D9D9', borderRadius: 6, textAlign: 'center', fontWeight: 600, cursor: 'pointer', color: '#131A22' }}>
-              Upload
-              <input type="file" accept="image/*" onChange={handleGalleryUpload} style={{ display: 'none' }} />
-            </label>
-          </div>
-          {isApparel && (
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#131A22', display: 'block', marginBottom: '0.5rem' }}>Size to Try</label>
-              <select value={targetSize} onChange={e => setTargetSize(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid #D5D9D9' }}>
-                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+          <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 600 }}>
+            {previewUrl ? 'Original Photo' : 'Your Photo'}
+          </h3>
+          
+          {/* Only show upload controls if no result generated yet */}
+          {!previewUrl && (
+            <>
+              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+                {!isCameraOn ? (
+                  <button onClick={startCamera} style={{ flex: 1, padding: '0.65rem', background: '#131A22', color: '#FFF', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>Use Camera</button>
+                ) : (
+                  <button onClick={capturePhoto} style={{ flex: 1, padding: '0.65rem', background: '#C7511F', color: '#FFF', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>Capture</button>
+                )}
+                <label style={{ flex: 1, padding: '0.65rem', background: '#FFF', border: '1px solid #D5D9D9', borderRadius: 6, textAlign: 'center', fontWeight: 600, cursor: 'pointer', color: '#131A22' }}>
+                  Upload
+                  <input type="file" accept="image/*" onChange={handleGalleryUpload} style={{ display: 'none' }} />
+                </label>
+              </div>
+              {isApparel && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#131A22', display: 'block', marginBottom: '0.5rem' }}>Size to Try</label>
+                  <select value={targetSize} onChange={e => setTargetSize(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid #D5D9D9' }}>
+                    {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
+            </>
           )}
-          <div style={{ height: 320, background: '#F8F9FA', borderRadius: 8, overflow: 'hidden', border: '1px solid #D5D9D9', position: 'relative' }}>
+          
+          {/* Image Display Area */}
+          <div style={{ height: previewUrl ? 500 : 320, background: '#F8F9FA', borderRadius: 8, overflow: 'hidden', border: '1px solid #D5D9D9', position: 'relative' }}>
             <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: isCameraOn ? 'block' : 'none', transform: 'scaleX(-1)' }} />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
-            {!isCameraOn && userImage && <img src={userImage} alt="You" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            {!isCameraOn && userImage && <img src={userImage} alt="Original" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
             {!isCameraOn && !userImage && (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#879596', flexDirection: 'column', padding: '2rem', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.9rem' }}>Upload or capture your photo</div>
               </div>
             )}
           </div>
-          <button
-            onClick={runVTO}
-            disabled={!userImage || !selectedSku || isGenerating}
-            style={{
-              width: '100%', padding: '0.85rem', marginTop: '1rem', borderRadius: 6, fontWeight: 600, border: 'none', cursor: 'pointer',
-              background: !userImage || !selectedSku ? '#F0F0F0' : '#FF9900', color: !userImage || !selectedSku ? '#999' : '#131A22',
-              fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-            }}
-          >
-            {isGenerating && <InlineSpinner size={16} color="#131A22" />}
-            {isGenerating ? statusMsg || 'Processing...' : 'Generate Try-On'}
-          </button>
+          
+          {/* Generate Button (only show if no result yet) */}
+          {!previewUrl && (
+            <button
+              onClick={runVTO}
+              disabled={!userImage || !selectedSku || isGenerating}
+              style={{
+                width: '100%', padding: '0.85rem', marginTop: '1rem', borderRadius: 6, fontWeight: 600, border: 'none', cursor: 'pointer',
+                background: !userImage || !selectedSku ? '#F0F0F0' : '#FF9900', color: !userImage || !selectedSku ? '#999' : '#131A22',
+                fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+              }}
+            >
+              {isGenerating && <InlineSpinner size={16} color="#131A22" />}
+              {isGenerating ? statusMsg || 'Processing...' : 'Generate Try-On'}
+            </button>
+          )}
+          
+          {/* Try Another Button (show after result) */}
+          {previewUrl && (
+            <button
+              onClick={() => {
+                setVtoResult(null);
+                setUserImage(null);
+                setUserFile(null);
+              }}
+              style={{
+                width: '100%', padding: '0.85rem', marginTop: '1rem', borderRadius: 6, fontWeight: 600, border: '1px solid #D5D9D9', cursor: 'pointer',
+                background: '#FFF', color: '#131A22', fontSize: '0.95rem',
+              }}
+            >
+              Try Another Photo
+            </button>
+          )}
         </div>
 
+        {/* Right Panel: Generated Result or Placeholder */}
         <div style={{ background: '#FFF', borderRadius: 12, padding: '1.5rem', border: '1px solid #D5D9D9' }}>
-          <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 600 }}>Preview</h3>
-          <div style={{ minHeight: 400, background: '#F8F9FA', borderRadius: 8, border: '1px solid #D5D9D9', overflow: 'hidden', position: 'relative' }}>
+          <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 600 }}>
+            {previewUrl ? 'Try-On Result' : 'Preview'}
+          </h3>
+          <div style={{ height: previewUrl ? 500 : 400, background: '#F8F9FA', borderRadius: 8, border: '1px solid #D5D9D9', overflow: 'hidden', position: 'relative' }}>
             {previewUrl ? (
               <>
-                <img src={previewUrl} alt="Try-on result" style={{ width: '100%', height: '100%', objectFit: 'contain', minHeight: 400 }} />
+                <img src={previewUrl} alt="Try-on result" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 <FitScoreCard result={vtoResult!} />
               </>
             ) : isGenerating ? (
@@ -309,6 +344,41 @@ export default function VTOView() {
               </div>
             )}
           </div>
+          
+          {/* Additional Actions After Generation */}
+          {previewUrl && (
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+              <button
+                onClick={runVTO}
+                disabled={isGenerating}
+                style={{
+                  flex: 1, padding: '0.85rem', borderRadius: 6, fontWeight: 600, border: 'none', cursor: 'pointer',
+                  background: '#FF9900', color: '#131A22', fontSize: '0.95rem',
+                }}
+              >
+                Regenerate
+              </button>
+              <button
+                onClick={() => {
+                  // Download or share functionality
+                  if (previewUrl.startsWith('data:')) {
+                    const link = document.createElement('a');
+                    link.href = previewUrl;
+                    link.download = 'virtual-tryon.jpg';
+                    link.click();
+                  } else {
+                    alert('Image saved to your results!');
+                  }
+                }}
+                style={{
+                  flex: 1, padding: '0.85rem', borderRadius: 6, fontWeight: 600, border: '1px solid #D5D9D9', cursor: 'pointer',
+                  background: '#FFF', color: '#131A22', fontSize: '0.95rem',
+                }}
+              >
+                Save Result
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </section>
