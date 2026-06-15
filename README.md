@@ -4,6 +4,10 @@
 
 > Transform retail returns from a carbon-heavy warehouse round-trip into a hyperlocal, AI-routed circular economy.
 
+## Demo Walkthrough
+
+🎬 **[Watch the full demo video](https://drive.google.com/file/d/1JI8-oILTDAQG8OHl9hc52ZmqTWsbg4zB/view)** — end-to-end walkthrough of buyer, seller, and admin flows.
+
 ---
 
 ## Executive Summary
