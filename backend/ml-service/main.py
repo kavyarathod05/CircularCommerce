@@ -2,12 +2,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import asyncio
-from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Depends
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from mangum import Mangum
-import random
+import os
 
 # --- JWT Auth ---
 from auth import (
@@ -24,13 +25,14 @@ from network_fraud import SEFraudGNN
 from size_recommendation import SizeRecommendationEngine
 from gemini_ai_integrations import GeminiAIIntegrations
 from aws_ai_integrations import AWSAIIntegrations
-from hf_ai_integrations import HuggingFaceIntegrations
 from vto_engine import VirtualTryOnEngine
 from vto_orchestrator import VTOOrchestrator
 from nsga2_routing import NSGA2Router
 from fleet_optimizer import SustainableFleetOptimizer
 from unit_inventory import UnitInventoryEngine
 from serial_verification import SerialVerificationEngine
+from metrics_service import get_seller_metrics
+from observability import RequestContextMiddleware
 
 # Import NEW Implementations (Task 5)
 from regulatory_compliance import RegulatoryComplianceEngine
@@ -48,17 +50,12 @@ except ImportError as e:
     VideoVTOEngine = None
     FabricPhysicsSimulator = None
 
-app = FastAPI(title="SecondLife Commerce - Naman ML Microservice")
+app = FastAPI(title="SecondLife Commerce API", version="1.0.0")
 
-# Enable CORS for local dev testing
-from fastapi.staticfiles import StaticFiles
-import os
-
-from fastapi import APIRouter
 api_router = APIRouter(dependencies=[Depends(get_current_user)])
 
+app.add_middleware(RequestContextMiddleware)
 app.add_middleware(
-
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
@@ -94,7 +91,6 @@ fraud_model = SEFraudGNN()
 size_model = SizeRecommendationEngine()
 gemini_ai = GeminiAIIntegrations()
 aws_ai = AWSAIIntegrations()
-hf_ai = HuggingFaceIntegrations()
 vto_model = VirtualTryOnEngine()
 vto_orchestrator = VTOOrchestrator()
 nsga2_router = NSGA2Router()
@@ -199,24 +195,32 @@ def negotiate_return(req: NegotiateRequest):
 
 @api_router.post("/api/v1/ml/inspect-video")
 def inspect_video(req: VideoInspectRequest):
-    """Phase 6: Video Semantic Triage (Functional Engine)"""
-    grades = ["Grade A", "Grade B", "Grade C"]
-    grade = random.choice(grades)
-    
-    summary = f"Video Analysis Complete. {grade} condition detected based on temporal visual scan."
-    bboxes = []
-    
-    if grade == "Grade B":
-        bboxes = [{"type": "minor scratch", "boundingBox": {"xmin": 0.4, "ymin": 0.2, "xmax": 0.55, "ymax": 0.45}, "timestamp_sec": 2.4}]
-        summary += " Minor cosmetic defect found at 0:02."
-    elif grade == "Grade C":
-        bboxes = [
-            {"type": "crack", "boundingBox": {"xmin": 0.2, "ymin": 0.3, "xmax": 0.35, "ymax": 0.5}, "timestamp_sec": 1.2},
-            {"type": "dent", "boundingBox": {"xmin": 0.7, "ymin": 0.7, "xmax": 0.8, "ymax": 0.8}, "timestamp_sec": 4.5}
-        ]
-        summary += " Significant structural damage identified across multiple frames."
-        
-    return {"status": "success", "data": {"grade": grade, "summary": summary, "damages": bboxes}}
+    """Video condition assessment via Gemini multimodal inference."""
+    if not os.getenv("GEMINI_API_KEY"):
+        raise HTTPException(
+            status_code=503,
+            detail="Video inspection requires GEMINI_API_KEY. Configure in .env to enable.",
+        )
+    assessment = gemini_ai.inspect_product_condition([req.video_base64])
+    grade_map = {"A": "Grade A", "B": "Grade B", "C": "Grade C", "D": "Grade C"}
+    grade = grade_map.get(str(assessment.get("grade", "B")).upper()[:1], "Grade B")
+    damages = []
+    for damage in assessment.get("damages", []):
+        bbox = damage.get("boundingBox") or {}
+        damages.append({
+            "type": damage.get("type", "defect"),
+            "boundingBox": bbox,
+            "timestamp_sec": damage.get("timestamp_sec", 0),
+        })
+    return {
+        "status": "success",
+        "data": {
+            "grade": grade,
+            "summary": assessment.get("summary", "Video analysis complete."),
+            "damages": damages,
+            "confidence": assessment.get("confidenceScore"),
+        },
+    }
 
 @api_router.post("/api/v1/ml/triage")
 def determine_triage(req: TriageRequest):
@@ -255,7 +259,22 @@ def get_fraud_graphrag(req: FraudGraphRAGRequest, current_user: dict = Depends(g
         connected = 2
         action = "Proceed with standard refund verification"
     
-    receipt_url = "/static/demo-receipt.svg"
+    receipt_url = None
+    if req.receipt_image_base64 and req.receipt_image_base64 not in ("demo", ""):
+        import base64
+        import uuid as _uuid
+        receipt_path = f"static/receipt-{_uuid.uuid4().hex[:8]}.jpg"
+        try:
+            raw = req.receipt_image_base64
+            if "," in raw:
+                raw = raw.split(",", 1)[1]
+            with open(receipt_path, "wb") as fh:
+                fh.write(base64.b64decode(raw))
+            receipt_url = f"/{receipt_path}"
+        except Exception:
+            receipt_url = "/static/demo-receipt.svg"
+    else:
+        receipt_url = "/static/demo-receipt.svg"
     return {
         "status": "success",
         "data": {
@@ -371,9 +390,24 @@ def get_trust_score(user_id: str):
     """Phase 5: SEFraud GNN Trust Score"""
     return {"status": "success", "data": fraud_model.evaluate_trust_score(user_id)}
 
+class SizeRecommendRequest(BaseModel):
+    user_measurements: Dict[str, Any]
+    product_dimensions: Dict[str, Any]
+
+@api_router.post("/api/v1/ml/size/recommend")
+def recommend_size(req: SizeRecommendRequest):
+    """AI size recommendation to reduce bracketing returns."""
+    return {"status": "success", "data": size_model.recommend_size(req.user_measurements, req.product_dimensions)}
+
 @app.get("/health")
 def health_check():
-    return {"status": "ML Microservice is ALIVE"}
+    return {
+        "status": "healthy",
+        "service": "secondlife-api",
+        "version": os.getenv("APP_VERSION", "1.0.0"),
+        "gemini_configured": bool(os.getenv("GEMINI_API_KEY")),
+        "dynamodb_catalog": os.getenv("USE_DYNAMODB_CATALOG", "1") == "1",
+    }
 
 # --- Local Fallback Endpoints for Frontend (replaces Go Serverless temporarily) ---
 import datetime
@@ -435,7 +469,7 @@ def _demo_catalog():
     return _build_catalog_items(demo)
 
 def _load_catalog_from_source():
-    use_dynamo = os.getenv("USE_DYNAMODB_CATALOG", "0") == "1"
+    use_dynamo = os.getenv("USE_DYNAMODB_CATALOG", "1") == "1"
     if use_dynamo:
         try:
             dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -511,16 +545,14 @@ def transition_listing_state(listing_id: str, action: str = "advance"):
         
         # State Machine Transition logic
         if action == "dispute":
-            import random
-            # Simulate AI Multimodal Comparison (Handoff Image vs Original Image)
-            ai_verdict = random.choice(['seller_fraud', 'buyer_fraud'])
-            
-            if ai_verdict == 'seller_fraud':
-                next_status = 'removed'
-                next_escrow = 'Refunded to Buyer (AI Verdict)'
-            else:
+            listing_grade = str(response['Item'].get('condition', 'Grade B')).upper()
+            buyer_at_fault = listing_grade in ('GRADE A', 'A', 'GRADE B', 'B')
+            if buyer_at_fault:
                 next_status = 'sold'
-                next_escrow = 'Released to Seller (AI Verdict)'
+                next_escrow = 'Released to Seller (Condition Verified)'
+            else:
+                next_status = 'removed'
+                next_escrow = 'Refunded to Buyer (Condition Mismatch)'
         else:
             if current_status == 'available':
                 next_status = 'reserved'
@@ -550,18 +582,16 @@ def transition_listing_state(listing_id: str, action: str = "advance"):
 
 
 @api_router.get("/seller/metrics")
-def get_seller_metrics(
+def get_seller_metrics_endpoint(
     seller_id: str = "usr-12",
     current_user: Optional[Dict] = Depends(get_current_user_optional)
 ):
-    return {
-        "warehouse_avoidance_rate": 71.2,
-        "co2_saved_kg": 855.4,
-        "trees_planted": 40.7,
-        "capital_recovery_value": 4350000,
-        "escrow_locked_funds": 164200,
-        "authenticated_as": current_user.get("name") if current_user else None,
-    }
+    resolved_id = seller_id
+    if current_user and current_user.get("role") == "seller":
+        resolved_id = current_user.get("sub", seller_id)
+    metrics = get_seller_metrics(resolved_id, _USER_STORE)
+    metrics["authenticated_as"] = current_user.get("name") if current_user else None
+    return metrics
 
 @api_router.get("/user/metrics")
 def get_user_metrics(
@@ -602,40 +632,7 @@ def get_dpp(listing_id: str):
     
     # If no blockchain history exists, return mock for demo
     if not blockchain_history:
-        blockchain_history = [
-            {
-                "event_type": "MANUFACTURED",
-                "timestamp": "2026-08-01T10:00:00Z",
-                "data": {"factory": "Factory A, Vietnam"},
-                "actor": "bose-manufacturing",
-                "verified": True,
-                "block_hash": "demo-mode"
-            },
-            {
-                "event_type": "SOLD",
-                "timestamp": "2026-10-12T14:30:00Z",
-                "data": {"buyer": "Original Buyer", "platform": "Amazon.in"},
-                "actor": "amazon-order-system",
-                "verified": True,
-                "block_hash": "demo-mode"
-            },
-            {
-                "event_type": "RETURNED",
-                "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-                "data": {"reason": "Wrong size"},
-                "actor": "usr-12",
-                "verified": True,
-                "block_hash": "demo-mode"
-            },
-            {
-                "event_type": "GRADED",
-                "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-                "data": {"grade": "B", "ai_confidence": 0.94},
-                "actor": "secondlife-ai-grading",
-                "verified": True,
-                "block_hash": "demo-mode"
-            }
-        ]
+        blockchain_history = []
     
     # Verify GS1 GTIN (REAL verification now!)
     gtin_verification = gs1_service.verify_gtin(registry["gtin"])
@@ -674,7 +671,21 @@ class ListingUpdate(BaseModel):
 
 @api_router.put("/listing")
 def update_listing(req: ListingUpdate):
-    return {"status": "success", "message": f"Listing {req.listing_id} updated to {req.new_status}"}
+    try:
+        dynamodb = boto3.resource('dynamodb', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+        table = dynamodb.Table('SecondLife_Listings')
+        table.update_item(
+            Key={'listingId': req.listing_id},
+            UpdateExpression="set #s = :s, buyerId = :b",
+            ExpressionAttributeNames={'#s': 'status'},
+            ExpressionAttributeValues={
+                ':s': req.new_status,
+                ':b': req.buyer_id,
+            },
+        )
+        return {"status": "success", "message": f"Listing {req.listing_id} updated to {req.new_status}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 class AIAssistRequest(BaseModel):
     order_id: str
@@ -682,15 +693,25 @@ class AIAssistRequest(BaseModel):
 
 @api_router.post("/seller/ai-assist")
 def ai_assist(req: AIAssistRequest):
-    import time
-    time.sleep(1.5) # Simulate AI processing delay
+    if not req.image_base64:
+        raise HTTPException(status_code=400, detail="image_base64 is required for AI listing assist")
+    assessment = gemini_ai.inspect_product_condition([req.image_base64])
+    grade = str(assessment.get("grade", "B")).upper()
+    depreciation = {"A": 0.05, "B": 0.15, "C": 0.35, "D": 0.55}.get(grade[:1], 0.2)
+    base_price = 15000
+    suggested_price = int(base_price * (1 - depreciation))
+    summary = assessment.get("summary", "Verified pre-owned item in good condition.")
     return {
         "status": "success",
         "data": {
-            "suggested_price": 12000,
-            "description": f"Premium Grade A condition. Verified via Amazon Order {req.order_id}. Barely used, tested and fully functional. Includes all original accessories. Ready for immediate local handoff.",
-            "gs1_verified": True
-        }
+            "suggested_price": suggested_price,
+            "description": (
+                f"{summary} Verified via Amazon Order {req.order_id}. "
+                f"Condition grade {grade}. Ready for hyperlocal handoff."
+            ),
+            "gs1_verified": True,
+            "condition_grade": grade,
+        },
     }
 
 class CreateListingRequest(BaseModel):

@@ -28,9 +28,15 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 
 # --- Config ---
-JWT_SECRET = os.getenv("JWT_SECRET", "secondlife-super-secret-jwt-key-change-in-prod-2026")
+_DEFAULT_JWT_SECRET = "secondlife-super-secret-jwt-key-change-in-prod-2026"
+JWT_SECRET = os.getenv("JWT_SECRET", _DEFAULT_JWT_SECRET)
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 72  # 3 days
+
+if os.getenv("APP_ENV", "development") == "production" and JWT_SECRET == _DEFAULT_JWT_SECRET:
+    raise RuntimeError("JWT_SECRET must be set to a strong value when APP_ENV=production")
+elif JWT_SECRET == _DEFAULT_JWT_SECRET:
+    print("WARNING: Using default JWT_SECRET. Set JWT_SECRET in .env before production deployment.")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer(auto_error=False)

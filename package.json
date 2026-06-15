@@ -1,25 +1,16 @@
 {
-  "name": "hackon_amazon",
+  "name": "secondlife-commerce",
   "version": "1.0.0",
-  "description": "This comprehensive strategy guide serves as your team’s playbook to bypass common hackathon traps, capitalize on the highest-scoring judging criteria, and implement out-of-the-box technical features that secure a spot in the finals.",
-  "main": "second.js",
+  "description": "Circular Commerce & Return Interception Platform — Amazon Hackathon",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:local": "docker compose -f infrastructure/docker-compose.yml up --build",
+    "test:integration": "python tests/integration/test_all_components.py",
+    "test:backend": "cd backend/ml-service && python smoke_test.py"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kavyarathod05/hackon_amazon.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/kavyarathod05/hackon_amazon/issues"
-  },
-  "homepage": "https://github.com/kavyarathod05/hackon_amazon#readme",
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.1068.0",
-    "@aws-sdk/s3-request-presigner": "^3.1068.0",
-    "docx": "^9.7.1"
-  }
+  "license": "ISC"
 }
