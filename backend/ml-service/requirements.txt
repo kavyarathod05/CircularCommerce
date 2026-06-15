@@ -24,3 +24,6 @@ redis
 PyJWT>=2.8.0
 passlib[bcrypt]>=1.7.4
 bcrypt==4.0.1
+diffusers>=0.25.0
+accelerate>=0.24.0
+sentencepiece

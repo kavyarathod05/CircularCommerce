@@ -255,3 +255,4 @@ export default function SerialVerification({ variant = 'admin' }: { variant?: Va
     </section>
   );
 }
+

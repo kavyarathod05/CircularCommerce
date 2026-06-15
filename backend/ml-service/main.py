@@ -350,7 +350,8 @@ def _demo_catalog():
     for listing_id, product_id, msrp, grade in [
         ("lst-demo-1", "Bose QC Headphones", 7900, "Grade B"),
         ("lst-demo-2", "Essentials Cotton Hoodie", 2999, "Grade A"),
-        ("lst-demo-3", "iPhone 14 Pro Max", 95000, "Grade B"),
+        ("lst-demo-3", "Black Leather Jacket", 8999, "Grade A"),
+        ("lst-demo-4", "iPhone 14 Pro Max", 95000, "Grade B"),
     ]:
         demo.append({
             "listingId": listing_id,

@@ -11,6 +11,13 @@ PRODUCT_REGISTRY = {
         "ledger_hash": "0x4a91c2d8e7f0b3a1926405522100abcdef12345678",
         "image": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800",
     },
+    "black leather jacket": {
+        "gtin": "00819264088945",
+        "brand": "Urban Essentials",
+        "ledger_hash": "0xjacket88945leather9876543210fedcba987654",
+        "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800",
+        "product_url": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=80",
+    },
     "iphone 14 pro max": {
         "gtin": "01942534023910",
         "brand": "Apple Inc.",
@@ -29,6 +36,7 @@ PRODUCT_REGISTRY = {
 _KEYWORD_MAP = [
     (("bose", "headphone", "qc"), "bose qc headphones"),
     (("hoodie", "cotton"), "essentials cotton hoodie"),
+    (("jacket", "leather", "black"), "black leather jacket"),
     (("iphone", "smartphone", "pro max"), "iphone 14 pro max"),
     (("jeans", "denim"), "essentials denim jeans"),
 ]

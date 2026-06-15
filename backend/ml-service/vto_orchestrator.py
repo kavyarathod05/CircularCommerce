@@ -14,9 +14,11 @@ from vto_size_charts import calculate_fit_score, resolve_chart
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from idm_vton_client import try_idm_vton
 from vto_engine import VirtualTryOnEngine
+from kolors_vto_local import get_kolors_vto_engine
 
 _cache: Dict[str, Dict[str, Any]] = {}
 _vto_engine = VirtualTryOnEngine()
+_kolors_engine = None  # Lazy load on first use
 
 
 def _try_idm_with_timeout(person_bytes: bytes, garment_bytes: bytes, description: str):
@@ -107,12 +109,27 @@ class VTOOrchestrator:
         result_bytes: Optional[bytes] = None
         model_used = "local-bg-removal-overlay"
 
-        use_idm = os.getenv("VTO_USE_IDM", "0") == "1" and _is_apparel(product_id)  # default off for demo
-        if use_idm:
-            desc = reg.get("product_name", "garment") or "upper body garment"
-            result_bytes, idm_label = _try_idm_with_timeout(photo_bytes, garment_bytes, desc)
-            if result_bytes:
-                model_used = idm_label
+        # Try Kolors VTO first (best quality)
+        use_kolors = os.getenv("VTO_USE_KOLORS", "1") == "1" and _is_apparel(product_id)
+        if use_kolors:
+            global _kolors_engine
+            if _kolors_engine is None:
+                _kolors_engine = get_kolors_vto_engine()
+            try:
+                result_bytes, kolors_label = _kolors_engine.generate_from_bytes(photo_bytes, garment_bytes)
+                if result_bytes:
+                    model_used = kolors_label
+            except Exception as e:
+                print(f"[VTO] Kolors failed: {e}, falling back to IDM-VTON")
+
+        # Fallback to IDM-VTON if Kolors didn't work
+        if result_bytes is None:
+            use_idm = os.getenv("VTO_USE_IDM", "0") == "1" and _is_apparel(product_id)
+            if use_idm:
+                desc = reg.get("product_name", "garment") or "upper body garment"
+                result_bytes, idm_label = _try_idm_with_timeout(photo_bytes, garment_bytes, desc)
+                if result_bytes:
+                    model_used = idm_label
 
         if result_bytes is None:
             b64_in = base64.b64encode(photo_bytes).decode("utf-8")
