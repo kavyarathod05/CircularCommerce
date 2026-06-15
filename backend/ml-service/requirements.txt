@@ -29,3 +29,4 @@ diffusers>=0.25.0
 accelerate>=0.24.0
 sentencepiece
 rembg
+kafka-python-ng

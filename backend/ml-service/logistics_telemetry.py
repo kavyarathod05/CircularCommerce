@@ -16,6 +16,13 @@ import time
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
+import os
+import json
+
+try:
+    from kafka import KafkaProducer
+except ImportError:
+    KafkaProducer = None
 
 # ---------------------------------------------------------------------------
 # City hub coordinates (lat, lng) – Bangalore metro area
@@ -59,6 +66,19 @@ class LogisticsTelemetryEngine:
         self._tick = 0
         self._init_fleet(fleet_size)
         self._init_orders(active_orders)
+        
+        kafka_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
+        self.kafka_producer = None
+        if kafka_servers and KafkaProducer:
+            try:
+                self.kafka_producer = KafkaProducer(
+                    bootstrap_servers=kafka_servers.split(","),
+                    value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+                    retries=3
+                )
+                print(f"[LogisticsTelemetry] Connected to Kafka at {kafka_servers}")
+            except Exception as e:
+                print(f"[LogisticsTelemetry] Failed to connect to Kafka: {e}")
 
     # ------------------------------------------------------------------
     # Initialisation
@@ -248,6 +268,18 @@ class LogisticsTelemetryEngine:
             "avgSpeed_kmh": round(sum(v["speed_kmh"] for v in active_vehicles) / max(1, len(active_vehicles)), 1),
             "timestamp": datetime.utcnow().isoformat() + "Z",
         }
+
+        if self.kafka_producer:
+            try:
+                for event in events["fleet_positions"]:
+                    self.kafka_producer.send("logistics.fleet.position", event)
+                for event in events["order_updates"]:
+                    self.kafka_producer.send("logistics.order.status", event)
+                for event in events["alerts"]:
+                    self.kafka_producer.send("logistics.alert", event)
+                self.kafka_producer.send("logistics.metrics", events["metrics"])
+            except Exception as e:
+                print(f"[LogisticsTelemetry] Kafka publish error: {e}")
 
         return events
 
