@@ -1,5 +1,15 @@
 import { useAppContext } from '../context/AppContext';
 
+function bboxStyle(box: { x: number; y: number; w: number; h: number }) {
+  const norm = (v: number) => (v > 1 ? v / 320 : v) * 100;
+  return {
+    left: `${norm(box.x)}%`,
+    top: `${norm(box.y)}%`,
+    width: `${norm(box.w)}%`,
+    height: `${norm(box.h)}%`,
+  };
+}
+
 const PATHWAY_NEXT: Record<string, string> = {
   'hyperlocal-p2p': 'Matched to a local buyer nearby',
   'locker-dropoff': 'Drop off at a nearby locker',
@@ -49,20 +59,18 @@ export default function TriageResultView() {
 
             <div style={{ background: '#FFF', borderRadius: '12px', padding: '1.5rem', border: '1px solid #EAEAEA' }}>
               <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem', color: '#131A22' }}>Condition check</h3>
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', borderRadius: '10px', overflow: 'hidden', background: '#F8F9FA', border: '1px solid #EAEAEA' }}>
-                <img src={imageUrl} alt={productName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', borderRadius: '10px', overflow: 'hidden', background: '#F4D03F', border: '1px solid #EAEAEA' }}>
+                <img src={imageUrl} alt={productName} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 {lastResult.bboxes.map((box, idx) => (
                   <div
                     key={idx}
                     style={{
                       position: 'absolute',
-                      left: `${(box.x / 320) * 100}%`,
-                      top: `${(box.y / 320) * 100}%`,
-                      width: `${(box.w / 320) * 100}%`,
-                      height: `${(box.h / 320) * 100}%`,
+                      ...bboxStyle(box),
                       border: '2px solid #C5221F',
                       background: 'rgba(197, 34, 31, 0.18)',
                       boxShadow: '0 0 0 1px rgba(255,255,255,0.8)',
+                      pointerEvents: 'none',
                     }}
                     title={box.label}
                   />

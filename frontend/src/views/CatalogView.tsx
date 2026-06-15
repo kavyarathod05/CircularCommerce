@@ -6,6 +6,7 @@ const FALLBACK_IMAGE = (productId: string) => {
   const p = productId.toLowerCase();
   if (p.includes('iphone') || p.includes('smartphone')) return 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500';
   if (p.includes('hoodie') || p.includes('shirt')) return 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500';
+  if (p.includes('jacket') || p.includes('leather')) return 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500';
   if (p.includes('jeans')) return 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500';
   if (p.includes('bose') || p.includes('headphone')) return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500';
   return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500';

@@ -92,28 +92,39 @@ class AWSAIIntegrations:
             
             mock_response = {
                 "grade": "C",
-                "ebayConditionId": 7000,
-                "ebayConditionName": "For parts or not working",
-                "gradeReasoning": "Significant structural damage detected. Spiderweb glass fracture located in the bottom-right quadrant of the display.",
+                "ebayConditionId": 3000,
+                "ebayConditionName": "Used",
+                "gradeReasoning": "Heavy wear on both ear cushions and visible scuffing along the headband. Drivers intact; no cracked housings.",
                 "damages": [
                     {
-                        "type": "spiderweb crack",
-                        "severity": 8,
-                        "description": "Deep glass fracture affecting structural integrity",
+                        "type": "ear pad wear",
+                        "severity": 7,
+                        "description": "Ear cushion foam compressed and surface coating flaking on both cups",
                         "boundingBox": {
-                            "xmin": 0.65,
-                            "ymin": 0.70,
-                            "xmax": 0.95,
-                            "ymax": 0.95
+                            "xmin": 0.11,
+                            "ymin": 0.54,
+                            "xmax": 0.38,
+                            "ymax": 0.82
+                        }
+                    },
+                    {
+                        "type": "headband scuff",
+                        "severity": 5,
+                        "description": "Headband padding peeling with cosmetic marks on the outer band",
+                        "boundingBox": {
+                            "xmin": 0.31,
+                            "ymin": 0.13,
+                            "xmax": 0.69,
+                            "ymax": 0.28
                         }
                     }
                 ],
-                "packagingCondition": "Original packaging missing",
-                "functionalityAssessment": "Touch interface likely compromised in lower quadrant",
-                "repairCostBracket": "high",
+                "packagingCondition": "Original box present with minor corner wear",
+                "functionalityAssessment": "Powers on and pairs via Bluetooth. ANC slightly weaker on left cup.",
+                "repairCostBracket": "medium",
                 "fraudSignals": [],
-                "confidenceScore": 0.98,
-                "summary": "Severe glass fracture detected. Item requires specialized repair; unsuitable for direct P2P resale."
+                "confidenceScore": 0.94,
+                "summary": "Heavy ear pad wear and headband scuffing detected. Audio works but comfort below resale standard — refurbish recommended before local P2P resale."
             }
             print("\n[AI ENGINE LOG] Generated High-Fidelity Mock Assessment:")
             print(json.dumps(mock_response, indent=2))

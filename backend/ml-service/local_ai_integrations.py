@@ -97,16 +97,19 @@ class LocalAIIntegrations:
     def _mock_assessment(self):
         return {
             "grade": "C",
-            "ebayConditionId": 7000,
-            "ebayConditionName": "For parts or not working",
-            "gradeReasoning": "Significant structural damage detected.",
-            "damages": [{"type": "crack", "severity": 8, "description": "Glass fracture", "boundingBox": {"xmin": 0.65, "ymin": 0.70, "xmax": 0.95, "ymax": 0.95}}],
-            "packagingCondition": "Original packaging missing",
-            "functionalityAssessment": "Touch interface likely compromised",
-            "repairCostBracket": "high",
+            "ebayConditionId": 3000,
+            "ebayConditionName": "Used",
+            "gradeReasoning": "Heavy wear on both ear cushions and visible scuffing along the headband.",
+            "damages": [
+                {"type": "ear pad wear", "severity": 7, "description": "Ear cushion foam compressed on left cup", "boundingBox": {"xmin": 0.11, "ymin": 0.54, "xmax": 0.38, "ymax": 0.82}},
+                {"type": "headband scuff", "severity": 5, "description": "Headband padding peeling with cosmetic marks", "boundingBox": {"xmin": 0.31, "ymin": 0.13, "xmax": 0.69, "ymax": 0.28}},
+            ],
+            "packagingCondition": "Original box present with minor corner wear",
+            "functionalityAssessment": "Powers on and pairs via Bluetooth. ANC slightly weaker on left cup.",
+            "repairCostBracket": "medium",
             "fraudSignals": [],
-            "confidenceScore": 0.98,
-            "summary": "Severe fracture detected. Unsuitable for direct P2P resale."
+            "confidenceScore": 0.94,
+            "summary": "Heavy ear pad wear and headband scuffing detected. Audio works but comfort below resale standard — refurbish recommended before local P2P resale."
         }
         
     def _mock_disposition(self, condition_data, msrp):

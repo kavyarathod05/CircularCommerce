@@ -1,7 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { useAuth } from '../context/AuthContext';
 import { SectionLoader, InlineSpinner } from '../components/Loader';
+
+const VTO_DEMO_IMAGE = '/image.jpg';
+
+function buildDemoVtoResult(targetSize: string): VtoResult {
+  return {
+    tryon_image_url: VTO_DEMO_IMAGE,
+    size_match_pct: 87,
+    stress_points: 'Shoulders',
+    return_probability: 8,
+    recommended_size: targetSize,
+    model_used: 'demo',
+    cached: true,
+  };
+}
 
 type VtoResult = {
   tryon_image_url?: string;
@@ -58,7 +71,6 @@ function FitScoreCard({ result }: { result: VtoResult }) {
 
 export default function VTOView() {
   const { userRole, activeTab, catalogItems, selectedVTOProduct, setSelectedVTOProduct } = useAppContext();
-  const { authFetch } = useAuth();
   const [selectedSku, setSelectedSku] = useState('');
   const [userImage, setUserImage] = useState<string | null>(null);
   const [userFile, setUserFile] = useState<File | null>(null);
@@ -70,7 +82,6 @@ export default function VTOView() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000';
 
   const isApparel = /hoodie|shirt|jacket|jeans|cotton/i.test(selectedSku);
 
@@ -123,81 +134,20 @@ export default function VTOView() {
     if (item?.image) return item.image;
     if (/headphone|bose/i.test(sku)) return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800';
     if (/hoodie|shirt/i.test(sku)) return 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800';
+    if (/jacket|leather/i.test(sku)) return 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800';
     return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800';
   };
 
-  const runVTO = async () => {
+  const runVTO = () => {
     if ((!userFile && !userImage) || !selectedSku) {
       alert('Please add a photo and select a product.');
       return;
     }
 
-    setIsGenerating(true);
-    setVtoResult(null);
-    setStatusMsg('Analyzing photo...');
-
-    try {
-      let photoBlob: Blob;
-      if (userFile) {
-        photoBlob = userFile;
-      } else if (userImage) {
-        photoBlob = await (await fetch(userImage)).blob();
-      } else {
-        throw new Error('No photo');
-      }
-
-      const formData = new FormData();
-      formData.append('photo', photoBlob, 'user.jpg');
-      formData.append('product_id', selectedSku);
-      formData.append('height_cm', '170');
-      formData.append('target_size', targetSize);
-
-      setStatusMsg('Generating virtual try-on...');
-
-      // Use authFetch but remove Content-Type header for FormData (browser sets it with boundary)
-      const resp = await authFetch(`${mlApiUrl}/api/vto/generate`, { 
-        method: 'POST', 
-        body: formData,
-        headers: {} // Let browser set Content-Type with multipart boundary
-      });
-      const json = await resp.json();
-
-      if (json.status === 'success' && json.data) {
-        setVtoResult(json.data);
-        setStatusMsg('');
-        return;
-      }
-      throw new Error(json.detail || json.error || 'VTO failed');
-    } catch (err) {
-      console.warn('VTO failed', err);
-      setStatusMsg('Using fallback mode...');
-      try {
-        const b64 = userImage || (userFile ? await blobToDataUrl(userFile) : '');
-        const resp = await authFetch(`${mlApiUrl}/api/v1/ml/vto/drape`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_image_base64: b64, clothing_sku: selectedSku }),
-        });
-        const data = await resp.json();
-        if (data.status === 'success') setVtoResult(data.data);
-        else alert('Could not generate preview.');
-      } catch {
-        alert('Virtual try-on failed. Please check backend connection.');
-      }
-    } finally {
-      setIsGenerating(false);
-      setStatusMsg('');
-    }
+    setVtoResult(buildDemoVtoResult(targetSize));
+    setIsGenerating(false);
+    setStatusMsg('');
   };
-
-  async function blobToDataUrl(blob: Blob) {
-    return new Promise<string>((resolve, reject) => {
-      const r = new FileReader();
-      r.onloadend = () => resolve(r.result as string);
-      r.onerror = reject;
-      r.readAsDataURL(blob);
-    });
-  }
 
   useEffect(() => {
     // If coming from cart with a selected product, use it
