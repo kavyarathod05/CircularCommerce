@@ -50,13 +50,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const authFetch = useCallback(async (url: string, options: RequestInit = {}): Promise<Response> => {
     const storedToken = localStorage.getItem(TOKEN_KEY);
+    
+    // Check if body is FormData - if so, don't set Content-Type (browser will set it with boundary)
+    const isFormData = options.body instanceof FormData;
+    
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...(options.headers as Record<string, string> || {}),
     };
+    
+    // Only add Content-Type if not FormData and not already set
+    if (!isFormData && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
     if (storedToken) {
       headers['Authorization'] = `Bearer ${storedToken}`;
     }
+    
     return fetch(url, { ...options, headers });
   }, []);
 

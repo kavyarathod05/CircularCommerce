@@ -52,8 +52,23 @@ app.add_middleware(
 
 os.makedirs("vto-storage", exist_ok=True)
 os.makedirs("static", exist_ok=True)
+
+# Mount static files BEFORE CORS middleware is applied, so we need to add CORS headers manually
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+
+class StaticFilesCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/static/") or request.url.path.startswith("/vto-storage/"):
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+
 app.mount("/vto-storage", StaticFiles(directory="vto-storage"), name="vto-storage")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.add_middleware(StaticFilesCORSMiddleware)
 
 # Initialize Models
 demand_model = DemandEngine()
@@ -189,40 +204,63 @@ def determine_triage(req: TriageRequest):
     }
 
 @api_router.post("/api/v1/ml/fraud-graphrag")
-def get_fraud_graphrag(req: FraudGraphRAGRequest):
+def get_fraud_graphrag(req: FraudGraphRAGRequest, current_user: dict = Depends(get_current_user)):
     """Return review: receipt tampering + linked-account signals"""
+    # Get trust score data to inform fraud analysis
+    trust_data = fraud_model.evaluate_trust_score(req.user_id)
+    trust_score = trust_data.get('final_score', 100)
+    is_high_risk = trust_data.get('fraud_flag', False)
+    
+    # Dynamic tampering probability based on trust score
+    if trust_score < 30:
+        tampering_prob = 0.98
+        connected = 40
+        action = "Hold refund and request in-store receipt verification"
+    elif trust_score < 70:
+        tampering_prob = 0.55
+        connected = 10
+        action = "Request additional documentation before processing refund"
+    else:
+        tampering_prob = 0.15
+        connected = 2
+        action = "Proceed with standard refund verification"
+    
     receipt_url = "/static/demo-receipt.svg"
     return {
         "status": "success",
         "data": {
             "graphrag_summary": (
-                f"Return for {req.user_id} matches a pattern seen in 40 linked accounts: "
-                "same device fingerprint, repeated receipt edits on the purchase date, and empty-box claims within 48 hours."
+                f"Return for {req.user_id} with trust score {trust_score}: "
+                f"{'High risk - ' if is_high_risk else ''}"
+                f"detected {connected} linked accounts with "
+                "same device fingerprint" + (", repeated receipt edits" if tampering_prob > 0.5 else "") + "."
             ),
             "receipt_image_url": receipt_url,
             "ela_regions": [
-                {"label": "Purchase date", "x_pct": 55, "y_pct": 61, "w_pct": 30, "h_pct": 5, "severity": "high"},
+                {"label": "Purchase date", "x_pct": 55, "y_pct": 61, "w_pct": 30, "h_pct": 5, "severity": "high" if tampering_prob > 0.7 else "medium"},
                 {"label": "Store stamp", "x_pct": 7, "y_pct": 63, "w_pct": 28, "h_pct": 5, "severity": "medium"},
-                {"label": "Total paid", "x_pct": 7, "y_pct": 78, "w_pct": 85, "h_pct": 5, "severity": "high"},
-            ],
-            "connected_accounts": 40,
-            "tampering_probability": 0.98,
-            "recommended_action": "Hold refund and request in-store receipt verification",
+                {"label": "Total paid", "x_pct": 7, "y_pct": 78, "w_pct": 85, "h_pct": 5, "severity": "high" if tampering_prob > 0.7 else "low"},
+            ] if tampering_prob > 0.3 else [],
+            "connected_accounts": connected,
+            "tampering_probability": tampering_prob,
+            "recommended_action": action,
             "network_nodes": [
-                {"id": "target", "label": req.user_id, "type": "customer", "risk": "high"},
+                {"id": "target", "label": req.user_id, "type": "customer", "risk": "high" if is_high_risk else "low"},
                 {"id": "device", "label": "Shared device", "type": "device", "risk": "medium"},
                 {"id": "address", "label": "Same address", "type": "address", "risk": "medium"},
+            ] + ([
                 {"id": "ring", "label": "Return ring", "type": "group", "risk": "high"},
                 {"id": "acct1", "label": "acct-91", "type": "account", "risk": "high"},
                 {"id": "acct2", "label": "acct-44", "type": "account", "risk": "high"},
-            ],
+            ] if connected > 20 else []),
             "network_edges": [
                 {"from": "target", "to": "device"},
                 {"from": "target", "to": "address"},
+            ] + ([
                 {"from": "target", "to": "ring"},
                 {"from": "ring", "to": "acct1"},
                 {"from": "ring", "to": "acct2"},
-            ],
+            ] if connected > 20 else []),
         }
     }
 

@@ -76,7 +76,7 @@ const DEMO_CATALOG: ListingRecord[] = [
 ]
 
 function AppInner() {
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout, authFetch } = useAuth();
   const [userRole, setUserRole] = useState<'buyer' | 'seller' | 'admin' | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
@@ -137,7 +137,7 @@ function AppInner() {
     const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
     const loadCatalog = () => {
       setIsCatalogLoading(true)
-      fetch(`${mlApiUrl}/catalog`)
+      authFetch(`${mlApiUrl}/catalog`)
         .then(res => res.json())
         .then(data => {
           const items = Array.isArray(data) && data.length ? data : DEMO_CATALOG
@@ -154,27 +154,27 @@ function AppInner() {
     if (userRole === 'buyer' && (catalogItems.length === 0 || activeTab === 'catalog' || activeTab === 'vto')) {
       loadCatalog()
     } else if (userRole === 'seller' && activeTab === 'admin') {
-      fetch(`${mlApiUrl}/seller/metrics?seller_id=usr-12`)
+      authFetch(`${mlApiUrl}/seller/metrics?seller_id=usr-12`)
         .then(res => res.json())
         .then(data => setSellerMetrics(data))
         .catch(() => setSellerMetrics({ co2_saved_kg: 18 }))
 
-      fetch(`${mlApiUrl}/catalog`)
+      authFetch(`${mlApiUrl}/catalog`)
         .then(res => res.json())
         .then(data => setListings(Array.isArray(data) && data.length ? data.slice(0, 3) : DEMO_CATALOG))
         .catch(() => setListings(DEMO_CATALOG))
     } else if (activeTab === 'account' && userRole === 'buyer') {
-      fetch(`${mlApiUrl}/user/metrics?user_id=usr-12`)
+      authFetch(`${mlApiUrl}/user/metrics?user_id=usr-12`)
         .then(res => res.json())
         .then(data => setUserMetrics(data))
         .catch(err => console.error("User metrics fetch failed", err))
       
-      fetch(`${mlApiUrl}/dpp?listing_id=lst-123`)
+      authFetch(`${mlApiUrl}/dpp?listing_id=lst-123`)
         .then(res => res.json())
         .then(data => setDppData(data))
         .catch(err => console.error("DPP fetch failed", err))
     }
-  }, [activeTab, userRole])
+  }, [activeTab, userRole, authFetch])
 
   // Prevention Tab States
   const [cartItems, setCartItems] = useState<{ id: string; name: string; size: string; price: number }[]>([
@@ -184,6 +184,9 @@ function AppInner() {
   const [returnVelocity, setReturnVelocity] = useState(1)
   const [showPreventionAlert, setShowPreventionAlert] = useState(true)
   const [frictionScore, setFrictionScore] = useState<any>(null)
+
+  // VTO Tab State
+  const [selectedVTOProduct, setSelectedVTOProduct] = useState<string>('')
 
   const evaluateFriction = async (currentCart: any[] = cartItems) => {
     const bracketing = currentCart.some(item =>
@@ -219,7 +222,7 @@ function AppInner() {
 
     try {
       const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
-      const resp = await fetch(`${mlApiUrl}/api/v1/ml/friction/evaluate`, {
+      const resp = await authFetch(`${mlApiUrl}/api/v1/ml/friction/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -353,7 +356,7 @@ function AppInner() {
       let endpoint = selectedFile?.type.includes('video') ? '/api/v1/ml/inspect-video' : '/api/v1/ml/aws/inspect-condition'
       let reqBody = selectedFile?.type.includes('video') ? { video_base64: imageBase64 } : { image_bytes_list: [imageBase64] }
       
-      const mlResp = await fetch(`${mlBaseUrl}${endpoint}`, {
+      const mlResp = await authFetch(`${mlBaseUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reqBody)
@@ -385,7 +388,7 @@ function AppInner() {
       
       // Call Triage API
       setConsoleLogs(prev => [...prev, '✨ Finding the fastest and greenest return route...'])
-      const triageResp = await fetch(`${mlBaseUrl}/api/v1/ml/triage`, {
+      const triageResp = await authFetch(`${mlBaseUrl}/api/v1/ml/triage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -420,7 +423,7 @@ function AppInner() {
           : 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800'
       let gs1Data = { gtin: '00819264023910', brand: 'Bose Corporation', ledgerHash: '0x8f3b2a91c4e7d0f1a2b3c4d5e6f70819264023910', verified: true }
       try {
-        const gs1Resp = await fetch(`${mlBaseUrl}/api/v1/gs1/certificate?product_id=${encodeURIComponent(productId)}`)
+        const gs1Resp = await authFetch(`${mlBaseUrl}/api/v1/gs1/certificate?product_id=${encodeURIComponent(productId)}`)
         if (gs1Resp.ok) {
           const gs1Json = await gs1Resp.json()
           if (gs1Json.status === 'success') {
@@ -513,7 +516,7 @@ function AppInner() {
 
     try {
       const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000'
-      await fetch(`${mlApiUrl}/listing`, {
+      await authFetch(`${mlApiUrl}/listing`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listing_id: id, new_status: 'advance', buyer_id: 'usr-buyer-demo' })
@@ -523,7 +526,7 @@ function AppInner() {
     }
   }
 
-  const contextValue = { userRole, setUserRole, activeTab, setActiveTab, orderId, setOrderId, productId, setProductId, msrp, setMsrp, reason, setReason, lat, setLat, lng, setLng, mediaUrl, setMediaUrl, selectedFile, setSelectedFile, setUploading, consoleLogs, setConsoleLogs, isEvaluating, setIsEvaluating, lastResult, setLastResult, listings, setListings, sellerMetrics, setSellerMetrics, userMetrics, setUserMetrics, dppData, setDppData, catalogItems, setCatalogItems, isCatalogLoading, setIsCatalogLoading, cartItems, setCartItems, returnVelocity, setReturnVelocity, showPreventionAlert, setShowPreventionAlert, frictionScore, setFrictionScore, evaluateFriction, addToCart, removeFromCart, handleFileChange, uploadFileToS3, getBase64, runTriageSimulation, toggleListingStatus, logout };
+  const contextValue = { userRole, setUserRole, activeTab, setActiveTab, orderId, setOrderId, productId, setProductId, msrp, setMsrp, reason, setReason, lat, setLat, lng, setLng, mediaUrl, setMediaUrl, selectedFile, setSelectedFile, setUploading, consoleLogs, setConsoleLogs, isEvaluating, setIsEvaluating, lastResult, setLastResult, listings, setListings, sellerMetrics, setSellerMetrics, userMetrics, setUserMetrics, dppData, setDppData, catalogItems, setCatalogItems, isCatalogLoading, setIsCatalogLoading, cartItems, setCartItems, returnVelocity, setReturnVelocity, showPreventionAlert, setShowPreventionAlert, frictionScore, setFrictionScore, evaluateFriction, addToCart, removeFromCart, handleFileChange, uploadFileToS3, getBase64, runTriageSimulation, toggleListingStatus, logout, selectedVTOProduct, setSelectedVTOProduct };
 
   // ── Render: gate on auth state ONLY in JSX (never as early returns) ────────
   if (isLoading) {

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useAuth } from './context/AuthContext';
 import './RouteOptimizer.css';
 
 const VEHICLE_ICONS: Record<string,string> = { bike:'🏍️', van:'🚐', truck:'🚛', 'ev-pod':'⚡' };
@@ -22,6 +23,7 @@ function latLngToXY(lat:number, lng:number, bounds:{minLat:number;maxLat:number;
 }
 
 export default function RouteOptimizer() {
+  const { authFetch } = useAuth();
   const [numOrders, setNumOrders] = useState(20);
   const [popSize, setPopSize] = useState(80);
   const [generations, setGenerations] = useState(100);
@@ -33,7 +35,7 @@ export default function RouteOptimizer() {
   const runOptimization = async () => {
     setStatus('running'); setResult(null); setSelectedSol(null);
     try {
-      const res = await fetch(`${mlApiUrl}/api/v1/routing/optimize`, {
+      const res = await authFetch(`${mlApiUrl}/api/v1/routing/optimize`, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ num_orders:numOrders, pop_size:popSize, generations })
       });

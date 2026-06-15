@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from './context/AuthContext';
 import './FraudInvestigations.css';
 
 type Variant = 'seller' | 'admin';
@@ -13,6 +14,7 @@ function receiptSrc(url?: string) {
 }
 
 export default function FraudInvestigations({ variant = 'admin' }: { variant?: Variant }) {
+  const { authFetch } = useAuth();
   const [userId, setUserId] = useState('usr-12');
   const [isSearching, setIsSearching] = useState(false);
   const [fraudData, setFraudData] = useState<any>(null);
@@ -23,21 +25,25 @@ export default function FraudInvestigations({ variant = 'admin' }: { variant?: V
     try {
       const mlApiUrl = import.meta.env.VITE_ML_API_URL || 'http://127.0.0.1:8000';
 
-      const trustRes = await fetch(`${mlApiUrl}/api/v1/ml/fraud/trust-score/${userId}`);
+      const trustRes = await authFetch(`${mlApiUrl}/api/v1/ml/fraud/trust-score/${userId}`);
       if (trustRes.ok) {
         const tData = await trustRes.json();
         setFraudData(tData.data);
       }
 
       if (variant === 'admin') {
-        const ragRes = await fetch(`${mlApiUrl}/api/v1/ml/fraud-graphrag`, {
+        const ragRes = await authFetch(`${mlApiUrl}/api/v1/ml/fraud-graphrag`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: userId, receipt_image_base64: 'demo' }),
         });
         if (ragRes.ok) {
           const rData = await ragRes.json();
+          console.log('Fraud GraphRAG response:', rData);
+          console.log('Receipt URL:', rData.data?.receipt_image_url);
           setReviewData(rData.data);
+        } else {
+          console.error('Fraud GraphRAG request failed:', ragRes.status, await ragRes.text());
         }
       }
     } catch (e) {
@@ -182,8 +188,13 @@ export default function FraudInvestigations({ variant = 'admin' }: { variant?: V
                       src={receiptSrc(reviewData.receipt_image_url)}
                       alt="Store receipt under review"
                       className="ela-image"
-                      style={{ filter: 'none', objectFit: 'contain', background: '#fff' }}
-                      onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = RECEIPT_FALLBACK; }}
+                      style={{ filter: 'none', objectFit: 'contain', background: '#fff', minHeight: '200px' }}
+                      onLoad={() => console.log('Receipt image loaded successfully:', receiptSrc(reviewData.receipt_image_url))}
+                      onError={(e) => { 
+                        console.error('Failed to load receipt image:', reviewData.receipt_image_url, 'Full URL:', receiptSrc(reviewData.receipt_image_url));
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = RECEIPT_FALLBACK;
+                      }}
                     />
                     <div className="ela-overlay">
                       {(reviewData.ela_regions || []).map((region: any, i: number) => (
@@ -209,7 +220,13 @@ export default function FraudInvestigations({ variant = 'admin' }: { variant?: V
                 )}
               </div>
               <p className="gnn-caption">
-                Highlighted areas show fields that were likely edited after the original purchase. Compare with in-store records before approving a refund.
+                {reviewData && (reviewData.ela_regions || []).length === 0 ? (
+                  <span style={{ color: '#137333' }}>
+                    ✓ No suspicious edits detected. Receipt appears authentic based on our analysis.
+                  </span>
+                ) : (
+                  "Highlighted areas show fields that were likely edited after the original purchase. Compare with in-store records before approving a refund."
+                )}
               </p>
             </div>
 

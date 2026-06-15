@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from './context/AuthContext';
 
 export interface FleetVehicle {
   vehicleId: string; type: string; status: string; driverId: string; driverName: string;
@@ -40,6 +41,7 @@ const DEFAULT_METRICS: FleetMetrics = {
 };
 
 export function useLogisticsTelemetry() {
+  const { authFetch } = useAuth();
   const [fleet, setFleet] = useState<FleetVehicle[]>([]);
   const [orders, setOrders] = useState<LogisticsOrder[]>([]);
   const [alerts, setAlerts] = useState<LogisticsAlert[]>([]);
@@ -58,10 +60,10 @@ export function useLogisticsTelemetry() {
   const loadInitialSnapshot = useCallback(async () => {
     try {
       const [fleetRes, ordRes, metricsRes, alertsRes] = await Promise.all([
-        fetch(`${mlApiUrl}/api/v1/logistics/fleet`),
-        fetch(`${mlApiUrl}/api/v1/logistics/orders`),
-        fetch(`${mlApiUrl}/api/v1/logistics/metrics`),
-        fetch(`${mlApiUrl}/api/v1/logistics/alerts`),
+        authFetch(`${mlApiUrl}/api/v1/logistics/fleet`),
+        authFetch(`${mlApiUrl}/api/v1/logistics/orders`),
+        authFetch(`${mlApiUrl}/api/v1/logistics/metrics`),
+        authFetch(`${mlApiUrl}/api/v1/logistics/alerts`),
       ]);
       const [fleetJson, ordJson, metricsJson, alertsJson] = await Promise.all([
         fleetRes.json(), ordRes.json(), metricsRes.json(), alertsRes.json(),
@@ -74,7 +76,7 @@ export function useLogisticsTelemetry() {
     } catch (e) {
       console.error('[Telemetry] Initial snapshot failed', e);
     }
-  }, [mlApiUrl]);
+  }, [mlApiUrl, authFetch]);
 
   // Try WebSocket first, fall back to REST polling
   useEffect(() => {
@@ -91,7 +93,7 @@ export function useLogisticsTelemetry() {
 
       const poll = async () => {
         try {
-          const res = await fetch(`${mlApiUrl}/api/v1/logistics/tick`);
+          const res = await authFetch(`${mlApiUrl}/api/v1/logistics/tick`);
           const json = await res.json();
           if (json.status === 'success' && json.data) {
             const d = json.data;
@@ -104,7 +106,7 @@ export function useLogisticsTelemetry() {
               setAlerts(prev => [...d.alerts, ...prev].slice(0, 30));
             }
           }
-          const ordRes = await fetch(`${mlApiUrl}/api/v1/logistics/orders`);
+          const ordRes = await authFetch(`${mlApiUrl}/api/v1/logistics/orders`);
           const ordJson = await ordRes.json();
           if (ordJson.status === 'success') setOrders(ordJson.data);
         } catch (e) { console.error('[Telemetry] Poll error', e); }

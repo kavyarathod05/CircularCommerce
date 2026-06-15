@@ -1,7 +1,18 @@
 import { useAppContext } from '../context/AppContext';
 
 export default function PreventionView() {
-  const { userRole, activeTab, setActiveTab, cartItems, returnVelocity, setReturnVelocity, showPreventionAlert, frictionScore, evaluateFriction, removeFromCart } = useAppContext();
+  const { userRole, activeTab, setActiveTab, cartItems, returnVelocity, setReturnVelocity, showPreventionAlert, frictionScore, evaluateFriction, removeFromCart, catalogItems, setSelectedVTOProduct } = useAppContext();
+
+  const tryOnProduct = (productName: string) => {
+    // Set the selected product for VTO
+    setSelectedVTOProduct(productName);
+    // Navigate to VTO tab
+    setActiveTab('vto');
+  };
+
+  const isApparelProduct = (productName: string) => {
+    return /hoodie|shirt|jacket|jeans|cotton|t-shirt|sweater|dress|pants|clothing/i.test(productName);
+  };
 
   if (!(userRole === 'buyer' && activeTab === 'prevention')) return null;
 
@@ -22,14 +33,54 @@ export default function PreventionView() {
               Your cart is empty. <button onClick={() => setActiveTab('catalog')} style={{ border: 'none', background: 'none', color: '#007185', fontWeight: 700, cursor: 'pointer' }}>Browse local finds</button>
             </div>
           ) : cartItems.map((item, idx) => (
-            <div key={idx} style={{ padding: '1rem 0', borderBottom: '1px solid #F0F2F2', display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-              <div>
+            <div key={idx} style={{ padding: '1rem 0', borderBottom: '1px solid #F0F2F2', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
                 <strong>{item.name}</strong>
                 <div style={{ color: '#565959', fontSize: '0.85rem', marginTop: '0.2rem' }}>Size {item.size}</div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontWeight: 700, color: '#B12704' }}>₹{item.price.toLocaleString()}</div>
-                <button onClick={() => removeFromCart(idx)} style={{ border: 'none', background: 'none', color: '#C5221F', fontSize: '0.8rem', cursor: 'pointer', marginTop: '0.25rem' }}>Remove</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 700, color: '#B12704' }}>₹{item.price.toLocaleString()}</div>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                    {isApparelProduct(item.name) && (
+                      <button 
+                        onClick={() => tryOnProduct(item.name)} 
+                        style={{ 
+                          border: '1px solid #007185', 
+                          background: '#FFF', 
+                          color: '#007185', 
+                          fontSize: '0.75rem', 
+                          cursor: 'pointer',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontWeight: 600,
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.background = '#F0F8FF';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.background = '#FFF';
+                        }}
+                      >
+                        Try On
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => removeFromCart(idx)} 
+                      style={{ 
+                        border: 'none', 
+                        background: 'none', 
+                        color: '#C5221F', 
+                        fontSize: '0.75rem', 
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ))}

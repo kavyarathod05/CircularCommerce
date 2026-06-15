@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { SectionLoader, InlineSpinner } from '../components/Loader';
 
 type VtoResult = {
@@ -56,7 +57,8 @@ function FitScoreCard({ result }: { result: VtoResult }) {
 }
 
 export default function VTOView() {
-  const { userRole, activeTab, catalogItems } = useAppContext();
+  const { userRole, activeTab, catalogItems, selectedVTOProduct, setSelectedVTOProduct } = useAppContext();
+  const { authFetch } = useAuth();
   const [selectedSku, setSelectedSku] = useState('');
   const [userImage, setUserImage] = useState<string | null>(null);
   const [userFile, setUserFile] = useState<File | null>(null);
@@ -152,7 +154,12 @@ export default function VTOView() {
 
       setStatusMsg('Generating virtual try-on...');
 
-      const resp = await fetch(`${mlApiUrl}/api/vto/generate`, { method: 'POST', body: formData });
+      // Use authFetch but remove Content-Type header for FormData (browser sets it with boundary)
+      const resp = await authFetch(`${mlApiUrl}/api/vto/generate`, { 
+        method: 'POST', 
+        body: formData,
+        headers: {} // Let browser set Content-Type with multipart boundary
+      });
       const json = await resp.json();
 
       if (json.status === 'success' && json.data) {
@@ -166,7 +173,7 @@ export default function VTOView() {
       setStatusMsg('Using fallback mode...');
       try {
         const b64 = userImage || (userFile ? await blobToDataUrl(userFile) : '');
-        const resp = await fetch(`${mlApiUrl}/api/v1/ml/vto/drape`, {
+        const resp = await authFetch(`${mlApiUrl}/api/v1/ml/vto/drape`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_image_base64: b64, clothing_sku: selectedSku }),
@@ -193,10 +200,14 @@ export default function VTOView() {
   }
 
   useEffect(() => {
-    if (catalogItems.length > 0 && !selectedSku) {
+    // If coming from cart with a selected product, use it
+    if (selectedVTOProduct && catalogItems.length > 0) {
+      setSelectedSku(selectedVTOProduct);
+      setSelectedVTOProduct(''); // Clear it so it doesn't persist
+    } else if (catalogItems.length > 0 && !selectedSku) {
       setSelectedSku(catalogItems[0].productId);
     }
-  }, [catalogItems, selectedSku]);
+  }, [catalogItems, selectedSku, selectedVTOProduct, setSelectedVTOProduct]);
 
   const previewUrl = vtoResult?.tryon_image_url || vtoResult?.draped_image_url;
 

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useAuth } from './context/AuthContext';
 import './FleetOptimizer.css';
 
 const ROUTE_COLORS = ['#137333','#FF9900','#007185','#C5221F','#8B5CF6','#EC4899','#14B8A6','#F59E0B','#6366F1','#EF4444'];
@@ -24,6 +25,7 @@ function latLngToXY(lat:number, lng:number, b:{minLat:number;maxLat:number;minLn
 }
 
 export default function FleetOptimizer() {
+  const { authFetch } = useAuth();
   const [numOrders, setNumOrders] = useState(20);
   const [costWeight, setCostWeight] = useState(0.6);
   const [gaGens, setGaGens] = useState(15);
@@ -34,7 +36,7 @@ export default function FleetOptimizer() {
   const run = async () => {
     setStatus('running'); setResult(null);
     try {
-      const res = await fetch(`${mlApi}/api/v1/fleet/optimize`, {
+      const res = await authFetch(`${mlApi}/api/v1/fleet/optimize`, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ num_orders:numOrders, cost_weight:costWeight, emission_weight:+(1-costWeight).toFixed(2), ga_generations:gaGens })
       });

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useAuth } from './context/AuthContext';
 import './UnitInventoryDashboard.css';
 
 interface RepairRecord {
@@ -29,6 +30,7 @@ const GRADE_COLORS: Record<string, { bg: string, text: string, border: string }>
 };
 
 export default function UnitInventoryDashboard() {
+  const { authFetch } = useAuth();
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
@@ -43,7 +45,7 @@ export default function UnitInventoryDashboard() {
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${mlApiUrl}/api/v1/inventory/units`);
+      const res = await authFetch(`${mlApiUrl}/api/v1/inventory/units`);
       const json = await res.json();
       if (json.status === 'success') {
         setUnits(json.data);
@@ -67,7 +69,7 @@ export default function UnitInventoryDashboard() {
     };
 
     try {
-      const res = await fetch(`${mlApiUrl}/api/v1/inventory/units/${selectedUnit.unit_id}/repair`, {
+      const res = await authFetch(`${mlApiUrl}/api/v1/inventory/units/${selectedUnit.unit_id}/repair`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
